@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Initialized Go port and extensive project documentation
+
 ## [0.66.0] - 2026-04-08
 
 ## [0.65.2] - 2026-04-06
