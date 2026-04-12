@@ -11,6 +11,7 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Port cross-provider message transformations to Go.
 - [x] Port basic Anthropic stream provider to Go.
 - [x] Port basic Google Gemini stream provider to Go.
+- [x] Port core AI API registry to Go.
 - [ ] Create testing harness in Go similar to the TypeScript suite.
 - [ ] Set up CI/CD workflows for the new Go project.
 - [ ] Update documentation to list the overall project structure, all submodules with their URLs, descriptions, versions, dates, and build numbers.

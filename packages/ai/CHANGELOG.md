@@ -4,6 +4,7 @@
 
 ### Added
 
+- Ported core API registry and provider detection logic to Go (`pkg/ai/registry.go`)
 - Ported base Google Gemini provider interfaces and options to Go (`pkg/ai/google.go`)
 - Ported base Anthropic messages provider interfaces and options to Go (`pkg/ai/anthropic.go`)
 - Ported cross-provider message transformation logic to Go (`pkg/ai/transform.go`)
