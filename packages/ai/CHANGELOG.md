@@ -4,6 +4,7 @@
 
 ### Added
 
+- Ported base Google Gemini provider interfaces and options to Go (`pkg/ai/google.go`)
 - Ported base Anthropic messages provider interfaces and options to Go (`pkg/ai/anthropic.go`)
 - Ported cross-provider message transformation logic to Go (`pkg/ai/transform.go`)
 - Ported base OpenAI Responses provider interfaces and options to Go (`pkg/ai/openai.go` and `pkg/ai/provider.go`)
