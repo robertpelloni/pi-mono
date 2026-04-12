@@ -4,6 +4,8 @@
 
 ### Added
 
+- Ported base OpenAI Responses provider interfaces and options to Go (`pkg/ai/openai.go` and `pkg/ai/provider.go`)
+- Ported AI types to Go (`pkg/ai/types.go`)
 - Initialized Go port and extensive project documentation
 
 ## [0.66.0] - 2026-04-08
