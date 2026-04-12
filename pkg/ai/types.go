@@ -24,6 +24,7 @@ const (
 	ProviderAnthropic     Provider = "anthropic"
 	ProviderGoogle        Provider = "google"
 	ProviderOpenAI        Provider = "openai"
+	ProviderAzureOpenAI   Provider = "azure-openai-responses"
 	ProviderGroq          Provider = "groq"
 	ProviderCerebras      Provider = "cerebras"
 	ProviderXAI           Provider = "xai"

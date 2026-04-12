@@ -36,10 +36,10 @@ type OpenAIResponsesOptions struct {
 
 // StreamOpenAIResponses is the StreamFunction implementation for the OpenAI Responses API.
 func StreamOpenAIResponses(model ModelInfo, context Context, options any) AssistantMessageEventStream {
-	// Cast options to OpenAIResponsesOptions, falling back to empty if not provided or wrong type
+	// Validate options type
 	_, ok := options.(OpenAIResponsesOptions)
-	if !ok {
-		_ = OpenAIResponsesOptions{}
+	if !ok && options != nil {
+		// Log or handle invalid options type if necessary in future implementations
 	}
 
 	stream := make(chan AssistantMessageEvent)

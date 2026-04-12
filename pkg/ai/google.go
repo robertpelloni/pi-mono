@@ -50,10 +50,10 @@ type GoogleVertexOptions struct {
 
 // StreamGoogle is the StreamFunction implementation for the Google Generative AI API.
 func StreamGoogle(model ModelInfo, context Context, options any) AssistantMessageEventStream {
-	// Cast options to GoogleOptions, falling back to empty if not provided or wrong type
+	// Validate options type
 	_, ok := options.(GoogleOptions)
-	if !ok {
-		_ = GoogleOptions{}
+	if !ok && options != nil {
+		// Log or handle invalid options type if necessary in future implementations
 	}
 
 	stream := make(chan AssistantMessageEvent)
@@ -82,10 +82,10 @@ func StreamGoogle(model ModelInfo, context Context, options any) AssistantMessag
 
 // StreamGoogleGeminiCli is the StreamFunction implementation for the Google Gemini internal CLI API.
 func StreamGoogleGeminiCli(model ModelInfo, context Context, options any) AssistantMessageEventStream {
-	// Cast options to GoogleGeminiCliOptions, falling back to empty if not provided or wrong type
+	// Validate options type
 	_, ok := options.(GoogleGeminiCliOptions)
-	if !ok {
-		_ = GoogleGeminiCliOptions{}
+	if !ok && options != nil {
+		// Log or handle invalid options type if necessary in future implementations
 	}
 
 	stream := make(chan AssistantMessageEvent)
@@ -114,10 +114,10 @@ func StreamGoogleGeminiCli(model ModelInfo, context Context, options any) Assist
 
 // StreamGoogleVertex is the StreamFunction implementation for the Google Vertex AI API.
 func StreamGoogleVertex(model ModelInfo, context Context, options any) AssistantMessageEventStream {
-	// Cast options to GoogleVertexOptions, falling back to empty if not provided or wrong type
+	// Validate options type
 	_, ok := options.(GoogleVertexOptions)
-	if !ok {
-		_ = GoogleVertexOptions{}
+	if !ok && options != nil {
+		// Log or handle invalid options type if necessary in future implementations
 	}
 
 	stream := make(chan AssistantMessageEvent)

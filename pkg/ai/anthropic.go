@@ -33,10 +33,10 @@ type AnthropicOptions struct {
 
 // StreamAnthropic is the StreamFunction implementation for the Anthropic Messages API.
 func StreamAnthropic(model ModelInfo, context Context, options any) AssistantMessageEventStream {
-	// Cast options to AnthropicOptions, falling back to empty if not provided or wrong type
+	// Validate options type
 	_, ok := options.(AnthropicOptions)
-	if !ok {
-		_ = AnthropicOptions{}
+	if !ok && options != nil {
+		// Log or handle invalid options type if necessary in future implementations
 	}
 
 	stream := make(chan AssistantMessageEvent)
