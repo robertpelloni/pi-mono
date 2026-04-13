@@ -4,6 +4,7 @@
 
 ### Added
 
+- Scaffolded Go port of `generate-models.ts` (`pkg/ai/scripts/generate_models.go`)
 - Ported models JSON registry loading logic to Go (`pkg/ai/models_registry.go`)
 - Ported model cost calculation and environment variable API key detection to Go (`pkg/ai/models.go`, `pkg/ai/env.go`)
 - Ported core API registry and provider detection logic to Go (`pkg/ai/registry.go`)
