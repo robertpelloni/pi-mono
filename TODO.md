@@ -6,6 +6,7 @@ This document contains individual features, bug fixes, and other fine details th
 
 - [ ] Add all specified submodules using `git submodule add` once the exact Git repository URLs are determined (many provided URLs were websites, not git repos).
   - [x] Aider (`submodules/aider`)
+  - [x] OpenCode CLI / Code CLI fork (`submodules/opencode-cli`)
 - [ ] Implement initial Go project structure (e.g., `cmd/`, `pkg/`, `internal/`).
 - [x] Port `packages/ai/src/types.ts` to Go interfaces and structs.
 - [x] Port basic OpenAI stream provider to Go.
