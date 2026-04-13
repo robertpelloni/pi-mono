@@ -1,0 +1,3 @@
+[submodule "submodules/aider"]
+	path = submodules/aider
+	url = https://github.com/paul-gauthier/aider.git
