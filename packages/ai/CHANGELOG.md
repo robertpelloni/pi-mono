@@ -4,6 +4,7 @@
 
 ### Added
 
+- Added Go unit tests for tool parsing logic (`pkg/ai/tools_test.go`)
 - Ported base tool structures to Go (`pkg/ai/tools.go`)
 - Scaffolded Go port of `generate-models.ts` (`pkg/ai/scripts/generate_models.go`)
 - Ported models JSON registry loading logic to Go (`pkg/ai/models_registry.go`)
