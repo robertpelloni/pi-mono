@@ -1,0 +1,6 @@
+[submodule "submodules/aider"]
+	path = submodules/aider
+	url = https://github.com/paul-gauthier/aider.git
+[submodule "submodules/opencode-cli"]
+	path = submodules/opencode-cli
+	url = https://github.com/just-every/code.git
