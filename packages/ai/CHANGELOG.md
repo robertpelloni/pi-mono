@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added
+
+- Scaffolded Go port of `generate-models.ts` (`pkg/ai/scripts/generate_models.go`)
+- Ported models JSON registry loading logic to Go (`pkg/ai/models_registry.go`)
+- Ported model cost calculation and environment variable API key detection to Go (`pkg/ai/models.go`, `pkg/ai/env.go`)
+- Ported core API registry and provider detection logic to Go (`pkg/ai/registry.go`)
+- Ported base Google Gemini provider interfaces and options to Go (`pkg/ai/google.go`)
+- Ported base Anthropic messages provider interfaces and options to Go (`pkg/ai/anthropic.go`)
+- Ported cross-provider message transformation logic to Go (`pkg/ai/transform.go`)
+- Ported base OpenAI Responses provider interfaces and options to Go (`pkg/ai/openai.go` and `pkg/ai/provider.go`)
+- Ported AI types to Go (`pkg/ai/types.go`)
+- Initialized Go port and extensive project documentation
+
 ## [0.66.0] - 2026-04-08
 
 ### Fixed
