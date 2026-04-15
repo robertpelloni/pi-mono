@@ -51,7 +51,8 @@ export class ToolExecutionComponent extends Container {
 		this.toolCallId = toolCallId;
 		this.args = args;
 		this.toolDefinition = toolDefinition;
-		this.builtInToolDefinition = allToolDefinitions[toolName as keyof typeof allToolDefinitions];
+		const factory = allToolDefinitions[toolName as keyof typeof allToolDefinitions];
+		this.builtInToolDefinition = typeof factory === "function" ? factory(cwd) : factory;
 		this.showImages = options.showImages ?? true;
 		this.ui = ui;
 		this.cwd = cwd;
