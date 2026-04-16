@@ -17,6 +17,8 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Port model pricing/cost calculations and API key env detection to Go.
 - [x] Port global models JSON registry logic to Go.
 - [x] Scaffold Go port of model generation script.
+- [x] Port internal tool structures for generic providers.
+- [x] Add Go unit tests for tool parsing.
 - [ ] Create testing harness in Go similar to the TypeScript suite.
 - [ ] Set up CI/CD workflows for the new Go project.
 - [ ] Update documentation to list the overall project structure, all submodules with their URLs, descriptions, versions, dates, and build numbers.
