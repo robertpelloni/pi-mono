@@ -130,14 +130,14 @@ func RegisterBuiltInAPIProviders() {
 
 	RegisterAPIProvider(APIProvider{
 		API:          ApiGoogleGeminiCLI,
-		Stream:       StreamGoogleGeminiCli,
-		StreamSimple: StreamGoogleGeminiCli, // Using same stub for now
+		Stream:       StreamGoogle,
+		StreamSimple: StreamGoogle, // Using same stub for now
 	}, "builtin")
 
 	RegisterAPIProvider(APIProvider{
 		API:          ApiGoogleVertex,
-		Stream:       StreamGoogleVertex,
-		StreamSimple: StreamGoogleVertex, // Using same stub for now
+		Stream:       StreamGoogle,
+		StreamSimple: StreamGoogle, // Using same stub for now
 	}, "builtin")
 
 	// Other providers like Mistral, Azure, Bedrock, etc. will be added here

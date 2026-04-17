@@ -1,3 +1,4 @@
+import { Type as t } from "@sinclair/typebox";
 import { z } from "zod";
 
 /**
@@ -29,8 +30,8 @@ export const claudeCodeBashSchema = z.object({
 	command: z.string().describe("The bash command to run."),
 });
 
-export const aiderRunCommandSchema = z.object({
-	cmd: z.string().describe("The command to run in the terminal"),
+export const aiderRunCommandSchema = t.Object({
+	cmd: t.String({ description: "The command to run in the terminal" }),
 });
 
 export const geminiShellSchema = z.object({
@@ -136,4 +137,27 @@ export const hermesSkillManageSchema = z.object({
 
 export const hermesWebSearchSchema = z.object({
 	query: z.string(),
+});
+
+
+// --- AIDER PARITY SCHEMAS ---
+
+export const aiderReplaceLinesSchema = t.Object({
+    explanation: t.String({ description: "Step by step plan for the changes to be made to the code" }),
+    edits: t.Array(t.Object({
+        path: t.String({ description: "Path of file to edit" }),
+        original_lines: t.Array(t.String(), { description: "A unique stretch of lines from the original file, including all whitespace, without skipping any lines" }),
+        updated_lines: t.Array(t.String(), { description: "New content to replace the `original_lines` with" }),
+    }))
+});
+
+// Aider also extensively uses Markdown fenced blocks for edits and commands.
+// Those are typically handled purely via prompt parsing rather than tool calls,
+// but the 'replace_lines' schema above maps exactly to Aider's 'editblock_func_coder' tool strategy.
+
+// --- OPEN INTERPRETER PARITY SCHEMAS ---
+
+export const openInterpreterExecuteSchema = t.Object({
+    language: t.String({ description: "The language to execute (python, bash, javascript)" }),
+    code: t.String({ description: "The code to execute" })
 });

@@ -16,10 +16,14 @@ This document contains major long-term structural plans for the project.
 
 ## Roadmap Steps
 - [x] Phase 1: Initialize Go project and establish documentation.
-- [ ] Phase 2: Create core Go architecture supporting multi-provider AI APIs (porting `@mariozechner/pi-ai`).
+- [x] Phase 2: Create core Go architecture supporting multi-provider AI APIs (porting `@mariozechner/pi-ai`).
 - [ ] Phase 3: Port agent runtime and state management (`@mariozechner/pi-agent-core`).
 - [ ] Phase 4: Port the interactive coding agent CLI (`@mariozechner/pi-coding-agent`).
 - [ ] Phase 5: Port TUI library (`@mariozechner/pi-tui`) and other packages.
 - [ ] Phase 6: Analyze and integrate the first batch of external submodules (e.g., Aider, Claude Code, Copilot CLI).
 - [ ] Phase 7: Clean room implementation of internal model tools (e.g., read file, grep, shell).
 - [ ] Phase 8: Develop native frontends.
+- [ ] Phase 2.1: Implement Go net/http SSE streaming clients for OpenAI, Anthropic, and Google in `pkg/ai/`.
+
+# IMPORTANT RE-EVALUATION
+- We must implement the Go HTTP Streaming Clients (`pkg/ai/openai.go`, etc) immediately in the next step, rather than just doing TS clean room tools.

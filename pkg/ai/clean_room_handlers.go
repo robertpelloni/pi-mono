@@ -1,10 +1,10 @@
 package ai
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
-	"encoding/json"
 	"strings"
 )
 

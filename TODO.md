@@ -26,3 +26,9 @@ This document contains individual features, bug fixes, and other fine details th
 ## TypeScript Parity Maintenance
 
 - [ ] Ensure any new features implemented in the Go port are also backported/implemented in the existing TypeScript version to retain 100% 1:1 feature parity.
+
+# Crucial Code Review Fixes (Next Session)
+1. **Pass SystemPrompts to API:** The Go HTTP implementations (`pkg/ai/openai.go`, `anthropic.go`, `google.go`) currently ignore `context.SystemPrompt`. This must be passed correctly into the request bodies so the agent actually follows its system instructions.
+2. **Handle Context Cancellation:** The `http.Request` instances in the Go provider ports must be tied to the `StreamOptions.AbortSignal` context so that network requests can be canceled gracefully without leaking goroutines.
+3. **Pass Tools to Models:** Ensure that `context.Tools` is correctly marshaled into the JSON structures for all three providers in the Go port.
+4. **Fix Ignored Errors:** Stop ignoring the second return value for `json.Marshal` and `http.NewRequest` in the Go HTTP implementations.
