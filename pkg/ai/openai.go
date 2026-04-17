@@ -3,22 +3,33 @@ package ai
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
-// Define basic JSON structures for OpenAI streaming
 type openAIMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+}
+
+type openAITool struct {
+	Type     string `json:"type"`
+	Function struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Parameters  any    `json:"parameters"`
+	} `json:"function"`
 }
 
 type openAIRequest struct {
 	Model    string          `json:"model"`
 	Messages []openAIMessage `json:"messages"`
 	Stream   bool            `json:"stream"`
+	Tools    []openAITool    `json:"tools,omitempty"`
 }
 
 type openAIStreamChunk struct {
@@ -30,8 +41,7 @@ type openAIStreamChunk struct {
 	} `json:"choices"`
 }
 
-// StreamOpenAIResponses implements standard net/http SSE logic for OpenAI
-func StreamOpenAIResponses(model ModelInfo, context Context, options any) AssistantMessageEventStream {
+func StreamOpenAIResponses(model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
 	stream := make(chan AssistantMessageEvent)
 
 	go func() {
@@ -45,9 +55,15 @@ func StreamOpenAIResponses(model ModelInfo, context Context, options any) Assist
 			return
 		}
 
-		// Map internal context to OpenAI messages
 		var reqMessages []openAIMessage
-		for _, genericMsg := range context.Messages {
+
+		// 1. Map System Prompt
+		if aiCtx.SystemPrompt != nil && *aiCtx.SystemPrompt != "" {
+			reqMessages = append(reqMessages, openAIMessage{Role: "system", Content: *aiCtx.SystemPrompt})
+		}
+
+		// 2. Map Messages
+		for _, genericMsg := range aiCtx.Messages {
 			content := ""
 			role := "user"
 
@@ -70,19 +86,88 @@ func StreamOpenAIResponses(model ModelInfo, context Context, options any) Assist
 			reqMessages = append(reqMessages, openAIMessage{Role: role, Content: content})
 		}
 
+		var reqTools []openAITool
+		for _, t := range aiCtx.Tools {
+			reqTools = append(reqTools, openAITool{
+				Type: "function",
+				Function: struct {
+					Name        string `json:"name"`
+					Description string `json:"description"`
+					Parameters  any    `json:"parameters"`
+				}{Name: t.Name, Description: t.Description, Parameters: t.Parameters},
+			})
+		}
+
 		reqBody := openAIRequest{
 			Model:    model.ID,
 			Messages: reqMessages,
 			Stream:   true,
+			Tools:    reqTools,
 		}
 
-		reqBytes, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(reqBytes))
+		reqBytes, err := json.Marshal(reqBody)
+		if err != nil {
+			errMsg := err.Error()
+			reason := StopReasonError
+			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			return
+		}
+
+		// Implement Cancel Context
+		reqCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		var opt StreamOptions
+		if o, ok := options.(StreamOptions); ok {
+			opt = o
+		} else if o, ok := options.(SimpleStreamOptions); ok {
+			opt = o.StreamOptions
+		}
+
+		if opt.AbortSignal != nil {
+			go func() {
+				select {
+				case <-opt.AbortSignal:
+					cancel()
+				case <-reqCtx.Done():
+				}
+			}()
+		}
+
+		req, err := http.NewRequestWithContext(reqCtx, "POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(reqBytes))
+		if err != nil {
+			errMsg := err.Error()
+			reason := StopReasonError
+			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			return
+		}
+
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 
 		client := &http.Client{}
-		resp, err := client.Do(req)
+
+		// Basic Retry Logic
+		var resp *http.Response
+		maxRetries := 3
+		for i := 0; i < maxRetries; i++ {
+			resp, err = client.Do(req)
+			if err != nil {
+				if reqCtx.Err() == context.Canceled {
+					reason := StopReasonAborted
+					stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}
+					return
+				}
+				break
+			}
+			if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+				resp.Body.Close()
+				time.Sleep(time.Duration(2<<i) * time.Second)
+				continue
+			}
+			break
+		}
+
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError

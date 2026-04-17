@@ -3,10 +3,12 @@ package ai
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type googleMessagePart struct {
@@ -18,8 +20,24 @@ type googleMessage struct {
 	Parts []googleMessagePart `json:"parts"`
 }
 
+type googleSystemInstruction struct {
+	Parts []googleMessagePart `json:"parts"`
+}
+
+type googleFunctionDeclaration struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Parameters  any    `json:"parameters"`
+}
+
+type googleTool struct {
+	FunctionDeclarations []googleFunctionDeclaration `json:"functionDeclarations"`
+}
+
 type googleRequest struct {
-	Contents []googleMessage `json:"contents"`
+	SystemInstruction *googleSystemInstruction `json:"systemInstruction,omitempty"`
+	Contents          []googleMessage          `json:"contents"`
+	Tools             []googleTool             `json:"tools,omitempty"`
 }
 
 type googleStreamChunk struct {
@@ -33,13 +51,7 @@ type googleStreamChunk struct {
 	} `json:"candidates"`
 }
 
-// GoogleOptions represents the specific options available when calling the Google API.
-type GoogleOptions struct {
-	StreamOptions
-}
-
-// StreamGoogle is the StreamFunction implementation for the Google API using SSE.
-func StreamGoogle(model ModelInfo, context Context, options any) AssistantMessageEventStream {
+func StreamGoogle(model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
 	stream := make(chan AssistantMessageEvent)
 
 	go func() {
@@ -54,9 +66,16 @@ func StreamGoogle(model ModelInfo, context Context, options any) AssistantMessag
 		}
 
 		var reqMessages []googleMessage
-		for _, genericMsg := range context.Messages {
-			content := ""
+		var sysInst *googleSystemInstruction
 
+		if aiCtx.SystemPrompt != nil && *aiCtx.SystemPrompt != "" {
+			sysInst = &googleSystemInstruction{
+				Parts: []googleMessagePart{{Text: *aiCtx.SystemPrompt}},
+			}
+		}
+
+		for _, genericMsg := range aiCtx.Messages {
+			content := ""
 			switch msg := genericMsg.(type) {
 			case UserMessage:
 				for _, pt := range msg.Content {
@@ -81,18 +100,86 @@ func StreamGoogle(model ModelInfo, context Context, options any) AssistantMessag
 			}
 		}
 
-		reqBody := googleRequest{
-			Contents: reqMessages,
+		var reqFuncs []googleFunctionDeclaration
+		for _, t := range aiCtx.Tools {
+			reqFuncs = append(reqFuncs, googleFunctionDeclaration{
+				Name:        t.Name,
+				Description: t.Description,
+				Parameters:  t.Parameters,
+			})
+		}
+		var reqTools []googleTool
+		if len(reqFuncs) > 0 {
+			reqTools = append(reqTools, googleTool{FunctionDeclarations: reqFuncs})
 		}
 
-		reqBytes, _ := json.Marshal(reqBody)
-		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s", model.ID, apiKey)
+		reqBody := googleRequest{
+			SystemInstruction: sysInst,
+			Contents:          reqMessages,
+			Tools:             reqTools,
+		}
 
-		req, _ := http.NewRequest("POST", url, bytes.NewBuffer(reqBytes))
+		reqBytes, err := json.Marshal(reqBody)
+		if err != nil {
+			errMsg := err.Error()
+			reason := StopReasonError
+			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			return
+		}
+
+		reqCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		var opt StreamOptions
+		if o, ok := options.(StreamOptions); ok {
+			opt = o
+		} else if o, ok := options.(GoogleOptions); ok {
+			opt = o.StreamOptions
+		}
+
+		if opt.AbortSignal != nil {
+			go func() {
+				select {
+				case <-opt.AbortSignal:
+					cancel()
+				case <-reqCtx.Done():
+				}
+			}()
+		}
+
+		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s", model.ID, apiKey)
+		req, err := http.NewRequestWithContext(reqCtx, "POST", url, bytes.NewBuffer(reqBytes))
+		if err != nil {
+			errMsg := err.Error()
+			reason := StopReasonError
+			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			return
+		}
+
 		req.Header.Set("Content-Type", "application/json")
 
 		client := &http.Client{}
-		resp, err := client.Do(req)
+
+		var resp *http.Response
+		maxRetries := 3
+		for i := 0; i < maxRetries; i++ {
+			resp, err = client.Do(req)
+			if err != nil {
+				if reqCtx.Err() == context.Canceled {
+					reason := StopReasonAborted
+					stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}
+					return
+				}
+				break
+			}
+			if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+				resp.Body.Close()
+				time.Sleep(time.Duration(2<<i) * time.Second)
+				continue
+			}
+			break
+		}
+
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError
@@ -148,4 +235,9 @@ func StreamGoogle(model ModelInfo, context Context, options any) AssistantMessag
 	}()
 
 	return stream
+}
+
+// GoogleOptions represents the specific options available when calling the Google API.
+type GoogleOptions struct {
+	StreamOptions
 }

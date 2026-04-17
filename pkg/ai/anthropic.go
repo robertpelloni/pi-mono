@@ -3,15 +3,23 @@ package ai
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type anthropicMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+}
+
+type anthropicTool struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	InputSchema any    `json:"input_schema"`
 }
 
 type anthropicRequest struct {
@@ -20,6 +28,7 @@ type anthropicRequest struct {
 	System    string             `json:"system,omitempty"`
 	Stream    bool               `json:"stream"`
 	MaxTokens int                `json:"max_tokens"`
+	Tools     []anthropicTool    `json:"tools,omitempty"`
 }
 
 type anthropicStreamChunk struct {
@@ -30,13 +39,7 @@ type anthropicStreamChunk struct {
 	} `json:"delta"`
 }
 
-// AnthropicOptions represents the specific options available when calling the Anthropic API.
-type AnthropicOptions struct {
-	StreamOptions
-}
-
-// StreamAnthropic is the StreamFunction implementation for the Anthropic API using SSE.
-func StreamAnthropic(model ModelInfo, context Context, options any) AssistantMessageEventStream {
+func StreamAnthropic(model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
 	stream := make(chan AssistantMessageEvent)
 
 	go func() {
@@ -53,9 +56,12 @@ func StreamAnthropic(model ModelInfo, context Context, options any) AssistantMes
 		var reqMessages []anthropicMessage
 		var systemPrompt string
 
-		for _, genericMsg := range context.Messages {
-			content := ""
+		if aiCtx.SystemPrompt != nil {
+			systemPrompt = *aiCtx.SystemPrompt
+		}
 
+		for _, genericMsg := range aiCtx.Messages {
+			content := ""
 			switch msg := genericMsg.(type) {
 			case UserMessage:
 				for _, pt := range msg.Content {
@@ -64,7 +70,6 @@ func StreamAnthropic(model ModelInfo, context Context, options any) AssistantMes
 					}
 				}
 				reqMessages = append(reqMessages, anthropicMessage{Role: "user", Content: content})
-
 			case AssistantMessage:
 				for _, pt := range msg.Content {
 					if txt, ok := pt.(TextContent); ok {
@@ -75,22 +80,84 @@ func StreamAnthropic(model ModelInfo, context Context, options any) AssistantMes
 			}
 		}
 
+		var reqTools []anthropicTool
+		for _, t := range aiCtx.Tools {
+			reqTools = append(reqTools, anthropicTool{
+				Name:        t.Name,
+				Description: t.Description,
+				InputSchema: t.Parameters,
+			})
+		}
+
 		reqBody := anthropicRequest{
 			Model:     model.ID,
 			Messages:  reqMessages,
 			System:    strings.TrimSpace(systemPrompt),
 			Stream:    true,
-			MaxTokens: 4096, // required field by anthropic
+			MaxTokens: 4096,
+			Tools:     reqTools,
 		}
 
-		reqBytes, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", bytes.NewBuffer(reqBytes))
+		reqBytes, err := json.Marshal(reqBody)
+		if err != nil {
+			errMsg := err.Error()
+			reason := StopReasonError
+			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			return
+		}
+
+		reqCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		var opt StreamOptions
+		if o, ok := options.(StreamOptions); ok {
+			opt = o
+		}
+
+		if opt.AbortSignal != nil {
+			go func() {
+				select {
+				case <-opt.AbortSignal:
+					cancel()
+				case <-reqCtx.Done():
+				}
+			}()
+		}
+
+		req, err := http.NewRequestWithContext(reqCtx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewBuffer(reqBytes))
+		if err != nil {
+			errMsg := err.Error()
+			reason := StopReasonError
+			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			return
+		}
+
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("x-api-key", apiKey)
 		req.Header.Set("anthropic-version", "2023-06-01")
 
 		client := &http.Client{}
-		resp, err := client.Do(req)
+
+		var resp *http.Response
+		maxRetries := 3
+		for i := 0; i < maxRetries; i++ {
+			resp, err = client.Do(req)
+			if err != nil {
+				if reqCtx.Err() == context.Canceled {
+					reason := StopReasonAborted
+					stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}
+					return
+				}
+				break
+			}
+			if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+				resp.Body.Close()
+				time.Sleep(time.Duration(2<<i) * time.Second)
+				continue
+			}
+			break
+		}
+
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError
