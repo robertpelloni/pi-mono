@@ -44,7 +44,11 @@ type googleStreamChunk struct {
 	Candidates []struct {
 		Content struct {
 			Parts []struct {
-				Text string `json:"text"`
+				Text         string `json:"text,omitempty"`
+				FunctionCall *struct {
+					Name string         `json:"name"`
+					Args map[string]any `json:"args"`
+				} `json:"functionCall,omitempty"`
 			} `json:"parts"`
 		} `json:"content"`
 		FinishReason string `json:"finishReason,omitempty"`
@@ -213,6 +217,26 @@ func StreamGoogle(model ModelInfo, aiCtx Context, options any) AssistantMessageE
 				if len(chunk.Candidates) > 0 {
 					if len(chunk.Candidates[0].Content.Parts) > 0 {
 						delta := chunk.Candidates[0].Content.Parts[0].Text
+						if chunk.Candidates[0].Content.Parts[0].FunctionCall != nil {
+							fc := chunk.Candidates[0].Content.Parts[0].FunctionCall
+							// Google returns whole blobs in stream usually, so we trigger start and delta together
+							stream <- AssistantMessageEvent{
+								Type: EventToolCallStart,
+								ToolCall: &ToolCall{
+									ID:   "call_google_generated", // Google doesn't use Call IDs consistently natively
+									Name: fc.Name,
+								},
+							}
+
+							if argBytes, err := json.Marshal(fc.Args); err == nil {
+								argStr := string(argBytes)
+								stream <- AssistantMessageEvent{
+									Type:  EventToolCallDelta,
+									Delta: &argStr,
+								}
+							}
+						}
+
 						if delta != "" {
 							stream <- AssistantMessageEvent{
 								Type:  EventTextDelta,

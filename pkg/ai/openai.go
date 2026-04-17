@@ -35,7 +35,16 @@ type openAIRequest struct {
 type openAIStreamChunk struct {
 	Choices []struct {
 		Delta struct {
-			Content string `json:"content"`
+			Content   string `json:"content"`
+			ToolCalls []struct {
+				Index    int    `json:"index"`
+				ID       string `json:"id"`
+				Type     string `json:"type"`
+				Function struct {
+					Name      string `json:"name"`
+					Arguments string `json:"arguments"`
+				} `json:"function"`
+			} `json:"tool_calls"`
 		} `json:"delta"`
 		FinishReason *string `json:"finish_reason"`
 	} `json:"choices"`
@@ -207,6 +216,32 @@ func StreamOpenAIResponses(model ModelInfo, aiCtx Context, options any) Assistan
 						stream <- AssistantMessageEvent{
 							Type:  EventTextDelta,
 							Delta: &delta,
+						}
+					}
+
+					if len(chunk.Choices[0].Delta.ToolCalls) > 0 {
+						tc := chunk.Choices[0].Delta.ToolCalls[0]
+
+						// Start
+						if tc.ID != "" && tc.Function.Name != "" {
+							name := tc.Function.Name
+							id := tc.ID
+							stream <- AssistantMessageEvent{
+								Type: EventToolCallStart,
+								ToolCall: &ToolCall{
+									ID:   id,
+									Name: name,
+								},
+							}
+						}
+
+						// Delta
+						if tc.Function.Arguments != "" {
+							args := tc.Function.Arguments
+							stream <- AssistantMessageEvent{
+								Type:  EventToolCallDelta,
+								Delta: &args,
+							}
 						}
 					}
 

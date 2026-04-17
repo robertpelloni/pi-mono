@@ -28,4 +28,4 @@ This document contains individual features, bug fixes, and other fine details th
 - [ ] Ensure any new features implemented in the Go port are also backported/implemented in the existing TypeScript version to retain 100% 1:1 feature parity.
 
 # Crucial Code Review Fixes (Next Session)
-1. **Implement Tool Call Extraction in Go Streams:** The HTTP streaming chunks (`openAIStreamChunk`, `anthropicStreamChunk`, `googleStreamChunk`) currently only extract text deltas. We need to expand these structs to parse `tool_calls`/`tool_use` JSON blobs from the SSE streams and push `EventToolCallStart`/`EventToolCallDelta`/`EventToolCallEnd` events into the `AssistantMessageEventStream`.
+- [x] Implement Tool Call Extraction in Go Streams The HTTP streaming chunks (`openAIStreamChunk`, `anthropicStreamChunk`, `googleStreamChunk`) currently only extract text deltas. We need to expand these structs to parse `tool_calls`/`tool_use` JSON blobs from the SSE streams and push `EventToolCallStart`/`EventToolCallDelta`/`EventToolCallEnd` events into the `AssistantMessageEventStream`.

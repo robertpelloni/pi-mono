@@ -34,9 +34,16 @@ type anthropicRequest struct {
 type anthropicStreamChunk struct {
 	Type  string `json:"type"`
 	Delta struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
+		Type        string `json:"type"`
+		Text        string `json:"text"`
+		PartialJson string `json:"partial_json,omitempty"`
 	} `json:"delta"`
+	ContentBlock *struct {
+		Type  string          `json:"type"`
+		ID    string          `json:"id,omitempty"`
+		Name  string          `json:"name,omitempty"`
+		Input json.RawMessage `json:"input,omitempty"`
+	} `json:"content_block,omitempty"`
 }
 
 func StreamAnthropic(model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
@@ -193,6 +200,23 @@ func StreamAnthropic(model ModelInfo, aiCtx Context, options any) AssistantMessa
 						stream <- AssistantMessageEvent{
 							Type:  EventTextDelta,
 							Delta: &chunk.Delta.Text,
+						}
+					}
+				} else if chunk.Type == "content_block_start" && chunk.ContentBlock != nil && chunk.ContentBlock.Type == "tool_use" {
+					name := chunk.ContentBlock.Name
+					id := chunk.ContentBlock.ID
+					stream <- AssistantMessageEvent{
+						Type: EventToolCallStart,
+						ToolCall: &ToolCall{
+							ID:   id,
+							Name: name,
+						},
+					}
+				} else if chunk.Type == "content_block_delta" && chunk.Delta.Type == "input_json_delta" {
+					if chunk.Delta.PartialJson != "" {
+						stream <- AssistantMessageEvent{
+							Type:  EventToolCallDelta,
+							Delta: &chunk.Delta.PartialJson,
 						}
 					}
 				} else if chunk.Type == "message_stop" {

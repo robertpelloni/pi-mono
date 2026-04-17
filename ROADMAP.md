@@ -23,3 +23,4 @@ This document contains major long-term structural plans for the project.
 - [ ] Phase 6: Analyze and integrate the first batch of external submodules (e.g., Aider, Claude Code, Copilot CLI).
 - [ ] Phase 7: Clean room implementation of internal model tools (e.g., read file, grep, shell).
 - [ ] Phase 8: Develop native frontends.
+- [ ] Phase 2.2: Ensure robust error recovery during SSE streaming (network dropping, JSON chunk truncation).
