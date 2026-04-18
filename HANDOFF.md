@@ -5,12 +5,12 @@
 - Added the target submodules (`aider`, `hermes-agent`, `open-interpreter`, `goose`, `vscode-copilot-release`, `ollama`, `ii-agent`).
 - Implemented "Total Assimilation" 1:1 Clean Room tools inside TypeScript.
 - The `net/http` Server-Sent Events stream implementations for Go (`pkg/ai/openai.go`, `anthropic.go`, `google.go`) are fully complete. They successfully parse text blocks and tool JSON blocks, handle context cancellation, implement exponential backoff retry loops, and serialize full multi-turn conversational history including tool results.
-- Resolved the critical code review bug: `pkg/agent/agent.go` now correctly accumulates streaming events (`EventTextDelta`, `EventToolCallDelta`) into a `finalMsg`, which is appended to the agent's state memory upon turn completion.
+- `pkg/agent/agent.go` now correctly accumulates streaming events (`EventTextDelta`, `EventToolCallDelta`) into a `finalMsg`.
+- The execution loop (`runLoop` in `pkg/agent/agent.go`) is complete! When `finalMsg` contains a `ToolCall`, the agent matches it against `a.tools`, invokes the Go `Execute` function (which leverages the `FileMutationQueue`), streams `EventToolExecutionStart` and `EventToolExecutionEnd` updates, and appends the result as a `ToolResultMessage` to `a.messages` before recursively continuing the turn.
 
 ## Urgent Constraints & Next Steps
-1. **Tool Execution Logic (Phase 3)**: The agent loop (`runLoop` in `pkg/agent/agent.go`) successfully streams and parses tool calls from the AI providers, but currently stops and emits `EventTurnEnd` after generation.
-   - The next session MUST implement the execution loop: When `finalMsg` contains a `ToolCall`, the agent must match it against `a.tools`, invoke the Go `Execute` function (which leverages the `FileMutationQueue`), and append the result as a `ToolResultMessage` to `a.messages` before recursively calling the provider again to continue the turn.
-   - Look at `packages/agent/src/agent-loop.ts` for the TypeScript reference on how tool execution phases are structured (e.g. parallel vs sequential execution).
+1. **Fix Context Cancellation Goroutine Leak (Phase 3.1)**: See `TODO.md`. The `runLoop` cancels context gracefully, but the stream goroutines in the `pkg/ai` providers block forever trying to send events if the loop has exited. Fix this by passing `ctx context.Context` explicitly to `StreamFunction` and tying it directly into the `http.NewRequestWithContext`.
+2. **Move to Phase 4 (CLI & Native Implementations)**: Start porting the core tool definitions natively to Go inside `cmd/pi/` or a new `pkg/tools/` directory (e.g. implementing the robust logic for `read`, `bash`, `edit`, `write` identical to `packages/coding-agent/src/core/tools/`).
 
 ## Strict Rules
 - *Never execute commands that taskkill all node processes.*
