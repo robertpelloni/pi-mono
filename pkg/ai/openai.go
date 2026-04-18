@@ -35,7 +35,8 @@ type openAIRequest struct {
 type openAIStreamChunk struct {
 	Choices []struct {
 		Delta struct {
-			Content   string `json:"content"`
+			Role      string `json:"role,omitempty"`
+			Content   string `json:"content,omitempty"`
 			ToolCalls []struct {
 				Index    int    `json:"index"`
 				ID       string `json:"id"`
@@ -220,6 +221,13 @@ func StreamOpenAIResponses(model ModelInfo, aiCtx Context, options any) Assistan
 			if err := json.Unmarshal([]byte(data), &chunk); err == nil {
 				if len(chunk.Choices) > 0 {
 					delta := chunk.Choices[0].Delta.Content
+					role := chunk.Choices[0].Delta.Role
+					if role != "" {
+						stream <- AssistantMessageEvent{
+							Type: EventStart,
+						}
+					}
+
 					if delta != "" {
 						stream <- AssistantMessageEvent{
 							Type:  EventTextDelta,

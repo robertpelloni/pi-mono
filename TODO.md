@@ -29,3 +29,9 @@ This document contains individual features, bug fixes, and other fine details th
 
 # Crucial Code Review Fixes (Next Session)
 - [x] Implement Tool Call Extraction in Go Streams The HTTP streaming chunks (`openAIStreamChunk`, `anthropicStreamChunk`, `googleStreamChunk`) currently only extract text deltas. We need to expand these structs to parse `tool_calls`/`tool_use` JSON blobs from the SSE streams and push `EventToolCallStart`/`EventToolCallDelta`/`EventToolCallEnd` events into the `AssistantMessageEventStream`.
+
+
+# Crucial Code Review Fixes (Next Session)
+1. **Fix Missing Tool Events:** Emit `EventToolCallEnd` appropriately in the SSE parsing loops for OpenAI, Anthropic, and Google providers in `pkg/ai/`.
+2. **Fix Message History Payload Mapping:** The Go HTTP streams currently ignore `ToolResultMessage` and `ToolCall` objects when iterating over `aiCtx.Messages`. They also force `Content` to be a string instead of an array. Expand `openAIMessage`, `anthropicMessage`, and `googleMessage` to support tool call IDs, tool arguments, and multimodal content arrays, then properly map them from the generic `ai.Message` structs so the AI has multi-turn tool history.
+3. **Accumulate Stream State in `agent.go`:** The stream loop in `runLoop` of `pkg/agent/agent.go` currently expects `EventDone` to contain a fully populated `event.Message` to append to `a.messages`. Because the streams don't manually accumulate the text and tool deltas before exiting, `finalMsg` is `nil` and the assistant's turn is lost. We need to implement an accumulator that reconstructs the full `AssistantMessage` from the deltas, and assigns it to `finalMsg` upon completion.
