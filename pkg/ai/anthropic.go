@@ -147,7 +147,16 @@ func StreamAnthropic(model ModelInfo, aiCtx Context, options any) AssistantMessa
 
 		var resp *http.Response
 		maxRetries := 3
+
 		for i := 0; i < maxRetries; i++ {
+			// Recreate request inside loop to avoid consumed body errors
+			req, err = http.NewRequestWithContext(reqCtx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewBuffer(reqBytes))
+			if err == nil {
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("x-api-key", apiKey)
+				req.Header.Set("anthropic-version", "2023-06-01")
+			}
+
 			resp, err = client.Do(req)
 			if err != nil {
 				if reqCtx.Err() == context.Canceled {

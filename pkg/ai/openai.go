@@ -159,7 +159,15 @@ func StreamOpenAIResponses(model ModelInfo, aiCtx Context, options any) Assistan
 		// Basic Retry Logic
 		var resp *http.Response
 		maxRetries := 3
+
 		for i := 0; i < maxRetries; i++ {
+			// Recreate request inside loop to avoid consumed body errors
+			req, err = http.NewRequestWithContext(reqCtx, "POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(reqBytes))
+			if err == nil {
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("Authorization", "Bearer "+apiKey)
+			}
+
 			resp, err = client.Do(req)
 			if err != nil {
 				if reqCtx.Err() == context.Canceled {
