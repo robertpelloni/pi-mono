@@ -63,8 +63,8 @@ type googleStreamChunk struct {
 	} `json:"candidates"`
 }
 
-func StreamGoogle(model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
-	stream := make(chan AssistantMessageEvent)
+func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
+	stream := make(chan AssistantMessageEvent, 1000)
 
 	go func() {
 		defer close(stream)
@@ -165,7 +165,7 @@ func StreamGoogle(model ModelInfo, aiCtx Context, options any) AssistantMessageE
 			return
 		}
 
-		reqCtx, cancel := context.WithCancel(context.Background())
+		reqCtx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
 		var opt StreamOptions
