@@ -56,8 +56,8 @@ type anthropicStreamChunk struct {
 	} `json:"content_block,omitempty"`
 }
 
-func StreamAnthropic(model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
-	stream := make(chan AssistantMessageEvent)
+func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
+	stream := make(chan AssistantMessageEvent, 1000)
 
 	go func() {
 		defer close(stream)
@@ -149,7 +149,7 @@ func StreamAnthropic(model ModelInfo, aiCtx Context, options any) AssistantMessa
 			return
 		}
 
-		reqCtx, cancel := context.WithCancel(context.Background())
+		reqCtx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
 		var opt StreamOptions

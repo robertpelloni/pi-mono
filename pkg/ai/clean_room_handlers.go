@@ -29,10 +29,16 @@ func HandleUnifiedRead(unifiedArgs map[string]interface{}) (string, error) {
 	if o, ok := unifiedArgs["offset"].(float64); ok {
 		offset = int(o)
 	}
+	if offset < 0 {
+		offset = 0
+	}
 
 	limit := len(lines)
 	if l, ok := unifiedArgs["limit"].(float64); ok {
 		limit = int(l)
+	}
+	if limit < 0 {
+		limit = 0
 	}
 
 	start := offset
@@ -43,6 +49,9 @@ func HandleUnifiedRead(unifiedArgs map[string]interface{}) (string, error) {
 	end := start + limit
 	if end > len(lines) {
 		end = len(lines)
+	}
+	if end < start {
+		end = start
 	}
 
 	return strings.Join(lines[start:end], "\n"), nil

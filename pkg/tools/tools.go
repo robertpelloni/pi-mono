@@ -102,9 +102,14 @@ func BashTool(cwd string) agent.AgentTool {
 					ai.TextContent{Text: outputStr},
 				},
 				Details: map[string]interface{}{
-					"command":  command,
-					"isError":  isError,
-					"exitCode": cmd.ProcessState.ExitCode(),
+					"command": command,
+					"isError": isError,
+					"exitCode": func() int {
+						if cmd.ProcessState != nil {
+							return cmd.ProcessState.ExitCode()
+						}
+						return -1
+					}(),
 				},
 			}, nil
 		},
@@ -304,7 +309,7 @@ func GrepTool(cwd string) agent.AgentTool {
 
 			if err != nil {
 				// grep returns exit code 1 if nothing is found, which isn't really an "error"
-				if cmd.ProcessState.ExitCode() == 1 {
+				if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == 1 {
 					outputStr = "No matches found."
 				} else if outputStr == "" {
 					outputStr = err.Error()
