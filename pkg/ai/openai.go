@@ -64,8 +64,8 @@ type openAIStreamChunk struct {
 	} `json:"choices"`
 }
 
-func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
-	stream := make(chan AssistantMessageEvent, 1000)
+func StreamOpenAIResponses(model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
+	stream := make(chan AssistantMessageEvent)
 
 	go func() {
 		defer close(stream)
@@ -168,7 +168,7 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 		}
 
 		// Implement Cancel Context
-		reqCtx, cancel := context.WithCancel(ctx)
+		reqCtx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
 		var opt StreamOptions

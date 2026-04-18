@@ -1,7 +1,6 @@
 package ai
 
 import (
-	"context"
 	"fmt"
 	"sync"
 )
@@ -25,7 +24,7 @@ var (
 
 // wrapStream wraps a StreamFunction to validate the model API matches the registered API.
 func wrapStream(api Api, stream StreamFunction) StreamFunction {
-	return func(ctx context.Context, model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
+	return func(model ModelInfo, context Context, options any) AssistantMessageEventStream {
 		if model.API != api {
 			// In Go, since we can't easily throw an exception that fits into the stream protocol automatically,
 			// we return a stream that immediately emits an error event.
@@ -46,7 +45,7 @@ func wrapStream(api Api, stream StreamFunction) StreamFunction {
 			close(errStream)
 			return errStream
 		}
-		return stream(ctx, model, aiCtx, options)
+		return stream(model, context, options)
 	}
 }
 

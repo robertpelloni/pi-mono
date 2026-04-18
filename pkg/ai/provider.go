@@ -1,7 +1,5 @@
 package ai
 
-import "context"
-
 // AssistantMessageEventType represents the type of an event in the stream.
 type AssistantMessageEventType string
 
@@ -40,4 +38,4 @@ type AssistantMessageEventStream <-chan AssistantMessageEvent
 // StreamFunction represents the generic function signature for all AI provider streaming calls.
 // TOptions would typically be an interface in Go, but we pass any and rely on the provider implementation
 // to assert the correct options type (e.g., OpenAIResponsesOptions).
-type StreamFunction func(ctx context.Context, model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream
+type StreamFunction func(model ModelInfo, context Context, options any) AssistantMessageEventStream

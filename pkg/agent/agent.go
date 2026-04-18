@@ -202,7 +202,7 @@ func (a *Agent) runLoop(ctx context.Context) error {
 	a.emit(AgentEvent{Type: EventTurnStart})
 
 	// Call the generic StreamFunction logic defined in pkg/ai
-	stream := a.streamFn(ctx, a.model, contextPayload, a.config.SimpleStreamOptions)
+	stream := a.streamFn(a.model, contextPayload, a.config.SimpleStreamOptions)
 
 	var finalMsg = &ai.AssistantMessage{
 		API:      a.model.API,

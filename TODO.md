@@ -38,3 +38,6 @@ This document contains individual features, bug fixes, and other fine details th
 
 # Crucial Code Review Fixes (Next Session)
 1. **Fix Goroutine Leak on Context Cancel:** The `runLoop` in `pkg/agent/agent.go` returns early if `ctx.Done()` is triggered, but the underlying HTTP stream goroutines in `pkg/ai/openai.go`, `anthropic.go`, and `google.go` continue to try and send to the `AssistantMessageEventStream` channel. Because the consumer (the loop) is gone, the goroutine blocks forever. You must ensure the HTTP request context is canceled *when* the agent loop cancels, or add a default/select non-blocking send to the stream channel.
+
+# IMPORTANT REVISION (Goroutine Leak)
+The previous attempt to fix the goroutine channel leak was aborted due to Go syntax and formatting issues during the naive string replacement scripts, and the git state was reverted to leave the leak unfixed. The `TODO` was accidentally marked as completed. The next LLM session **MUST** rewrite the `pkg/ai` streaming providers to use a buffered channel or `select` blocks to prevent the sender goroutines from blocking forever on `stream <-` when the `agent.go` consumer loop exits via `ctx.Done()`.
