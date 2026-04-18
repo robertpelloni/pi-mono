@@ -11,9 +11,22 @@ import (
 	"time"
 )
 
+type openAIFunctionCall struct {
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"`
+}
+
+type openAIToolCall struct {
+	ID       string             `json:"id"`
+	Type     string             `json:"type"`
+	Function openAIFunctionCall `json:"function"`
+}
+
 type openAIMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role       string           `json:"role"`
+	Content    string           `json:"content"`
+	ToolCalls  []openAIToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string           `json:"tool_call_id,omitempty"`
 }
 
 type openAITool struct {
@@ -74,26 +87,57 @@ func StreamOpenAIResponses(model ModelInfo, aiCtx Context, options any) Assistan
 
 		// 2. Map Messages
 		for _, genericMsg := range aiCtx.Messages {
-			content := ""
-			role := "user"
-
 			switch msg := genericMsg.(type) {
 			case UserMessage:
-				role = "user"
+				content := ""
 				for _, pt := range msg.Content {
 					if txt, ok := pt.(TextContent); ok {
 						content += txt.Text
 					}
 				}
+				reqMessages = append(reqMessages, openAIMessage{Role: "user", Content: content})
 			case AssistantMessage:
-				role = "assistant"
+				content := ""
+				var toolCalls []openAIToolCall
+
+				for _, pt := range msg.Content {
+					if txt, ok := pt.(TextContent); ok {
+						content += txt.Text
+					} else if tc, ok := pt.(ToolCall); ok {
+						// OpenAI needs stringified JSON for arguments
+						argBytes, _ := json.Marshal(tc.Arguments)
+
+						toolCalls = append(toolCalls, openAIToolCall{
+							ID:   tc.ID,
+							Type: "function",
+							Function: openAIFunctionCall{
+								Name:      tc.Name,
+								Arguments: string(argBytes),
+							},
+						})
+					}
+				}
+
+				// OpenAI API strictness: if we have tool calls, content should ideally not be omitted, but can be empty string.
+				// However, if we use omitempty on string, it disappears.
+				reqMessages = append(reqMessages, openAIMessage{
+					Role:      "assistant",
+					Content:   content,
+					ToolCalls: toolCalls,
+				})
+			case ToolResultMessage:
+				content := ""
 				for _, pt := range msg.Content {
 					if txt, ok := pt.(TextContent); ok {
 						content += txt.Text
 					}
 				}
+				reqMessages = append(reqMessages, openAIMessage{
+					Role:       "tool",
+					Content:    content,
+					ToolCallID: msg.ToolCallID,
+				})
 			}
-			reqMessages = append(reqMessages, openAIMessage{Role: role, Content: content})
 		}
 
 		var reqTools []openAITool
@@ -258,6 +302,16 @@ func StreamOpenAIResponses(model ModelInfo, aiCtx Context, options any) Assistan
 								Type:  EventToolCallDelta,
 								Delta: &args,
 							}
+						}
+
+						// OpenAI specifies that when index increments or finish reason drops, the tool call is done,
+						// but practically we usually just wait for finish_reason == "tool_calls"
+					}
+
+					if chunk.Choices[0].FinishReason != nil {
+						reasonStr := *chunk.Choices[0].FinishReason
+						if reasonStr == "tool_calls" {
+							stream <- AssistantMessageEvent{Type: EventToolCallEnd}
 						}
 					}
 

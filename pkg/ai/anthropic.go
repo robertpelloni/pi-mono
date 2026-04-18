@@ -11,9 +11,19 @@ import (
 	"time"
 )
 
+type anthropicContent struct {
+	Type      string         `json:"type"`
+	Text      string         `json:"text,omitempty"`
+	ID        string         `json:"id,omitempty"`
+	Name      string         `json:"name,omitempty"`
+	Input     map[string]any `json:"input,omitempty"`
+	ToolUseID string         `json:"tool_use_id,omitempty"`
+	Content   string         `json:"content,omitempty"`
+}
+
 type anthropicMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role    string             `json:"role"`
+	Content []anthropicContent `json:"content"`
 }
 
 type anthropicTool struct {
@@ -68,22 +78,48 @@ func StreamAnthropic(model ModelInfo, aiCtx Context, options any) AssistantMessa
 		}
 
 		for _, genericMsg := range aiCtx.Messages {
-			content := ""
+			var blocks []anthropicContent
+
 			switch msg := genericMsg.(type) {
 			case UserMessage:
 				for _, pt := range msg.Content {
 					if txt, ok := pt.(TextContent); ok {
-						content += txt.Text
+						blocks = append(blocks, anthropicContent{Type: "text", Text: txt.Text})
 					}
 				}
-				reqMessages = append(reqMessages, anthropicMessage{Role: "user", Content: content})
+				reqMessages = append(reqMessages, anthropicMessage{Role: "user", Content: blocks})
+
 			case AssistantMessage:
+				for _, pt := range msg.Content {
+					if txt, ok := pt.(TextContent); ok {
+						blocks = append(blocks, anthropicContent{Type: "text", Text: txt.Text})
+					} else if tc, ok := pt.(ToolCall); ok {
+						blocks = append(blocks, anthropicContent{
+							Type:  "tool_use",
+							ID:    tc.ID,
+							Name:  tc.Name,
+							Input: tc.Arguments,
+						})
+					}
+				}
+				reqMessages = append(reqMessages, anthropicMessage{Role: "assistant", Content: blocks})
+
+			case ToolResultMessage:
+				// Anthropic sends tool results wrapped inside "user" messages
+				content := ""
 				for _, pt := range msg.Content {
 					if txt, ok := pt.(TextContent); ok {
 						content += txt.Text
 					}
 				}
-				reqMessages = append(reqMessages, anthropicMessage{Role: "assistant", Content: content})
+
+				blocks = append(blocks, anthropicContent{
+					Type:      "tool_result",
+					ToolUseID: msg.ToolCallID,
+					Content:   content,
+				})
+
+				reqMessages = append(reqMessages, anthropicMessage{Role: "user", Content: blocks})
 			}
 		}
 
@@ -228,6 +264,8 @@ func StreamAnthropic(model ModelInfo, aiCtx Context, options any) AssistantMessa
 							Delta: &chunk.Delta.PartialJson,
 						}
 					}
+				} else if chunk.Type == "content_block_stop" {
+					stream <- AssistantMessageEvent{Type: EventToolCallEnd}
 				} else if chunk.Type == "message_stop" {
 					reason := StopReasonStop
 					stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}

@@ -12,7 +12,15 @@ import (
 )
 
 type googleMessagePart struct {
-	Text string `json:"text"`
+	Text         string `json:"text,omitempty"`
+	FunctionCall *struct {
+		Name string         `json:"name"`
+		Args map[string]any `json:"args"`
+	} `json:"functionCall,omitempty"`
+	FunctionResponse *struct {
+		Name     string         `json:"name"`
+		Response map[string]any `json:"response"`
+	} `json:"functionResponse,omitempty"`
 }
 
 type googleMessage struct {
@@ -79,27 +87,53 @@ func StreamGoogle(model ModelInfo, aiCtx Context, options any) AssistantMessageE
 		}
 
 		for _, genericMsg := range aiCtx.Messages {
-			content := ""
 			switch msg := genericMsg.(type) {
 			case UserMessage:
+				var parts []googleMessagePart
 				for _, pt := range msg.Content {
 					if txt, ok := pt.(TextContent); ok {
-						content += txt.Text
+						parts = append(parts, googleMessagePart{Text: txt.Text})
 					}
 				}
-				reqMessages = append(reqMessages, googleMessage{
-					Role:  "user",
-					Parts: []googleMessagePart{{Text: content}},
-				})
+				reqMessages = append(reqMessages, googleMessage{Role: "user", Parts: parts})
+
 			case AssistantMessage:
+				var parts []googleMessagePart
+				for _, pt := range msg.Content {
+					if txt, ok := pt.(TextContent); ok {
+						parts = append(parts, googleMessagePart{Text: txt.Text})
+					} else if tc, ok := pt.(ToolCall); ok {
+						parts = append(parts, googleMessagePart{
+							FunctionCall: &struct {
+								Name string         `json:"name"`
+								Args map[string]any `json:"args"`
+							}{Name: tc.Name, Args: tc.Arguments},
+						})
+					}
+				}
+				reqMessages = append(reqMessages, googleMessage{Role: "model", Parts: parts})
+
+			case ToolResultMessage:
+				// Map text content payload over into the function response map
+				content := ""
 				for _, pt := range msg.Content {
 					if txt, ok := pt.(TextContent); ok {
 						content += txt.Text
 					}
 				}
+
+				respMap := map[string]any{
+					"content": content,
+				}
+
 				reqMessages = append(reqMessages, googleMessage{
-					Role:  "model",
-					Parts: []googleMessagePart{{Text: content}},
+					Role: "function", // Google uses 'function' role occasionally, or 'user' with FunctionResponse. The latter is standard for V1beta.
+					Parts: []googleMessagePart{{
+						FunctionResponse: &struct {
+							Name     string         `json:"name"`
+							Response map[string]any `json:"response"`
+						}{Name: msg.ToolName, Response: respMap},
+					}},
 				})
 			}
 		}
@@ -241,6 +275,8 @@ func StreamGoogle(model ModelInfo, aiCtx Context, options any) AssistantMessageE
 									Type:  EventToolCallDelta,
 									Delta: &argStr,
 								}
+
+								stream <- AssistantMessageEvent{Type: EventToolCallEnd}
 							}
 						}
 

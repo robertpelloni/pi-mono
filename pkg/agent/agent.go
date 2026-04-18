@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -203,7 +204,15 @@ func (a *Agent) runLoop(ctx context.Context) error {
 	// Call the generic StreamFunction logic defined in pkg/ai
 	stream := a.streamFn(a.model, contextPayload, a.config.SimpleStreamOptions)
 
-	var finalMsg *ai.AssistantMessage
+	var finalMsg = &ai.AssistantMessage{
+		API:      a.model.API,
+		Provider: a.model.Provider,
+		Model:    a.model.ID,
+		Content:  []ai.Content{},
+	}
+
+	var activeTextContent *ai.TextContent
+	var activeToolCall *ai.ToolCall
 
 	for event := range stream {
 		select {
@@ -212,13 +221,50 @@ func (a *Agent) runLoop(ctx context.Context) error {
 		default:
 		}
 
-		if event.Type == ai.EventDone {
-			// Stream ended successfully
-			finalMsg = event.Message
-			if event.Reason != nil && *event.Reason == ai.StopReasonStop {
-				break
+		switch event.Type {
+		case ai.EventTextDelta:
+			if event.Delta != nil {
+				if activeTextContent == nil {
+					activeTextContent = &ai.TextContent{Text: *event.Delta}
+					finalMsg.Content = append(finalMsg.Content, *activeTextContent)
+				} else {
+					// We need to update the last element in Content
+					activeTextContent.Text += *event.Delta
+					finalMsg.Content[len(finalMsg.Content)-1] = *activeTextContent
+				}
 			}
-		} else if event.Type == ai.EventError {
+		case ai.EventToolCallStart:
+			if event.ToolCall != nil {
+				activeTextContent = nil
+
+				activeToolCall = &ai.ToolCall{
+					ID:        event.ToolCall.ID,
+					Name:      event.ToolCall.Name,
+					Arguments: make(map[string]any),
+				}
+
+				activeToolCall.Arguments["raw_args"] = ""
+				finalMsg.Content = append(finalMsg.Content, *activeToolCall)
+			}
+		case ai.EventToolCallDelta:
+			if activeToolCall != nil && event.Delta != nil {
+				if currentArgs, ok := activeToolCall.Arguments["raw_args"].(string); ok {
+					activeToolCall.Arguments["raw_args"] = currentArgs + *event.Delta
+					finalMsg.Content[len(finalMsg.Content)-1] = *activeToolCall
+				}
+			}
+		case ai.EventToolCallEnd:
+			if activeToolCall != nil {
+				if rawArgs, ok := activeToolCall.Arguments["raw_args"].(string); ok && rawArgs != "" {
+					var parsedArgs map[string]any
+					if err := json.Unmarshal([]byte(rawArgs), &parsedArgs); err == nil {
+						activeToolCall.Arguments = parsedArgs
+						finalMsg.Content[len(finalMsg.Content)-1] = *activeToolCall
+					}
+				}
+				activeToolCall = nil
+			}
+		case ai.EventError:
 			a.mu.Lock()
 			if event.Error != nil && event.Error.ErrorMessage != nil {
 				a.errorMessage = *event.Error.ErrorMessage
@@ -227,16 +273,34 @@ func (a *Agent) runLoop(ctx context.Context) error {
 			}
 			a.mu.Unlock()
 			return fmt.Errorf("API stream error: %s", a.errorMessage)
-		} else {
-			// Update intermediate state and emit
-			a.mu.Lock()
-			a.streamingMessage = event.Partial
-			a.mu.Unlock()
-			a.emit(AgentEvent{Type: EventMessageUpdate, AssistantMessageEvent: &event})
+		case ai.EventDone:
+			if event.Reason != nil {
+				finalMsg.StopReason = *event.Reason
+			}
+
+			if activeToolCall != nil {
+				if rawArgs, ok := activeToolCall.Arguments["raw_args"].(string); ok && rawArgs != "" {
+					var parsedArgs map[string]any
+					if err := json.Unmarshal([]byte(rawArgs), &parsedArgs); err == nil {
+						activeToolCall.Arguments = parsedArgs
+						finalMsg.Content[len(finalMsg.Content)-1] = *activeToolCall
+					}
+				}
+				activeToolCall = nil
+			}
+
+			goto StreamComplete
 		}
+
+		eventCopy := event
+		eventCopy.Partial = finalMsg
+		a.mu.Lock()
+		a.streamingMessage = finalMsg
+		a.mu.Unlock()
+		a.emit(AgentEvent{Type: EventMessageUpdate, AssistantMessageEvent: &eventCopy})
 	}
 
-	// Assuming we successfully parsed the message
+StreamComplete:
 	if finalMsg != nil {
 		a.mu.Lock()
 		a.messages = append(a.messages, *finalMsg)
