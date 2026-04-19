@@ -423,36 +423,31 @@ var HermesWebSearch = CleanRoomToolSchema{
 	},
 }
 
-// --- GOOSE PARITY SCHEMAS ---
+// --- OPEN INTERPRETER PARITY SCHEMAS ---
 
-var GooseDeveloperShell = CleanRoomToolSchema{
-	Name:        "developer__shell",
-	Description: "Execute a shell command in the user's default shell in the current dir.",
+var OpenInterpreterComputerUse = CleanRoomToolSchema{
+	Name:        "computer",
+	Description: "Interact with the primary monitor's screen, keyboard, and mouse.",
 	InputSchema: map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
-			"command": map[string]interface{}{
-				"type":        "string",
-				"description": "The shell command to run.",
+			"action": map[string]interface{}{
+				"type": "string",
+				"enum": []string{
+					"key", "type", "mouse_move", "left_click", "left_click_drag",
+					"right_click", "middle_click", "double_click", "screenshot", "cursor_position",
+				},
 			},
-			"timeout_secs": map[string]interface{}{
-				"type": "integer",
-			},
-		},
-		"required": []string{"command"},
-	},
-}
-
-var GooseFinalOutput = CleanRoomToolSchema{
-	Name:        "recipe__final_output",
-	Description: "Output the final result for the user.",
-	InputSchema: map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"message": map[string]interface{}{
+			"text": map[string]interface{}{
 				"type": "string",
 			},
+			"coordinate": map[string]interface{}{
+				"type": "array",
+				"items": map[string]interface{}{
+					"type": "number",
+				},
+			},
 		},
-		"required": []string{"message"},
+		"required": []string{"action"},
 	},
 }

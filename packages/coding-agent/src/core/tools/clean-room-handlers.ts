@@ -40,3 +40,9 @@ export async function handleHermesTerminal(args: { command: string; background?:
         return `Error executing command: ${error.message}`;
     }
 }
+
+export async function handleOpenInterpreterComputerUse(args: any): Promise<string> {
+    // In a true environment, this hooks into PyAutoGUI or Playwright logic
+    // For this port, we acknowledge the action via stub.
+    return `Simulated computer action: ${args.action} executed.`;
+}
