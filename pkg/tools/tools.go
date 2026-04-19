@@ -380,3 +380,34 @@ func FindTool(cwd string) agent.AgentTool {
 		},
 	}
 }
+
+// GooseDeveloperShellTool returns the core AgentTool alias for Goose developer__shell.
+func GooseDeveloperShellTool(cwd string) agent.AgentTool {
+	baseDef := BashTool(cwd)
+	baseDef.Name = "developer__shell"
+	baseDef.Label = "developer__shell"
+	baseDef.Description = "Run shell commands (Goose format)"
+	baseDef.Parameters = ai.GooseDeveloperShell.InputSchema
+	return baseDef
+}
+
+// GooseFinalOutputTool returns the core AgentTool alias for Goose recipe__final_output.
+func GooseFinalOutputTool() agent.AgentTool {
+	return agent.AgentTool{
+		Name:        "recipe__final_output",
+		Label:       "recipe__final_output",
+		Description: "Output the final result for the user (Goose format)",
+		Parameters:  ai.GooseFinalOutput.InputSchema,
+		Execute: func(ctx context.Context, toolCallId string, params map[string]any, onUpdate agent.AgentToolUpdateCallback) (agent.AgentToolResult, error) {
+			msg, _ := params["message"].(string)
+			return agent.AgentToolResult{
+				Content: []ai.Content{
+					ai.TextContent{Text: msg},
+				},
+				Details: map[string]interface{}{
+					"finalOutput": msg,
+				},
+			}, nil
+		},
+	}
+}

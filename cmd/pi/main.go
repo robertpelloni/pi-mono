@@ -32,6 +32,8 @@ func main() {
 		tools.LsTool(cwd),
 		tools.GrepTool(cwd),
 		tools.FindTool(cwd),
+		tools.GooseDeveloperShellTool(cwd),
+		tools.GooseFinalOutputTool(),
 	}
 
 	agentLoop := agent.NewAgent(modelInfo, toolList, ai.StreamOpenAIResponses, agent.AgentLoopConfig{

@@ -422,3 +422,37 @@ var HermesWebSearch = CleanRoomToolSchema{
 		"required": []string{"query"},
 	},
 }
+
+// --- GOOSE PARITY SCHEMAS ---
+
+var GooseDeveloperShell = CleanRoomToolSchema{
+	Name:        "developer__shell",
+	Description: "Execute a shell command in the user's default shell in the current dir.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"command": map[string]interface{}{
+				"type":        "string",
+				"description": "The shell command to run.",
+			},
+			"timeout_secs": map[string]interface{}{
+				"type": "integer",
+			},
+		},
+		"required": []string{"command"},
+	},
+}
+
+var GooseFinalOutput = CleanRoomToolSchema{
+	Name:        "recipe__final_output",
+	Description: "Output the final result for the user.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"message": map[string]interface{}{
+				"type": "string",
+			},
+		},
+		"required": []string{"message"},
+	},
+}

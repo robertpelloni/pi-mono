@@ -1,3 +1,4 @@
+import { Type as t } from "@sinclair/typebox";
 import { z } from "zod";
 
 /**
@@ -136,4 +137,37 @@ export const hermesSkillManageSchema = z.object({
 
 export const hermesWebSearchSchema = z.object({
 	query: z.string(),
+});
+
+
+// --- GOOSE PARITY SCHEMAS ---
+
+export const gooseDeveloperShellSchema = t.Object({
+    command: t.String({ description: "The shell command to run." }),
+    timeout_secs: t.Optional(t.Number({ description: "Optional timeout in seconds for long-running tasks." }))
+});
+
+export const gooseFinalOutputSchema = t.Object({
+    message: t.String({ description: "The final output message for the user" }),
+    count: t.Optional(t.Number())
+});
+
+export const goosePlatformManageScheduleSchema = t.Object({
+    action: t.Union([
+        t.Literal("list"),
+        t.Literal("create"),
+        t.Literal("run_now"),
+        t.Literal("pause"),
+        t.Literal("unpause"),
+        t.Literal("delete"),
+        t.Literal("kill"),
+        t.Literal("inspect"),
+        t.Literal("sessions"),
+        t.Literal("session_content")
+    ]),
+    job_id: t.Optional(t.String({ description: "Job identifier for operations on existing jobs" })),
+    recipe_path: t.Optional(t.String({ description: "Path to recipe file for create action" })),
+    cron_expression: t.Optional(t.String({ description: "A cron expression for create action" })),
+    limit: t.Optional(t.Number({ description: "Limit for sessions list" })),
+    session_id: t.Optional(t.String({ description: "Session identifier for session_content action" }))
 });
