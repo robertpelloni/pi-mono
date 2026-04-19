@@ -6,61 +6,92 @@ import (
 
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/ai"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
-// The TypeScript @mariozechner/pi-tui relies heavily on a custom differential renderer for the terminal.
-// However, since we are moving to Go, we can eventually utilize a more standard Go TUI library like
-// `charmbracelet/bubbletea`. For this structural scaffolding phase, we will implement a basic renderer
-// that consumes `agent.AgentEvent` items and handles the terminal readout identically to the TS `InteractiveAgent`.
+var (
+	styleUser      = lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Bold(true)
+	styleAssistant = lipgloss.NewStyle().Foreground(lipgloss.Color("39")).Bold(true)
+	styleTool      = lipgloss.NewStyle().Foreground(lipgloss.Color("214"))
+	styleError     = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+	styleSystem    = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+)
 
-// Renderer defines the interface for rendering agent events to a UI.
-type Renderer interface {
-	RenderEvent(event agent.AgentEvent)
+// AgentUIModel represents the Bubbletea state for the AI agent interface.
+type AgentUIModel struct {
+	eventsChan    chan agent.AgentEvent
+	conversation  strings.Builder
+	activeTool    string
+	toolArguments string
+	err           error
+	quitting      bool
 }
 
-// BasicTerminalRenderer provides a simple stdout implementation for the TUI.
-type BasicTerminalRenderer struct {
-	ActiveToolCallID string
+// EventMsg is a wrapper to send AgentEvent instances into the Bubbletea Update loop.
+type EventMsg agent.AgentEvent
+
+// Init establishes the initial state and begins listening to the channel.
+func (m *AgentUIModel) Init() tea.Cmd {
+	return m.listenForEvents()
 }
 
-func NewBasicTerminalRenderer() *BasicTerminalRenderer {
-	return &BasicTerminalRenderer{}
+// listenForEvents reads from the channels and dispatches messages to the tea loop.
+func (m *AgentUIModel) listenForEvents() tea.Cmd {
+	return func() tea.Msg {
+		event, ok := <-m.eventsChan
+		if !ok {
+			// Channel closed
+			return nil
+		}
+		return EventMsg(event)
+	}
 }
 
-func (r *BasicTerminalRenderer) RenderEvent(event agent.AgentEvent) {
-	switch event.Type {
-	case agent.EventAgentStart:
-		fmt.Println("\n[Agent] Starting new run...")
-
-	case agent.EventMessageStart:
-		if event.Message != nil {
-			if event.Message.GetRole() == ai.RoleAssistant {
-				fmt.Print("\n[Assistant]: ")
-			}
+// Update processes incoming messages and updates the model state.
+func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "q":
+			m.quitting = true
+			return m, tea.Quit
 		}
 
-	case agent.EventMessageUpdate:
-		if event.AssistantMessageEvent != nil {
-			if event.AssistantMessageEvent.Type == ai.EventTextDelta && event.AssistantMessageEvent.Delta != nil {
-				fmt.Print(*event.AssistantMessageEvent.Delta)
+	case EventMsg:
+		event := agent.AgentEvent(msg)
+		switch event.Type {
+		case agent.EventAgentStart:
+			m.conversation.WriteString(styleSystem.Render("\n[Agent] Starting new run...\n"))
+
+		case agent.EventMessageStart:
+			if event.Message != nil {
+				if event.Message.GetRole() == ai.RoleAssistant {
+					m.conversation.WriteString(styleAssistant.Render("\n[Assistant]: "))
+				}
 			}
-		}
 
-	case agent.EventMessageEnd:
-		fmt.Println() // Add newline after assistant finishes streaming message
+		case agent.EventMessageUpdate:
+			if event.AssistantMessageEvent != nil && event.AssistantMessageEvent.Type == ai.EventTextDelta {
+				if event.AssistantMessageEvent.Delta != nil {
+					m.conversation.WriteString(*event.AssistantMessageEvent.Delta)
+				}
+			}
 
-	case agent.EventToolExecutionStart:
-		fmt.Printf("\n  [Tool Execution] %s(args: %v)...\n", event.ToolName, event.Args)
-		r.ActiveToolCallID = event.ToolCallID
+		case agent.EventMessageEnd:
+			m.conversation.WriteString("\n")
 
-	case agent.EventToolExecutionEnd:
-		if r.ActiveToolCallID == event.ToolCallID {
+		case agent.EventToolExecutionStart:
+			m.activeTool = event.ToolName
+			argsStr := fmt.Sprintf("%v", event.Args)
+			m.conversation.WriteString(styleTool.Render(fmt.Sprintf("\n  [Running Tool] %s(%s)...\n", m.activeTool, argsStr)))
+
+		case agent.EventToolExecutionEnd:
 			status := "SUCCESS"
 			if event.IsError {
 				status = "ERROR"
 			}
 
-			// We format the raw output slightly
 			contentStr := ""
 			if res, ok := event.Result.(agent.AgentToolResult); ok {
 				for _, c := range res.Content {
@@ -76,14 +107,72 @@ func (r *BasicTerminalRenderer) RenderEvent(event agent.AgentEvent) {
 				displayStr = displayStr[:197] + "..."
 			}
 
-			fmt.Printf("  [Tool Finished] %s -> %s\n    %s\n", event.ToolName, status, strings.ReplaceAll(displayStr, "\n", "\n    "))
-			r.ActiveToolCallID = ""
+			if event.IsError {
+				m.conversation.WriteString(styleError.Render(fmt.Sprintf("  [Tool Finished] %s -> %s\n    %s\n", event.ToolName, status, strings.ReplaceAll(displayStr, "\n", "\n    "))))
+			} else {
+				m.conversation.WriteString(styleTool.Render(fmt.Sprintf("  [Tool Finished] %s -> %s\n    %s\n", event.ToolName, status, strings.ReplaceAll(displayStr, "\n", "\n    "))))
+			}
+			m.activeTool = ""
+
+		case agent.EventTurnEnd:
+			// Turn has completed
+
+		case agent.EventAgentEnd:
+			m.conversation.WriteString(styleSystem.Render("\n[Agent] Run completed.\n"))
+			m.quitting = true
+			return m, tea.Quit
 		}
 
-	case agent.EventTurnEnd:
-		// Turn has completed
-
-	case agent.EventAgentEnd:
-		fmt.Println("\n[Agent] Run completed.")
+		// Continue listening for the next event
+		return m, m.listenForEvents()
 	}
+
+	return m, nil
+}
+
+// View renders the current state of the model.
+func (m *AgentUIModel) View() string {
+	if m.err != nil {
+		return styleError.Render(fmt.Sprintf("Error: %v\n", m.err))
+	}
+
+	out := m.conversation.String()
+
+	if !m.quitting {
+		out += "\n\n" + styleSystem.Render("(Press 'q' or ctrl+c to quit)")
+	}
+
+	return out
+}
+
+// BubbleteaRenderer adapts the Bubbletea Model to the agent.Renderer interface.
+type BubbleteaRenderer struct {
+	eventsChan chan agent.AgentEvent
+	program    *tea.Program
+}
+
+func NewBubbleteaRenderer() *BubbleteaRenderer {
+	eventsChan := make(chan agent.AgentEvent, 100)
+
+	model := &AgentUIModel{
+		eventsChan: eventsChan,
+	}
+
+	p := tea.NewProgram(model)
+
+	// We run the program asynchronously since the Agent execution blocks
+	go func() {
+		if _, err := p.Run(); err != nil {
+			fmt.Printf("Error running TUI: %v", err)
+		}
+	}()
+
+	return &BubbleteaRenderer{
+		eventsChan: eventsChan,
+		program:    p,
+	}
+}
+
+func (r *BubbleteaRenderer) RenderEvent(event agent.AgentEvent) {
+	r.eventsChan <- event
 }

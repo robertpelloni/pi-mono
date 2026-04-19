@@ -29,20 +29,18 @@ func main() {
 		tools.ReadTool(cwd),
 		tools.BashTool(cwd),
 		tools.WriteTool(cwd),
+		tools.LsTool(cwd),
+		tools.GrepTool(cwd),
+		tools.FindTool(cwd),
 	}
 
-	// This connects our newly implemented StreamFunction signatures from pkg/ai
-	// Since we haven't wired up the dynamic model-registry layer entirely yet in cmd/pi,
-	// we'll pass the explicit OpenAI streaming implementation from pkg/ai
 	agentLoop := agent.NewAgent(modelInfo, toolList, ai.StreamOpenAIResponses, agent.AgentLoopConfig{
 		ToolExecution: agent.ToolExecutionParallel,
 	})
 
-	// Add our TUI hook
-	renderer := tui.NewBasicTerminalRenderer()
+	renderer := tui.NewBubbleteaRenderer()
 	agentLoop.Subscribe(renderer.RenderEvent)
 
-	// Add user prompt to context
 	userMsg := ai.UserMessage{
 		Content: []ai.Content{
 			ai.TextContent{Text: "Read README.md and summarize it using bash commands."},
@@ -52,7 +50,6 @@ func main() {
 
 	agentLoop.SetSystemPrompt("You are an autonomous coding agent. Use tools whenever possible.")
 
-	fmt.Println("Dispatching Prompt...")
 	err = agentLoop.Prompt(context.Background(), userMsg)
 	if err != nil {
 		fmt.Printf("Execution failed: %v\n", err)
