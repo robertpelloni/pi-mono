@@ -65,16 +65,30 @@ type openAIStreamChunk struct {
 }
 
 func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
-	stream := make(chan AssistantMessageEvent, 1000)
+	stream := make(chan AssistantMessageEvent)
 
 	go func() {
 		defer close(stream)
+
+		reqCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		sendEvent := func(e AssistantMessageEvent) bool {
+			select {
+			case <-reqCtx.Done():
+				return false
+			case stream <- e:
+				return true
+			}
+		}
 
 		apiKey := GetEnvAPIKey(ProviderOpenAI)
 		if apiKey == "" {
 			errMsg := "missing OPENAI_API_KEY"
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 
@@ -163,13 +177,13 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 
 		// Implement Cancel Context
-		reqCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
 
 		var opt StreamOptions
 		if o, ok := options.(StreamOptions); ok {
@@ -192,7 +206,9 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 
@@ -217,7 +233,10 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 			if err != nil {
 				if reqCtx.Err() == context.Canceled {
 					reason := StopReasonAborted
-					stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}
+					if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
+						return
+					}
+					// stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason} // Replaced by below block
 					return
 				}
 				break
@@ -233,7 +252,9 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 		defer resp.Body.Close()
@@ -241,7 +262,9 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 		if resp.StatusCode != 200 {
 			errMsg := fmt.Sprintf("OpenAI API error: status %d", resp.StatusCode)
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 
@@ -267,15 +290,19 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 					delta := chunk.Choices[0].Delta.Content
 					role := chunk.Choices[0].Delta.Role
 					if role != "" {
-						stream <- AssistantMessageEvent{
+						if !sendEvent(AssistantMessageEvent{
 							Type: EventStart,
+						}) {
+							return
 						}
 					}
 
 					if delta != "" {
-						stream <- AssistantMessageEvent{
+						if !sendEvent(AssistantMessageEvent{
 							Type:  EventTextDelta,
 							Delta: &delta,
+						}) {
+							return
 						}
 					}
 
@@ -286,21 +313,25 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 						if tc.ID != "" && tc.Function.Name != "" {
 							name := tc.Function.Name
 							id := tc.ID
-							stream <- AssistantMessageEvent{
+							if !sendEvent(AssistantMessageEvent{
 								Type: EventToolCallStart,
 								ToolCall: &ToolCall{
 									ID:   id,
 									Name: name,
 								},
+							}) {
+								return
 							}
 						}
 
 						// Delta
 						if tc.Function.Arguments != "" {
 							args := tc.Function.Arguments
-							stream <- AssistantMessageEvent{
+							if !sendEvent(AssistantMessageEvent{
 								Type:  EventToolCallDelta,
 								Delta: &args,
+							}) {
+								return
 							}
 						}
 
@@ -309,15 +340,19 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 					}
 
 					if chunk.Choices[0].FinishReason != nil {
-						reasonStr := *chunk.Choices[0].FinishReason
-						if reasonStr == "tool_calls" {
-							stream <- AssistantMessageEvent{Type: EventToolCallEnd}
-						}
-					}
-
-					if chunk.Choices[0].FinishReason != nil {
 						reason := StopReasonStop
-						stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}
+						if *chunk.Choices[0].FinishReason == "tool_calls" {
+							reason = StopReasonToolUse
+							if !sendEvent(AssistantMessageEvent{Type: EventToolCallEnd}) {
+								return
+							}
+						} else if *chunk.Choices[0].FinishReason == "length" {
+							reason = StopReasonLength
+						}
+
+						if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
+							return
+						}
 						return
 					}
 				}
@@ -325,7 +360,9 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 		}
 
 		reason := StopReasonStop
-		stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}
+		if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
+			return
+		}
 	}()
 
 	return stream

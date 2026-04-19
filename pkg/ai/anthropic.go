@@ -42,8 +42,12 @@ type anthropicRequest struct {
 }
 
 type anthropicStreamChunk struct {
-	Type  string `json:"type"`
+	Type    string `json:"type"`
+	Message *struct {
+		StopReason string `json:"stop_reason,omitempty"`
+	} `json:"message,omitempty"`
 	Delta struct {
+		StopReason  string `json:"stop_reason,omitempty"`
 		Type        string `json:"type"`
 		Text        string `json:"text"`
 		PartialJson string `json:"partial_json,omitempty"`
@@ -57,16 +61,30 @@ type anthropicStreamChunk struct {
 }
 
 func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
-	stream := make(chan AssistantMessageEvent, 1000)
+	stream := make(chan AssistantMessageEvent)
 
 	go func() {
 		defer close(stream)
+
+		reqCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		sendEvent := func(e AssistantMessageEvent) bool {
+			select {
+			case <-reqCtx.Done():
+				return false
+			case stream <- e:
+				return true
+			}
+		}
 
 		apiKey := GetEnvAPIKey(ProviderAnthropic)
 		if apiKey == "" {
 			errMsg := "missing ANTHROPIC_API_KEY"
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 
@@ -145,12 +163,11 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
-
-		reqCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
 
 		var opt StreamOptions
 		if o, ok := options.(StreamOptions); ok {
@@ -171,7 +188,9 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 
@@ -197,7 +216,9 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 			if err != nil {
 				if reqCtx.Err() == context.Canceled {
 					reason := StopReasonAborted
-					stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}
+					if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
+						return
+					}
 					return
 				}
 				break
@@ -213,7 +234,9 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 		defer resp.Body.Close()
@@ -221,7 +244,9 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 		if resp.StatusCode != 200 {
 			errMsg := fmt.Sprintf("Anthropic API error: status %d", resp.StatusCode)
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 
@@ -242,40 +267,65 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 			if err := json.Unmarshal([]byte(data), &chunk); err == nil {
 				if chunk.Type == "content_block_delta" {
 					if chunk.Delta.Text != "" {
-						stream <- AssistantMessageEvent{
+						if !sendEvent(AssistantMessageEvent{
 							Type:  EventTextDelta,
 							Delta: &chunk.Delta.Text,
+						}) {
+							return
 						}
 					}
 				} else if chunk.Type == "content_block_start" && chunk.ContentBlock != nil && chunk.ContentBlock.Type == "tool_use" {
 					name := chunk.ContentBlock.Name
 					id := chunk.ContentBlock.ID
-					stream <- AssistantMessageEvent{
+					if !sendEvent(AssistantMessageEvent{
 						Type: EventToolCallStart,
 						ToolCall: &ToolCall{
 							ID:   id,
 							Name: name,
 						},
+					}) {
+						return
 					}
 				} else if chunk.Type == "content_block_delta" && chunk.Delta.Type == "input_json_delta" {
 					if chunk.Delta.PartialJson != "" {
-						stream <- AssistantMessageEvent{
+						if !sendEvent(AssistantMessageEvent{
 							Type:  EventToolCallDelta,
 							Delta: &chunk.Delta.PartialJson,
+						}) {
+							return
 						}
 					}
 				} else if chunk.Type == "content_block_stop" {
-					stream <- AssistantMessageEvent{Type: EventToolCallEnd}
-				} else if chunk.Type == "message_stop" {
+					if !sendEvent(AssistantMessageEvent{Type: EventToolCallEnd}) {
+						return
+					}
+				} else if chunk.Type == "message_delta" && chunk.Delta.StopReason != "" {
 					reason := StopReasonStop
-					stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}
+					if chunk.Delta.StopReason == "tool_use" {
+						reason = StopReasonToolUse
+					} else if chunk.Delta.StopReason == "max_tokens" {
+						reason = StopReasonLength
+					}
+					if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
+						return
+					}
+					return
+				} else if chunk.Type == "message_stop" {
+					// Done event already emitted by message_delta if stop_reason was there
+					// But we fall back here just in case
+					reason := StopReasonStop
+					if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
+						return
+					}
 					return
 				}
 			}
 		}
 
 		reason := StopReasonStop
-		stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}
+		if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
+			return
+		}
 	}()
 
 	return stream

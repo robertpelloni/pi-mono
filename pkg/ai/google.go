@@ -64,16 +64,30 @@ type googleStreamChunk struct {
 }
 
 func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
-	stream := make(chan AssistantMessageEvent, 1000)
+	stream := make(chan AssistantMessageEvent)
 
 	go func() {
 		defer close(stream)
+
+		reqCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		sendEvent := func(e AssistantMessageEvent) bool {
+			select {
+			case <-reqCtx.Done():
+				return false
+			case stream <- e:
+				return true
+			}
+		}
 
 		apiKey := GetEnvAPIKey(ProviderGoogle)
 		if apiKey == "" {
 			errMsg := "missing GOOGLE_API_KEY"
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 
@@ -161,12 +175,11 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
-
-		reqCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
 
 		var opt StreamOptions
 		if o, ok := options.(StreamOptions); ok {
@@ -190,7 +203,9 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 
@@ -212,7 +227,9 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 			if err != nil {
 				if reqCtx.Err() == context.Canceled {
 					reason := StopReasonAborted
-					stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}
+					if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
+						return
+					}
 					return
 				}
 				break
@@ -228,7 +245,9 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 		defer resp.Body.Close()
@@ -236,7 +255,9 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 		if resp.StatusCode != 200 {
 			errMsg := fmt.Sprintf("Google API error: status %d", resp.StatusCode)
 			reason := StopReasonError
-			stream <- AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}
+			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
+				return
+			}
 			return
 		}
 
@@ -261,36 +282,50 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 						if chunk.Candidates[0].Content.Parts[0].FunctionCall != nil {
 							fc := chunk.Candidates[0].Content.Parts[0].FunctionCall
 							// Google returns whole blobs in stream usually, so we trigger start and delta together
-							stream <- AssistantMessageEvent{
+							if !sendEvent(AssistantMessageEvent{
 								Type: EventToolCallStart,
 								ToolCall: &ToolCall{
 									ID:   "call_google_generated", // Google doesn't use Call IDs consistently natively
 									Name: fc.Name,
 								},
+							}) {
+								return
 							}
 
 							if argBytes, err := json.Marshal(fc.Args); err == nil {
 								argStr := string(argBytes)
-								stream <- AssistantMessageEvent{
+								if !sendEvent(AssistantMessageEvent{
 									Type:  EventToolCallDelta,
 									Delta: &argStr,
+								}) {
+									return
 								}
 
-								stream <- AssistantMessageEvent{Type: EventToolCallEnd}
+								if !sendEvent(AssistantMessageEvent{Type: EventToolCallEnd}) {
+									return
+								}
 							}
 						}
 
 						if delta != "" {
-							stream <- AssistantMessageEvent{
+							if !sendEvent(AssistantMessageEvent{
 								Type:  EventTextDelta,
 								Delta: &delta,
+							}) {
+								return
 							}
 						}
 					}
 
 					if chunk.Candidates[0].FinishReason != "" && chunk.Candidates[0].FinishReason != "FINISH_REASON_UNSPECIFIED" {
 						reason := StopReasonStop
-						stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}
+						if chunk.Candidates[0].FinishReason == "MAX_TOKENS" {
+							reason = StopReasonLength
+						}
+						// Google doesn't have an explicit tool_calls finish reason, it usually emits STOP
+						if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
+							return
+						}
 						return
 					}
 				}
@@ -298,7 +333,9 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 		}
 
 		reason := StopReasonStop
-		stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason}
+		if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
+			return
+		}
 	}()
 
 	return stream
