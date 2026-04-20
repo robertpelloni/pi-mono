@@ -11,8 +11,12 @@
 - Phase 7 (Testing Harness) initiated. Unit tests exist and pass for `pkg/agent/agent_test.go`, `pkg/ai/provider_test.go`, and `pkg/tools/tools_test.go`.
 
 ## Urgent Constraints & Next Steps
-1. **Fix Missing Tool Registration**: The code review explicitly stated that our `clean-room-tools.ts` and `clean_room_tools.go` schema ports were successful but were never wired up to actually be exposed to the CLI via `index.ts`. Fix this. Review `TODO.md`.
+1. ~~**Fix Missing Tool Registration**~~: Fixed. We exported the `computer` tool into the agent loop natively via index.ts.
 
 ## Strict Rules
 - *Never execute commands that taskkill all node processes.*
 - Do not commit changes inside the `submodules/` folders directly unless specifically adding a patch upstream.
+
+## Completed Phase 8 (Native TUI Frontend)
+- `pkg/tui/tui.go` is now a fully interactive `bubbletea` application, utilizing `bubbles/textarea` and `bubbles/viewport`. It natively passes inputs into the Go execution loops via `Agent.Prompt(ctx, userMsg)` and captures all `EventMsg` outputs. The Go port CLI is now fully usable end-to-end.
+- The next goal will be establishing CI/CD and checking for cross-platform edge cases.

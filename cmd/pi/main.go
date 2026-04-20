@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -11,7 +10,7 @@ import (
 	"github.com/badlogic/pi-mono/pkg/tui"
 )
 
-// main is a PoC entrypoint connecting the agent framework directly to a basic CLI renderer.
+// main connects the agent framework to the interactive Bubbletea CLI interface.
 func main() {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -38,20 +37,13 @@ func main() {
 		ToolExecution: agent.ToolExecutionParallel,
 	})
 
-	renderer := tui.NewBubbleteaRenderer()
-	agentLoop.Subscribe(renderer.RenderEvent)
-
-	userMsg := ai.UserMessage{
-		Content: []ai.Content{
-			ai.TextContent{Text: "Read README.md and summarize it using bash commands."},
-		},
-		Timestamp: 1234567890,
-	}
-
 	agentLoop.SetSystemPrompt("You are an autonomous coding agent. Use tools whenever possible.")
 
-	err = agentLoop.Prompt(context.Background(), userMsg)
-	if err != nil {
-		fmt.Printf("Execution failed: %v\n", err)
+	renderer := tui.NewInteractiveRenderer(agentLoop)
+	agentLoop.Subscribe(renderer.RenderEvent)
+
+	// Start the TUI, which will now handle user prompt input interactively.
+	if err := renderer.Start(); err != nil {
+		fmt.Printf("UI execution failed: %v\n", err)
 	}
 }

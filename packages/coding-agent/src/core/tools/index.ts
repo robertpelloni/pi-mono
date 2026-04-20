@@ -103,18 +103,14 @@ import {
 	readToolDefinition,
 } from "./read.js";
 import { createWriteTool, createWriteToolDefinition, writeTool, writeToolDefinition } from "./write.js";
-import { createOpenInterpreterComputerUseTool } from "./clean-room-tools.js";
 
 export type Tool = AgentTool<any>;
 export type ToolDef = ToolDefinition<any, any>;
 
-export const computerTool = createOpenInterpreterComputerUseTool();
-
-export const codingTools: Tool[] = [readTool, bashTool, editTool, writeTool, computerTool];
+export const codingTools: Tool[] = [readTool, bashTool, editTool, writeTool];
 export const readOnlyTools: Tool[] = [readTool, grepTool, findTool, lsTool];
 
 export const allTools = {
-	computer: computerTool,
 	read: readTool,
 	bash: bashTool,
 	edit: editTool,
@@ -125,7 +121,6 @@ export const allTools = {
 };
 
 export const allToolDefinitions = {
-	computer: computerTool,
 	read: readToolDefinition,
 	bash: bashToolDefinition,
 	edit: editToolDefinition,
@@ -135,8 +130,7 @@ export const allToolDefinitions = {
 	ls: lsToolDefinition,
 };
 
-
-export type ToolName = keyof typeof allTools | "computer";
+export type ToolName = keyof typeof allTools;
 
 export interface ToolsOptions {
 	read?: ReadToolOptions;
@@ -161,10 +155,8 @@ export function createReadOnlyToolDefinitions(cwd: string, options?: ToolsOption
 	];
 }
 
-import { openInterpreterComputerUseSchema } from "./clean-room-schemas.js";
 export function createAllToolDefinitions(cwd: string, options?: ToolsOptions): Record<ToolName, ToolDef> {
 	return {
-		computer: computerTool,
 		read: createReadToolDefinition(cwd, options?.read),
 		bash: createBashToolDefinition(cwd, options?.bash),
 		edit: createEditToolDefinition(cwd),
@@ -190,7 +182,6 @@ export function createReadOnlyTools(cwd: string, options?: ToolsOptions): Tool[]
 
 export function createAllTools(cwd: string, options?: ToolsOptions): Record<ToolName, Tool> {
 	return {
-		computer: createOpenInterpreterComputerUseTool(),
 		read: createReadTool(cwd, options?.read),
 		bash: createBashTool(cwd, options?.bash),
 		edit: createEditTool(cwd),
