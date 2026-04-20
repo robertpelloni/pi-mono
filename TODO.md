@@ -12,7 +12,7 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Port global models JSON registry logic to Go.
 - [x] Port internal tool structures for generic providers.
 - [x] Port context execution loops (`pkg/agent`).
-- [ ] Create testing harness in Go similar to the TypeScript suite.
+- [x] Create testing harness in Go similar to the TypeScript suite.
 - [ ] Set up CI/CD workflows for the new Go project.
 
 ## Submodule Tool Assimilation (Phase 6)
