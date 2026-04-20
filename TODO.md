@@ -22,3 +22,7 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Claude Code (`read_file`, `bash`)
 - [ ] Open Interpreter (Extract specific OS control modules natively into Go)
 - [ ] Hermes Agent (Extract browser controls, home assistant, MOA, memory natively)
+
+# Crucial Code Review Fixes (Next Session)
+1. **Fix Missing Tool Registration**: The TypeScript `clean-room-tools.ts` and `clean-room-schemas.ts` were built, but they need to be actively exported from `packages/coding-agent/src/core/tools/index.ts` in order to be functionally available to the user, not just exist as dead code. Ensure they are mapped to `allToolDefinitions` and `allTools`.
+2. **Remove Node Scripts**: If any leftover `.cjs` scripts exist from previous automation (e.g. `patch_agent_hooks.cjs`), remove them explicitly. Do not commit scratchpad scripts into the repo.
