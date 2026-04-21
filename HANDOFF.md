@@ -20,5 +20,3 @@
 ## Completed Phase 8 (Native TUI Frontend)
 - `pkg/tui/tui.go` is now a fully interactive `bubbletea` application, utilizing `bubbles/textarea` and `bubbles/viewport`. It natively passes inputs into the Go execution loops via `Agent.Prompt(ctx, userMsg)` and captures all `EventMsg` outputs. The Go port CLI is now fully usable end-to-end.
 - The next goal will be establishing CI/CD and checking for cross-platform edge cases.
-## Current Submodule Assimilation
-- Successfully mapped `memory` tool functionality natively into TS runtime and Go `clean_room_handlers.go` to ensure proper data survival across `Hermes` schema calls. Open Interpreter mock executions added.

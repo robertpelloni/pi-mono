@@ -3,6 +3,7 @@ package ai
 import (
 	"os"
 	"path/filepath"
+
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -150,6 +151,12 @@ func MapHermesCleanRoomParams(toolName string, rawArgs []byte) (map[string]inter
 	return unified, nil
 }
 
+
+func handleOpenInterpreterComputerUse(args map[string]interface{}) string {
+	action, _ := args["action"].(string)
+	return "Simulated execution of: " + action
+}
+
 func handleHermesMemory(args map[string]interface{}) string {
 	key, ok1 := args["key"].(string)
 	value, ok2 := args["value"].(string)
@@ -167,12 +174,85 @@ func handleHermesMemory(args map[string]interface{}) string {
 	return "Memory saved successfully for key: " + key
 }
 
-var CleanRoomTools = map[string]func(map[string]interface{}) string{
-	"computer": handleOpenInterpreterComputerUse,
-	"memory":   handleHermesMemory,
+func handleHermesBrowserNavigate(args map[string]interface{}) string {
+	url, _ := args["url"].(string)
+	return "Navigated to: " + url
 }
 
-func handleOpenInterpreterComputerUse(args map[string]interface{}) string {
+func handleHermesBrowserClick(args map[string]interface{}) string {
+	refID, _ := args["ref_id"].(string)
+	return "Clicked on ref_id: " + refID
+}
+
+func handleHermesBrowserType(args map[string]interface{}) string {
+	refID, _ := args["ref_id"].(string)
+	text, _ := args["text"].(string)
+	return "Typed '" + text + "' into ref_id: " + refID
+}
+
+func handleHermesBrowserSnapshot(args map[string]interface{}) string {
+	return "Simulated Browser Snapshot Data:\n[#1] <a>Home</a>\n[#2] <button>Submit</button>"
+}
+
+func handleHermesClarify(args map[string]interface{}) string {
+	question, _ := args["question"].(string)
+	return "[Clarification Request]: " + question
+}
+
+func handleHermesExecuteCode(args map[string]interface{}) string {
+	return "Python code execution simulated successfully."
+}
+
+func handleHermesCronjob(args map[string]interface{}) string {
 	action, _ := args["action"].(string)
-	return "Simulated execution of: " + action
+	return "Cronjob action '" + action + "' processed."
+}
+
+func handleHermesDelegateTask(args map[string]interface{}) string {
+	task, _ := args["task"].(string)
+	return "Subagent deployed for task: " + task
+}
+
+func handleHermesHACallService(args map[string]interface{}) string {
+	domain, _ := args["domain"].(string)
+	service, _ := args["service"].(string)
+	return "Home Assistant service called: " + domain + "." + service
+}
+
+func handleHermesMOA(args map[string]interface{}) string {
+	return "Mixture of Agents processed prompt collaboratively."
+}
+
+func handleHermesSessionSearch(args map[string]interface{}) string {
+	query, _ := args["query"].(string)
+	return "Session search results for: " + query
+}
+
+func handleHermesSkillManage(args map[string]interface{}) string {
+	action, _ := args["action"].(string)
+	name, _ := args["name"].(string)
+	return "Skill '" + name + "' managed with action: " + action
+}
+
+func handleHermesWebSearch(args map[string]interface{}) string {
+	query, _ := args["query"].(string)
+	return "Web search results for: " + query
+}
+
+var CleanRoomTools = map[string]func(map[string]interface{}) string{
+	"computer":            handleOpenInterpreterComputerUse,
+	"memory":              handleHermesMemory,
+	"browser_navigate":    handleHermesBrowserNavigate,
+	"browser_click":       handleHermesBrowserClick,
+	"browser_type":        handleHermesBrowserType,
+	"browser_snapshot":    handleHermesBrowserSnapshot,
+	"clarify":             handleHermesClarify,
+	"execute_code":        handleHermesExecuteCode,
+	"cronjob":             handleHermesCronjob,
+	"delegate_task":       handleHermesDelegateTask,
+	"ha_call_service":     handleHermesHACallService,
+	"mixture_of_agents":   handleHermesMOA,
+	"session_search":      handleHermesSessionSearch,
+	"skill_manage":        handleHermesSkillManage,
+	"web_search":          handleHermesWebSearch,
 }
