@@ -3,7 +3,8 @@ import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { Text } from "@mariozechner/pi-tui";
 
 import { openInterpreterComputerUseSchema } from "./clean-room-schemas.js";
-import { handleOpenInterpreterComputerUse } from "./clean-room-handlers.js";
+import { handleOpenInterpreterComputerUse, handleHermesMemory } from "./clean-room-handlers.js";
+import { hermesMemorySchema } from "./clean-room-schemas.js";
 
 export function createOpenInterpreterComputerUseTool(): AgentTool<typeof openInterpreterComputerUseSchema> {
     return wrapToolDefinition({
@@ -25,6 +26,32 @@ export function createOpenInterpreterComputerUseTool(): AgentTool<typeof openInt
         renderResult(result, options, theme, context) {
             const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
             text.setText("Computer action executed.");
+            return text;
+        }
+    });
+}
+
+
+export function createHermesMemoryTool(): AgentTool<typeof hermesMemorySchema> {
+    return wrapToolDefinition({
+        name: "memory",
+        label: "memory",
+        description: "Save important information to persistent memory that survives across sessions.",
+        promptSnippet: "Use memory",
+        promptGuidelines: [],
+        parameters: hermesMemorySchema,
+        async execute(toolCallId, args, signal, onUpdate, ctx) {
+            const output = await handleHermesMemory(args);
+            return { content: [{ type: "text", text: output }], details: {} };
+        },
+        renderCall(args, theme, context) {
+            const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+            text.setText(`${theme.fg("toolTitle", theme.bold("memory"))} (${args.key})`);
+            return text;
+        },
+        renderResult(result, options, theme, context) {
+            const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+            text.setText("Memory saved.");
             return text;
         }
     });

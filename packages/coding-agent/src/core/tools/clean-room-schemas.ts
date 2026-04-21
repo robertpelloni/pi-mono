@@ -115,9 +115,9 @@ export const hermesHACallServiceSchema = z.object({
 	entity_id: z.string().optional(),
 });
 
-export const hermesMemorySchema = z.object({
-	key: z.string(),
-	value: z.string(),
+export const hermesMemorySchema = t.Object({
+	key: t.String(),
+	value: t.String(),
 });
 
 export const hermesMOASchema = z.object({

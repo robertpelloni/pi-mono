@@ -46,3 +46,15 @@ export async function handleOpenInterpreterComputerUse(args: any): Promise<strin
     // For this port, we acknowledge the action via stub.
     return `Simulated computer action: ${args.action} executed.`;
 }
+
+
+export async function handleHermesMemory(args: { key: string; value: string }): Promise<string> {
+    const memoryDir = ".pi_memory";
+    try {
+        await fs.mkdir(memoryDir, { recursive: true });
+        await fs.writeFile(`${memoryDir}/${args.key}.txt`, args.value, "utf-8");
+        return `Memory saved successfully for key: ${args.key}`;
+    } catch (error: any) {
+        return `Error saving memory: ${error.message}`;
+    }
+}

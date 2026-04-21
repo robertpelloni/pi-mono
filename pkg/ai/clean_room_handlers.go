@@ -1,6 +1,8 @@
 package ai
 
 import (
+	"os"
+	"path/filepath"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -146,4 +148,31 @@ func MapHermesCleanRoomParams(toolName string, rawArgs []byte) (map[string]inter
 	}
 
 	return unified, nil
+}
+
+func handleHermesMemory(args map[string]interface{}) string {
+	key, ok1 := args["key"].(string)
+	value, ok2 := args["value"].(string)
+	if !ok1 || !ok2 {
+		return "Error: missing key or value"
+	}
+
+	memoryDir := ".pi_memory"
+	os.MkdirAll(memoryDir, 0755)
+
+	err := os.WriteFile(filepath.Join(memoryDir, key+".txt"), []byte(value), 0644)
+	if err != nil {
+		return "Error saving memory: " + err.Error()
+	}
+	return "Memory saved successfully for key: " + key
+}
+
+var CleanRoomTools = map[string]func(map[string]interface{}) string{
+	"computer": handleOpenInterpreterComputerUse,
+	"memory":   handleHermesMemory,
+}
+
+func handleOpenInterpreterComputerUse(args map[string]interface{}) string {
+	action, _ := args["action"].(string)
+	return "Simulated execution of: " + action
 }
