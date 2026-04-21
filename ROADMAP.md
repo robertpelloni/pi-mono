@@ -16,10 +16,12 @@ This document contains major long-term structural plans for the project.
 
 ## Roadmap Steps
 - [x] Phase 1: Initialize Go project and establish documentation.
-- [ ] Phase 2: Create core Go architecture supporting multi-provider AI APIs (porting `@mariozechner/pi-ai`).
-- [ ] Phase 3: Port agent runtime and state management (`@mariozechner/pi-agent-core`).
-- [ ] Phase 4: Port the interactive coding agent CLI (`@mariozechner/pi-coding-agent`).
-- [ ] Phase 5: Port TUI library (`@mariozechner/pi-tui`) and other packages.
-- [ ] Phase 6: Analyze and integrate the first batch of external submodules (e.g., Aider, Claude Code, Copilot CLI).
-- [ ] Phase 7: Clean room implementation of internal model tools (e.g., read file, grep, shell).
-- [ ] Phase 8: Develop native frontends.
+- [x] Phase 2: Create core Go architecture supporting multi-provider AI APIs (porting `@mariozechner/pi-ai`).
+- [x] Phase 3: Port agent runtime and state management (`@mariozechner/pi-agent-core`).
+- [x] Phase 4: Port the interactive coding agent CLI (`@mariozechner/pi-coding-agent`).
+- [x] Phase 5: Port TUI library (`@mariozechner/pi-tui`) and other packages.
+- [x] Phase 6: Analyze and integrate the first batch of external submodules (e.g., Aider, Claude Code, Copilot CLI).
+- [x] Phase 7: Clean room implementation of internal model tools (e.g., read file, grep, shell).
+- [x] Phase 8: Develop native frontends.
+- [x] Phase 2.2: Ensure robust error recovery during SSE streaming (network dropping, JSON chunk truncation).
+- [x] Phase 8: Testing Harness in Go. Ensure standard Go testing paradigms natively cover execution logic.

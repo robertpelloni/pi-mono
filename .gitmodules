@@ -4,3 +4,21 @@
 [submodule "submodules/opencode-cli"]
 	path = submodules/opencode-cli
 	url = https://github.com/just-every/code.git
+[submodule "submodules/open-interpreter"]
+	path = submodules/open-interpreter
+	url = https://github.com/OpenInterpreter/open-interpreter
+[submodule "submodules/goose"]
+	path = submodules/goose
+	url = https://github.com/block/goose
+[submodule "submodules/ollama"]
+	path = submodules/ollama
+	url = https://github.com/ollama/ollama
+[submodule "submodules/vscode-copilot-release"]
+	path = submodules/vscode-copilot-release
+	url = https://github.com/microsoft/vscode-copilot-release
+[submodule "submodules/hermes-agent"]
+	path = submodules/hermes-agent
+	url = https://github.com/nousresearch/hermes-agent
+[submodule "submodules/ii-agent"]
+	path = submodules/ii-agent
+	url = https://github.com/Intelligent-Internet/ii-agent

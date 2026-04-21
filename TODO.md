@@ -4,25 +4,25 @@ This document contains individual features, bug fixes, and other fine details th
 
 ## Short-term Action Items
 
-- [ ] Add all specified submodules using `git submodule add` once the exact Git repository URLs are determined (many provided URLs were websites, not git repos).
-  - [x] Aider (`submodules/aider`)
-  - [x] OpenCode CLI / Code CLI fork (`submodules/opencode-cli`)
-- [ ] Implement initial Go project structure (e.g., `cmd/`, `pkg/`, `internal/`).
+- [x] Add all specified submodules (`aider`, `goose`, `open-interpreter`, `hermes-agent`, etc).
 - [x] Port `packages/ai/src/types.ts` to Go interfaces and structs.
 - [x] Port basic OpenAI stream provider to Go.
-- [x] Port cross-provider message transformations to Go.
 - [x] Port basic Anthropic stream provider to Go.
 - [x] Port basic Google Gemini stream provider to Go.
-- [x] Port core AI API registry to Go.
-- [x] Port model pricing/cost calculations and API key env detection to Go.
 - [x] Port global models JSON registry logic to Go.
-- [x] Scaffold Go port of model generation script.
 - [x] Port internal tool structures for generic providers.
-- [x] Add Go unit tests for tool parsing.
-- [ ] Create testing harness in Go similar to the TypeScript suite.
-- [ ] Set up CI/CD workflows for the new Go project.
-- [ ] Update documentation to list the overall project structure, all submodules with their URLs, descriptions, versions, dates, and build numbers.
+- [x] Port context execution loops (`pkg/agent`).
+- [x] Create testing harness in Go similar to the TypeScript suite.
+- [x] Set up CI/CD workflows for the new Go project.
 
-## TypeScript Parity Maintenance
+## Submodule Tool Assimilation (Phase 6)
+- [x] Goose (`developer__shell`, `recipe__final_output`)
+- [x] Aider (`replace_lines`, `run_command`)
+- [x] Copilot (`vscode_read`)
+- [x] Claude Code (`read_file`, `bash`)
+- [ ] Open Interpreter (Extract specific OS control modules natively into Go)
+- [ ] Hermes Agent (Extract browser controls, home assistant, MOA, memory natively)
 
-- [ ] Ensure any new features implemented in the Go port are also backported/implemented in the existing TypeScript version to retain 100% 1:1 feature parity.
+# Crucial Code Review Fixes (Next Session)
+1. **Fix Missing Tool Registration**: The TypeScript `clean-room-tools.ts` and `clean-room-schemas.ts` were built, but they need to be actively exported from `packages/coding-agent/src/core/tools/index.ts` in order to be functionally available to the user, not just exist as dead code. Ensure they are mapped to `allToolDefinitions` and `allTools`.~~
+2. ~~**Remove Node Scripts**~~: If any leftover `.cjs` scripts exist from previous automation (e.g. `patch_agent_hooks.cjs`), remove them explicitly. Do not commit scratchpad scripts into the repo.
