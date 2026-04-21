@@ -10,7 +10,7 @@ This document contains major long-term structural plans for the project.
 1.  **Go Port:** Systematically port all existing TypeScript functionality to Go. Ensure 1:1 feature parity.
 2.  **Submodule Integration:** Research, analyze, and integrate 30+ external AI agent tools/CLIs as submodules.
 3.  **Unified Architecture:** Merge all overlapping and redundant functionality from these submodules into one massive, streamlined Go ultra-project.
-4.  **Optional Features:** Implement features found in tools like `shittycodingagent.ai/packages` as optional, disabled-by-default modules in the Go port to maintain a minimal core design.
+4.  ~~**Optional Features:** Implement features found in tools like `shittycodingagent.ai/packages` as optional, disabled-by-default modules in the Go port to maintain a minimal core design.~~
 5.  **Clean Room Implementation of Internal Tools:** Implement exact parity with internal tools from various IDEs and official CLIs (Codex, Claude Code, Gemini CLI, Copilot CLI, etc.) to ensure complete compatibility with how models are trained.
 6.  **Multiple Frontends:** After the Go port is complete, develop several native UI frontends in addition to the web UI.
 

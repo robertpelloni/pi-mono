@@ -3,6 +3,7 @@
 This document contains individual features, bug fixes, and other fine details that need to be solved/implemented in the short term.
 
 ## Short-term Action Items
+- [x] Integrate optional extension architecture from shittycodingagent.ai
 
 - [x] Add all specified submodules (`aider`, `goose`, `open-interpreter`, `hermes-agent`, etc).
 - [x] Port `packages/ai/src/types.ts` to Go interfaces and structs.

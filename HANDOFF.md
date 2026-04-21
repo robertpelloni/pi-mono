@@ -20,3 +20,5 @@
 ## Completed Phase 8 (Native TUI Frontend)
 - `pkg/tui/tui.go` is now a fully interactive `bubbletea` application, utilizing `bubbles/textarea` and `bubbles/viewport`. It natively passes inputs into the Go execution loops via `Agent.Prompt(ctx, userMsg)` and captures all `EventMsg` outputs. The Go port CLI is now fully usable end-to-end.
 - The next goal will be establishing CI/CD and checking for cross-platform edge cases.
+## Optional Extensions Architecture
+- Scaffolded `pkg/extensions/` mapping to popular 3rd-party community plugins from `shittycodingagent.ai` (e.g., `pi-rewind-hook`, `pi-plan-md`). These are disabled by default as specified in the original design mandate.

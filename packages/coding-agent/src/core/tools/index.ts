@@ -110,13 +110,6 @@ export type ToolDef = ToolDefinition<any, any>;
 export const codingTools: Tool[] = [readTool, bashTool, editTool, writeTool];
 export const readOnlyTools: Tool[] = [readTool, grepTool, findTool, lsTool];
 
-import {
-	executeToolDefinition,
-	readFileToolDefinition,
-	replaceToolDefinition,
-	searchToolDefinition,
-} from "./legacy-parity-wrappers.js";
-
 export const allTools = {
 	read: readTool,
 	bash: bashTool,
@@ -128,10 +121,6 @@ export const allTools = {
 };
 
 export const allToolDefinitions = {
-	replace: replaceToolDefinition,
-	search: searchToolDefinition,
-	read_file: readFileToolDefinition,
-	execute_command: executeToolDefinition,
 	read: readToolDefinition,
 	bash: bashToolDefinition,
 	edit: editToolDefinition,

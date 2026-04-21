@@ -37,7 +37,7 @@ function getCellItalic(terminal: VirtualTerminal, row: number, col: number): num
 async function renderAndFlush(tui: TUI, terminal: VirtualTerminal): Promise<void> {
 	tui.requestRender(true);
 	await new Promise<void>((resolve) => process.nextTick(resolve));
-	await terminal.waitForRender();
+	await terminal.flush();
 }
 
 describe("TUI overlay compositing", () => {

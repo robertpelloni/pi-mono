@@ -139,17 +139,28 @@ type SpecialKey =
 	| "f12";
 
 type BaseKey = Letter | Digit | SymbolKey | SpecialKey;
-type ModifierName = "ctrl" | "shift" | "alt" | "super";
-
-type ModifiedKeyId<Key extends string, RemainingModifiers extends ModifierName = ModifierName> = {
-	[M in RemainingModifiers]: `${M}+${Key}` | `${M}+${ModifiedKeyId<Key, Exclude<RemainingModifiers, M>>}`;
-}[RemainingModifiers];
 
 /**
  * Union type of all valid key identifiers.
  * Provides autocomplete and catches typos at compile time.
  */
-export type KeyId = BaseKey | ModifiedKeyId<BaseKey>;
+export type KeyId =
+	| BaseKey
+	| `ctrl+${BaseKey}`
+	| `shift+${BaseKey}`
+	| `alt+${BaseKey}`
+	| `ctrl+shift+${BaseKey}`
+	| `shift+ctrl+${BaseKey}`
+	| `ctrl+alt+${BaseKey}`
+	| `alt+ctrl+${BaseKey}`
+	| `shift+alt+${BaseKey}`
+	| `alt+shift+${BaseKey}`
+	| `ctrl+shift+alt+${BaseKey}`
+	| `ctrl+alt+shift+${BaseKey}`
+	| `shift+ctrl+alt+${BaseKey}`
+	| `shift+alt+ctrl+${BaseKey}`
+	| `alt+ctrl+shift+${BaseKey}`
+	| `alt+shift+ctrl+${BaseKey}`;
 
 /**
  * Helper object for creating typed key identifiers with autocomplete.
@@ -157,8 +168,8 @@ export type KeyId = BaseKey | ModifiedKeyId<BaseKey>;
  * Usage:
  * - Key.escape, Key.enter, Key.tab, etc. for special keys
  * - Key.backtick, Key.comma, Key.period, etc. for symbol keys
- * - Key.ctrl("c"), Key.alt("x"), Key.super("k") for single modifiers
- * - Key.ctrlShift("p"), Key.ctrlAlt("x"), Key.ctrlSuper("k") for combined modifiers
+ * - Key.ctrl("c"), Key.alt("x") for single modifier
+ * - Key.ctrlShift("p"), Key.ctrlAlt("x") for combined modifiers
  */
 export const Key = {
 	// Special keys
@@ -230,7 +241,6 @@ export const Key = {
 	ctrl: <K extends BaseKey>(key: K): `ctrl+${K}` => `ctrl+${key}`,
 	shift: <K extends BaseKey>(key: K): `shift+${K}` => `shift+${key}`,
 	alt: <K extends BaseKey>(key: K): `alt+${K}` => `alt+${key}`,
-	super: <K extends BaseKey>(key: K): `super+${K}` => `super+${key}`,
 
 	// Combined modifiers
 	ctrlShift: <K extends BaseKey>(key: K): `ctrl+shift+${K}` => `ctrl+shift+${key}`,
@@ -239,16 +249,9 @@ export const Key = {
 	altCtrl: <K extends BaseKey>(key: K): `alt+ctrl+${K}` => `alt+ctrl+${key}`,
 	shiftAlt: <K extends BaseKey>(key: K): `shift+alt+${K}` => `shift+alt+${key}`,
 	altShift: <K extends BaseKey>(key: K): `alt+shift+${K}` => `alt+shift+${key}`,
-	ctrlSuper: <K extends BaseKey>(key: K): `ctrl+super+${K}` => `ctrl+super+${key}`,
-	superCtrl: <K extends BaseKey>(key: K): `super+ctrl+${K}` => `super+ctrl+${key}`,
-	shiftSuper: <K extends BaseKey>(key: K): `shift+super+${K}` => `shift+super+${key}`,
-	superShift: <K extends BaseKey>(key: K): `super+shift+${K}` => `super+shift+${key}`,
-	altSuper: <K extends BaseKey>(key: K): `alt+super+${K}` => `alt+super+${key}`,
-	superAlt: <K extends BaseKey>(key: K): `super+alt+${K}` => `super+alt+${key}`,
 
 	// Triple modifiers
 	ctrlShiftAlt: <K extends BaseKey>(key: K): `ctrl+shift+alt+${K}` => `ctrl+shift+alt+${key}`,
-	ctrlShiftSuper: <K extends BaseKey>(key: K): `ctrl+shift+super+${K}` => `ctrl+shift+super+${key}`,
 } as const;
 
 // =============================================================================
@@ -293,7 +296,6 @@ const MODIFIERS = {
 	shift: 1,
 	alt: 2,
 	ctrl: 4,
-	super: 8,
 } as const;
 
 const LOCK_MASK = 64 + 128; // Caps Lock + Num Lock
@@ -757,18 +759,15 @@ function matchesPrintableModifyOtherKeys(data: string, expectedKeycode: number, 
 function formatKeyNameWithModifiers(keyName: string, modifier: number): string | undefined {
 	const mods: string[] = [];
 	const effectiveMod = modifier & ~LOCK_MASK;
-	const supportedModifierMask = MODIFIERS.shift | MODIFIERS.ctrl | MODIFIERS.alt | MODIFIERS.super;
+	const supportedModifierMask = MODIFIERS.shift | MODIFIERS.ctrl | MODIFIERS.alt;
 	if ((effectiveMod & ~supportedModifierMask) !== 0) return undefined;
 	if (effectiveMod & MODIFIERS.shift) mods.push("shift");
 	if (effectiveMod & MODIFIERS.ctrl) mods.push("ctrl");
 	if (effectiveMod & MODIFIERS.alt) mods.push("alt");
-	if (effectiveMod & MODIFIERS.super) mods.push("super");
 	return mods.length > 0 ? `${mods.join("+")}+${keyName}` : keyName;
 }
 
-function parseKeyId(
-	keyId: string,
-): { key: string; ctrl: boolean; shift: boolean; alt: boolean; super: boolean } | null {
+function parseKeyId(keyId: string): { key: string; ctrl: boolean; shift: boolean; alt: boolean } | null {
 	const parts = keyId.toLowerCase().split("+");
 	const key = parts[parts.length - 1];
 	if (!key) return null;
@@ -777,7 +776,6 @@ function parseKeyId(
 		ctrl: parts.includes("ctrl"),
 		shift: parts.includes("shift"),
 		alt: parts.includes("alt"),
-		super: parts.includes("super"),
 	};
 }
 
@@ -790,10 +788,9 @@ function parseKeyId(
  * - Ctrl combinations: "ctrl+c", "ctrl+z", etc.
  * - Shift combinations: "shift+tab", "shift+enter"
  * - Alt combinations: "alt+enter", "alt+backspace"
- * - Super combinations: "super+k", "super+enter"
- * - Combined modifiers: "shift+ctrl+p", "ctrl+alt+x", "ctrl+super+k"
+ * - Combined modifiers: "shift+ctrl+p", "ctrl+alt+x"
  *
- * Use the Key helper for autocomplete: Key.ctrl("c"), Key.escape, Key.ctrlShift("p"), Key.super("k")
+ * Use the Key helper for autocomplete: Key.ctrl("c"), Key.escape, Key.ctrlShift("p")
  *
  * @param data - Raw input data from terminal
  * @param keyId - Key identifier (e.g., "ctrl+c", "escape", Key.ctrl("c"))
@@ -802,12 +799,11 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 	const parsed = parseKeyId(keyId);
 	if (!parsed) return false;
 
-	const { key, ctrl, shift, alt, super: superModifier } = parsed;
+	const { key, ctrl, shift, alt } = parsed;
 	let modifier = 0;
 	if (shift) modifier |= MODIFIERS.shift;
 	if (alt) modifier |= MODIFIERS.alt;
 	if (ctrl) modifier |= MODIFIERS.ctrl;
-	if (superModifier) modifier |= MODIFIERS.super;
 
 	switch (key) {
 		case "escape":
@@ -821,10 +817,10 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 
 		case "space":
 			if (!_kittyProtocolActive) {
-				if (modifier === MODIFIERS.ctrl && data === "\x00") {
+				if (ctrl && !alt && !shift && data === "\x00") {
 					return true;
 				}
-				if (modifier === MODIFIERS.alt && data === "\x1b ") {
+				if (alt && !ctrl && !shift && data === "\x1b ") {
 					return true;
 				}
 			}
@@ -841,7 +837,7 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 			);
 
 		case "tab":
-			if (modifier === MODIFIERS.shift) {
+			if (shift && !ctrl && !alt) {
 				return (
 					data === "\x1b[Z" ||
 					matchesKittySequence(data, CODEPOINTS.tab, MODIFIERS.shift) ||
@@ -858,7 +854,7 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 
 		case "enter":
 		case "return":
-			if (modifier === MODIFIERS.shift) {
+			if (shift && !ctrl && !alt) {
 				// CSI u sequences (standard Kitty protocol)
 				if (
 					matchesKittySequence(data, CODEPOINTS.enter, MODIFIERS.shift) ||
@@ -878,7 +874,7 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 				}
 				return false;
 			}
-			if (modifier === MODIFIERS.alt) {
+			if (alt && !ctrl && !shift) {
 				// CSI u sequences (standard Kitty protocol)
 				if (
 					matchesKittySequence(data, CODEPOINTS.enter, MODIFIERS.alt) ||
@@ -913,7 +909,7 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 			);
 
 		case "backspace":
-			if (modifier === MODIFIERS.alt) {
+			if (alt && !ctrl && !shift) {
 				if (data === "\x1b\x7f" || data === "\x1b\b") {
 					return true;
 				}
@@ -922,7 +918,7 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 					matchesModifyOtherKeys(data, CODEPOINTS.backspace, MODIFIERS.alt)
 				);
 			}
-			if (modifier === MODIFIERS.ctrl) {
+			if (ctrl && !alt && !shift) {
 				// Legacy raw 0x08 is ambiguous: it can be Ctrl+Backspace on Windows
 				// Terminal or plain Backspace on other terminals, while also
 				// overlapping with Ctrl+H.
@@ -1023,7 +1019,7 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 			return matchesKittySequence(data, FUNCTIONAL_CODEPOINTS.pageDown, modifier);
 
 		case "up":
-			if (modifier === MODIFIERS.alt) {
+			if (alt && !ctrl && !shift) {
 				return data === "\x1bp" || matchesKittySequence(data, ARROW_CODEPOINTS.up, MODIFIERS.alt);
 			}
 			if (modifier === 0) {
@@ -1038,7 +1034,7 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 			return matchesKittySequence(data, ARROW_CODEPOINTS.up, modifier);
 
 		case "down":
-			if (modifier === MODIFIERS.alt) {
+			if (alt && !ctrl && !shift) {
 				return data === "\x1bn" || matchesKittySequence(data, ARROW_CODEPOINTS.down, MODIFIERS.alt);
 			}
 			if (modifier === 0) {
@@ -1053,7 +1049,7 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 			return matchesKittySequence(data, ARROW_CODEPOINTS.down, modifier);
 
 		case "left":
-			if (modifier === MODIFIERS.alt) {
+			if (alt && !ctrl && !shift) {
 				return (
 					data === "\x1b[1;3D" ||
 					(!_kittyProtocolActive && data === "\x1bB") ||
@@ -1061,7 +1057,7 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 					matchesKittySequence(data, ARROW_CODEPOINTS.left, MODIFIERS.alt)
 				);
 			}
-			if (modifier === MODIFIERS.ctrl) {
+			if (ctrl && !alt && !shift) {
 				return (
 					data === "\x1b[1;5D" ||
 					matchesLegacyModifierSequence(data, "left", MODIFIERS.ctrl) ||
@@ -1080,7 +1076,7 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 			return matchesKittySequence(data, ARROW_CODEPOINTS.left, modifier);
 
 		case "right":
-			if (modifier === MODIFIERS.alt) {
+			if (alt && !ctrl && !shift) {
 				return (
 					data === "\x1b[1;3C" ||
 					(!_kittyProtocolActive && data === "\x1bF") ||
@@ -1088,7 +1084,7 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 					matchesKittySequence(data, ARROW_CODEPOINTS.right, MODIFIERS.alt)
 				);
 			}
-			if (modifier === MODIFIERS.ctrl) {
+			if (ctrl && !alt && !shift) {
 				return (
 					data === "\x1b[1;5C" ||
 					matchesLegacyModifierSequence(data, "right", MODIFIERS.ctrl) ||
@@ -1133,19 +1129,17 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 		const isLetter = key >= "a" && key <= "z";
 		const isDigit = isDigitKey(key);
 
-		if (modifier === MODIFIERS.ctrl + MODIFIERS.alt && !_kittyProtocolActive && rawCtrl) {
-			// Legacy: ctrl+alt+key is ESC followed by the control character.
-			// If that legacy form does not match, continue so CSI-u and
-			// modifyOtherKeys sequences from tmux can still be recognized.
-			if (data === `\x1b${rawCtrl}`) return true;
+		if (ctrl && alt && !shift && !_kittyProtocolActive && rawCtrl) {
+			// Legacy: ctrl+alt+key is ESC followed by the control character
+			return data === `\x1b${rawCtrl}`;
 		}
 
-		if (modifier === MODIFIERS.alt && !_kittyProtocolActive && (isLetter || isDigit)) {
+		if (alt && !ctrl && !shift && !_kittyProtocolActive && (isLetter || isDigit)) {
 			// Legacy: alt+letter/digit is ESC followed by the key
 			if (data === `\x1b${key}`) return true;
 		}
 
-		if (modifier === MODIFIERS.ctrl) {
+		if (ctrl && !shift && !alt) {
 			// Legacy: ctrl+key sends the control character
 			if (rawCtrl && data === rawCtrl) return true;
 			return (
@@ -1154,14 +1148,14 @@ export function matchesKey(data: string, keyId: KeyId): boolean {
 			);
 		}
 
-		if (modifier === MODIFIERS.shift + MODIFIERS.ctrl) {
+		if (ctrl && shift && !alt) {
 			return (
 				matchesKittySequence(data, codepoint, MODIFIERS.shift + MODIFIERS.ctrl) ||
 				matchesPrintableModifyOtherKeys(data, codepoint, MODIFIERS.shift + MODIFIERS.ctrl)
 			);
 		}
 
-		if (modifier === MODIFIERS.shift) {
+		if (shift && !ctrl && !alt) {
 			// Legacy: shift+letter produces uppercase
 			if (isLetter && data === key.toUpperCase()) return true;
 			return (

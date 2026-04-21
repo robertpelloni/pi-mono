@@ -293,12 +293,12 @@ export const streamSimpleGoogle: StreamFunction<"google-generative-ai", SimpleSt
 	const effort = clampReasoning(options.reasoning)!;
 	const googleModel = model as Model<"google-generative-ai">;
 
-	if (isGemini3ProModel(googleModel) || isGemini3FlashModel(googleModel) || isGemma4Model(googleModel)) {
+	if (isGemini3ProModel(googleModel) || isGemini3FlashModel(googleModel)) {
 		return streamGoogle(model, context, {
 			...base,
 			thinking: {
 				enabled: true,
-				level: getThinkingLevel(effort, googleModel),
+				level: getGemini3ThinkingLevel(effort, googleModel),
 			},
 		} satisfies GoogleOptions);
 	}
@@ -394,10 +394,6 @@ function buildParams(
 
 type ClampedThinkingLevel = Exclude<ThinkingLevel, "xhigh">;
 
-function isGemma4Model(model: Model<"google-generative-ai">): boolean {
-	return /gemma-?4/.test(model.id.toLowerCase());
-}
-
 function isGemini3ProModel(model: Model<"google-generative-ai">): boolean {
 	return /gemini-3(?:\.\d+)?-pro/.test(model.id.toLowerCase());
 }
@@ -416,30 +412,20 @@ function getDisabledThinkingConfig(model: Model<"google-generative-ai">): Thinki
 	if (isGemini3FlashModel(model)) {
 		return { thinkingLevel: "MINIMAL" as any };
 	}
-	if (isGemma4Model(model)) {
-		return { thinkingLevel: "MINIMAL" as any };
-	}
 
 	// Gemini 2.x supports disabling via thinkingBudget = 0.
 	return { thinkingBudget: 0 };
 }
 
-function getThinkingLevel(effort: ClampedThinkingLevel, model: Model<"google-generative-ai">): GoogleThinkingLevel {
+function getGemini3ThinkingLevel(
+	effort: ClampedThinkingLevel,
+	model: Model<"google-generative-ai">,
+): GoogleThinkingLevel {
 	if (isGemini3ProModel(model)) {
 		switch (effort) {
 			case "minimal":
 			case "low":
 				return "LOW";
-			case "medium":
-			case "high":
-				return "HIGH";
-		}
-	}
-	if (isGemma4Model(model)) {
-		switch (effort) {
-			case "minimal":
-			case "low":
-				return "MINIMAL";
 			case "medium":
 			case "high":
 				return "HIGH";
@@ -472,16 +458,6 @@ function getGoogleBudget(
 			low: 2048,
 			medium: 8192,
 			high: 32768,
-		};
-		return budgets[effort];
-	}
-
-	if (model.id.includes("2.5-flash-lite")) {
-		const budgets: Record<ClampedThinkingLevel, number> = {
-			minimal: 512,
-			low: 2048,
-			medium: 8192,
-			high: 24576,
 		};
 		return budgets[effort];
 	}
