@@ -12,6 +12,7 @@
 
 ## Urgent Constraints & Next Steps
 1. ~~**Fix Missing Tool Registration**~~: Fixed. We exported the `computer` tool into the agent loop natively via index.ts.
+2. ~~**Remove Node Scripts**~~: Fixed. All `.cjs` automated patching scripts are fully cleared off the commit tree.
 
 ## Strict Rules
 - *Never execute commands that taskkill all node processes.*
@@ -22,3 +23,9 @@
 - The next goal will be establishing CI/CD and checking for cross-platform edge cases.
 ## Optional Extensions Architecture
 - Scaffolded `pkg/extensions/` mapping to popular 3rd-party community plugins from `shittycodingagent.ai` (e.g., `pi-rewind-hook`, `pi-plan-md`). These are disabled by default as specified in the original design mandate.
+## End of Epoch Goals Met
+- Go Core complete.
+- Streaming APIs fully natively verified via SSE parsing.
+- UI built using `charmbracelet/bubbletea`
+- Continuous Integration tested natively in GitHub Actions.
+- Extraneous submodules natively stubbed in a unified registry via `CleanRoomTools`.
