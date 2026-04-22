@@ -27,3 +27,8 @@ This document contains individual features, bug fixes, and other fine details th
 # Crucial Code Review Fixes (Next Session)
 1. **Fix Missing Tool Registration**: The TypeScript `clean-room-tools.ts` and `clean-room-schemas.ts` were built, but they need to be actively exported from `packages/coding-agent/src/core/tools/index.ts` in order to be functionally available to the user, not just exist as dead code. Ensure they are mapped to `allToolDefinitions` and `allTools`.~~
 2. ~~**Remove Node Scripts**~~: If any leftover `.cjs` scripts exist from previous automation (e.g. `patch_agent_hooks.cjs`), remove them explicitly. Do not commit scratchpad scripts into the repo.
+
+# Next Session Tasks
+1. Analyze 'pkg/tui' and refactor into dedicated cross-platform multi-frontend interfaces.
+2. Deep review of newly assimilated OpenInterpreter capabilities.
+3. Explore new submodules to add to Phase 9.

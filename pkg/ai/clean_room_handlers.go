@@ -255,4 +255,52 @@ var CleanRoomTools = map[string]func(map[string]interface{}) string{
 	"session_search":      handleHermesSessionSearch,
 	"skill_manage":        handleHermesSkillManage,
 	"web_search":          handleHermesWebSearch,
+	"run_command":         handleAiderRunCommand,
+	"replace_lines":       handleAiderReplaceLines,
+}
+
+func handleAiderRunCommand(args map[string]interface{}) string {
+	cmd, _ := args["cmd"].(string)
+	unifiedArgs := map[string]interface{}{"command": cmd}
+	out, err := HandleUnifiedCommand(unifiedArgs)
+	if err != nil {
+		return "Error: " + err.Error() + "\nOutput: " + out
+	}
+	return out
+}
+
+func handleAiderReplaceLines(args map[string]interface{}) string {
+	filePath, okPath := args["file_path"].(string)
+	startLineF, okStart := args["start_line"].(float64)
+	endLineF, okEnd := args["end_line"].(float64)
+	replacement, okRepl := args["replacement"].(string)
+
+	if !okPath || !okStart || !okEnd || !okRepl {
+		return "Error: missing required arguments for replace_lines"
+	}
+
+	content, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return "Error reading file: " + err.Error()
+	}
+
+	lines := strings.Split(string(content), "\n")
+	startLine := int(startLineF) - 1 // 1-indexed to 0-indexed
+	endLine := int(endLineF) - 1
+
+	if startLine < 0 || startLine >= len(lines) || endLine < 0 || endLine >= len(lines) || startLine > endLine {
+		return "Error: line boundaries are invalid"
+	}
+
+	// Reconstruct the file with the replaced section
+	newLines := append([]string{}, lines[:startLine]...)
+	newLines = append(newLines, strings.Split(replacement, "\n")...)
+	newLines = append(newLines, lines[endLine+1:]...)
+
+	err = ioutil.WriteFile(filePath, []byte(strings.Join(newLines, "\n")), 0644)
+	if err != nil {
+		return "Error writing file: " + err.Error()
+	}
+
+	return "Lines replaced successfully."
 }
