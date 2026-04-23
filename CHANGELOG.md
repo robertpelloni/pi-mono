@@ -11,6 +11,13 @@
 
 ## [Unreleased]
 
+## [0.68.0] - 2026-04-21
+
+### Added
+- Mapped open interpreter tool schemas directly to native OS system bindings `xdotool`.
+- Added `cline` IDE agent submodule to begin Phase 9 investigation.
+
+
 ### Added
 
 - Added `submodules/opencode-cli` as a Git submodule for analysis and porting.
