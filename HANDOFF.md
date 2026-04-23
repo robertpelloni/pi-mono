@@ -31,3 +31,5 @@
 - Extraneous submodules natively stubbed in a unified registry via `CleanRoomTools`.
 ## Multi-Frontend Refactor
 - Refactored `pkg/tui` into `pkg/frontends/` allowing for dynamic terminal rendering depending on environment bindings. Supports `bubbletea` default, and `cli` generic interface bindings (for legacy pipelines).
+## OpenInterpreter Parity
+- Replaced mock stubs in `handleOpenInterpreterComputerUse` with live execution logic leveraging the host's `xdotool` OS bindings for `type`, `key`, `mouse_move`, and `left_click` behaviors natively passing directly into Go `exec.Command`.

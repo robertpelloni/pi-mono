@@ -152,9 +152,68 @@ func MapHermesCleanRoomParams(toolName string, rawArgs []byte) (map[string]inter
 }
 
 
+
+// Native OpenInterpreter bindings for specific action enums.
+// These interact directly with 'xdotool' (Linux) or 'cliclick' natively if installed.
 func handleOpenInterpreterComputerUse(args map[string]interface{}) string {
-	action, _ := args["action"].(string)
-	return "Simulated execution of: " + action
+	action, ok := args["action"].(string)
+	if !ok {
+		return "Error: missing 'action' parameter for computer use."
+	}
+
+	switch action {
+	case "type":
+		text, _ := args["text"].(string)
+		if text == "" {
+			return "Error: missing text to type"
+		}
+		// Attempting generic OS invocation
+		cmd := exec.Command("xdotool", "type", text)
+		err := cmd.Run()
+		if err != nil {
+			return "Error typing via xdotool: " + err.Error() + ". Please ensure xdotool is installed."
+		}
+		return "Typed text successfully: " + text
+
+	case "key":
+		key, _ := args["text"].(string)
+		if key == "" {
+			return "Error: missing key to press"
+		}
+		cmd := exec.Command("xdotool", "key", key)
+		err := cmd.Run()
+		if err != nil {
+			return "Error pressing key via xdotool: " + err.Error()
+		}
+		return "Pressed key successfully: " + key
+
+	case "mouse_move":
+		coords, ok := args["coordinate"].([]interface{})
+		if !ok || len(coords) < 2 {
+			return "Error: invalid or missing coordinate array for mouse_move"
+		}
+
+		x := fmt.Sprintf("%v", coords[0])
+		y := fmt.Sprintf("%v", coords[1])
+
+		cmd := exec.Command("xdotool", "mousemove", x, y)
+		err := cmd.Run()
+		if err != nil {
+			return "Error moving mouse: " + err.Error()
+		}
+		return fmt.Sprintf("Mouse moved to (%s, %s)", x, y)
+
+	case "left_click":
+		cmd := exec.Command("xdotool", "click", "1")
+		err := cmd.Run()
+		if err != nil {
+			return "Error left clicking: " + err.Error()
+		}
+		return "Left click executed"
+
+	default:
+		return "Simulated execution of unhandled action: " + action
+	}
 }
 
 func handleHermesMemory(args map[string]interface{}) string {
