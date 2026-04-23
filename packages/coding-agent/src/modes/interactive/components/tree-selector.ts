@@ -2,7 +2,7 @@ import {
 	type Component,
 	Container,
 	type Focusable,
-	getKeybindings,
+	getEditorKeybindings,
 	Input,
 	matchesKey,
 	Spacer,
@@ -13,7 +13,7 @@ import {
 import type { SessionTreeNode } from "../../../core/session-manager.js";
 import { theme } from "../theme/theme.js";
 import { DynamicBorder } from "./dynamic-border.js";
-import { keyHint, keyText } from "./keybinding-hints.js";
+import { keyHint } from "./keybinding-hints.js";
 
 /** Gutter info: position (displayIndent where connector was) and whether to show │ */
 interface GutterInfo {
@@ -58,7 +58,6 @@ class TreeList implements Component {
 	private searchQuery = "";
 	private toolCallMap: Map<string, ToolCallInfo> = new Map();
 	private multipleRoots = false;
-	private showLabelTimestamps = false;
 	private activePathIds: Set<string> = new Set();
 	private visibleParentMap: Map<string, string | null> = new Map();
 	private visibleChildrenMap: Map<string | null, string[]> = new Map();
@@ -303,8 +302,7 @@ class TreeList implements Component {
 				entry.type === "label" ||
 				entry.type === "custom" ||
 				entry.type === "model_change" ||
-				entry.type === "thinking_level_change" ||
-				entry.type === "session_info";
+				entry.type === "thinking_level_change";
 
 			switch (this.filterMode) {
 				case "user-only":
@@ -537,10 +535,6 @@ class TreeList implements Component {
 			case "branch_summary":
 				parts.push("branch summary", entry.summary);
 				break;
-			case "session_info":
-				parts.push("title");
-				if (entry.name) parts.push(entry.name);
-				break;
 			case "model_change":
 				parts.push("model", entry.modelId);
 				break;
@@ -568,36 +562,28 @@ class TreeList implements Component {
 		return this.filteredNodes[this.selectedIndex]?.node;
 	}
 
-	updateNodeLabel(entryId: string, label: string | undefined, labelTimestamp?: string): void {
+	updateNodeLabel(entryId: string, label: string | undefined): void {
 		for (const flatNode of this.flatNodes) {
 			if (flatNode.node.entry.id === entryId) {
 				flatNode.node.label = label;
-				flatNode.node.labelTimestamp = label ? (labelTimestamp ?? new Date().toISOString()) : undefined;
 				break;
 			}
 		}
 	}
 
-	private getStatusLabels(): string {
-		let labels = "";
+	private getFilterLabel(): string {
 		switch (this.filterMode) {
 			case "no-tools":
-				labels += " [no-tools]";
-				break;
+				return " [no-tools]";
 			case "user-only":
-				labels += " [user]";
-				break;
+				return " [user]";
 			case "labeled-only":
-				labels += " [labeled]";
-				break;
+				return " [labeled]";
 			case "all":
-				labels += " [all]";
-				break;
+				return " [all]";
+			default:
+				return "";
 		}
-		if (this.showLabelTimestamps) {
-			labels += " [+label time]";
-		}
-		return labels;
 	}
 
 	render(width: number): string[] {
@@ -605,7 +591,7 @@ class TreeList implements Component {
 
 		if (this.filteredNodes.length === 0) {
 			lines.push(truncateToWidth(theme.fg("muted", "  No entries found"), width));
-			lines.push(truncateToWidth(theme.fg("muted", `  (0/0)${this.getStatusLabels()}`), width));
+			lines.push(truncateToWidth(theme.fg("muted", `  (0/0)${this.getFilterLabel()}`), width));
 			return lines;
 		}
 
@@ -676,13 +662,9 @@ class TreeList implements Component {
 			const pathMarker = isOnActivePath ? theme.fg("accent", "• ") : "";
 
 			const label = flatNode.node.label ? theme.fg("warning", `[${flatNode.node.label}] `) : "";
-			const labelTimestamp =
-				this.showLabelTimestamps && flatNode.node.label && flatNode.node.labelTimestamp
-					? theme.fg("muted", `${this.formatLabelTimestamp(flatNode.node.labelTimestamp)} `)
-					: "";
 			const content = this.getEntryDisplayText(flatNode.node, isSelected);
 
-			let line = cursor + theme.fg("dim", prefix) + foldMarker + pathMarker + label + labelTimestamp + content;
+			let line = cursor + theme.fg("dim", prefix) + foldMarker + pathMarker + label + content;
 			if (isSelected) {
 				line = theme.bg("selectedBg", line);
 			}
@@ -691,7 +673,7 @@ class TreeList implements Component {
 
 		lines.push(
 			truncateToWidth(
-				theme.fg("muted", `  (${this.selectedIndex + 1}/${this.filteredNodes.length})${this.getStatusLabels()}`),
+				theme.fg("muted", `  (${this.selectedIndex + 1}/${this.filteredNodes.length})${this.getFilterLabel()}`),
 				width,
 			),
 		);
@@ -773,41 +755,11 @@ class TreeList implements Component {
 			case "label":
 				result = theme.fg("dim", `[label: ${entry.label ?? "(cleared)"}]`);
 				break;
-			case "session_info":
-				result = entry.name
-					? [theme.fg("dim", "[title: "), theme.fg("dim", entry.name), theme.fg("dim", "]")].join("")
-					: [theme.fg("dim", "[title: "), theme.italic(theme.fg("dim", "empty")), theme.fg("dim", "]")].join("");
-				break;
 			default:
 				result = "";
 		}
 
 		return isSelected ? theme.bold(result) : result;
-	}
-
-	private formatLabelTimestamp(timestamp: string): string {
-		const date = new Date(timestamp);
-		const now = new Date();
-		const hours = date.getHours().toString().padStart(2, "0");
-		const minutes = date.getMinutes().toString().padStart(2, "0");
-		const time = `${hours}:${minutes}`;
-
-		if (
-			date.getFullYear() === now.getFullYear() &&
-			date.getMonth() === now.getMonth() &&
-			date.getDate() === now.getDate()
-		) {
-			return time;
-		}
-
-		const month = date.getMonth() + 1;
-		const day = date.getDate();
-		if (date.getFullYear() === now.getFullYear()) {
-			return `${month}/${day} ${time}`;
-		}
-
-		const year = date.getFullYear().toString().slice(-2);
-		return `${year}/${month}/${day} ${time}`;
 	}
 
 	private extractContent(content: unknown): string {
@@ -898,12 +850,12 @@ class TreeList implements Component {
 	}
 
 	handleInput(keyData: string): void {
-		const kb = getKeybindings();
-		if (kb.matches(keyData, "tui.select.up")) {
+		const kb = getEditorKeybindings();
+		if (kb.matches(keyData, "selectUp")) {
 			this.selectedIndex = this.selectedIndex === 0 ? this.filteredNodes.length - 1 : this.selectedIndex - 1;
-		} else if (kb.matches(keyData, "tui.select.down")) {
+		} else if (kb.matches(keyData, "selectDown")) {
 			this.selectedIndex = this.selectedIndex === this.filteredNodes.length - 1 ? 0 : this.selectedIndex + 1;
-		} else if (kb.matches(keyData, "app.tree.foldOrUp")) {
+		} else if (kb.matches(keyData, "treeFoldOrUp")) {
 			const currentId = this.filteredNodes[this.selectedIndex]?.node.entry.id;
 			if (currentId && this.isFoldable(currentId) && !this.foldedNodes.has(currentId)) {
 				this.foldedNodes.add(currentId);
@@ -911,7 +863,7 @@ class TreeList implements Component {
 			} else {
 				this.selectedIndex = this.findBranchSegmentStart("up");
 			}
-		} else if (kb.matches(keyData, "app.tree.unfoldOrDown")) {
+		} else if (kb.matches(keyData, "treeUnfoldOrDown")) {
 			const currentId = this.filteredNodes[this.selectedIndex]?.node.entry.id;
 			if (currentId && this.foldedNodes.has(currentId)) {
 				this.foldedNodes.delete(currentId);
@@ -919,18 +871,18 @@ class TreeList implements Component {
 			} else {
 				this.selectedIndex = this.findBranchSegmentStart("down");
 			}
-		} else if (kb.matches(keyData, "tui.editor.cursorLeft") || kb.matches(keyData, "tui.select.pageUp")) {
+		} else if (kb.matches(keyData, "cursorLeft") || kb.matches(keyData, "selectPageUp")) {
 			// Page up
 			this.selectedIndex = Math.max(0, this.selectedIndex - this.maxVisibleLines);
-		} else if (kb.matches(keyData, "tui.editor.cursorRight") || kb.matches(keyData, "tui.select.pageDown")) {
+		} else if (kb.matches(keyData, "cursorRight") || kb.matches(keyData, "selectPageDown")) {
 			// Page down
 			this.selectedIndex = Math.min(this.filteredNodes.length - 1, this.selectedIndex + this.maxVisibleLines);
-		} else if (kb.matches(keyData, "tui.select.confirm")) {
+		} else if (kb.matches(keyData, "selectConfirm")) {
 			const selected = this.filteredNodes[this.selectedIndex];
 			if (selected && this.onSelect) {
 				this.onSelect(selected.node.entry.id);
 			}
-		} else if (kb.matches(keyData, "tui.select.cancel")) {
+		} else if (kb.matches(keyData, "selectCancel")) {
 			if (this.searchQuery) {
 				this.searchQuery = "";
 				this.foldedNodes.clear();
@@ -977,19 +929,17 @@ class TreeList implements Component {
 			this.filterMode = modes[(currentIndex + 1) % modes.length];
 			this.foldedNodes.clear();
 			this.applyFilter();
-		} else if (kb.matches(keyData, "tui.editor.deleteCharBackward")) {
+		} else if (kb.matches(keyData, "deleteCharBackward")) {
 			if (this.searchQuery.length > 0) {
 				this.searchQuery = this.searchQuery.slice(0, -1);
 				this.foldedNodes.clear();
 				this.applyFilter();
 			}
-		} else if (kb.matches(keyData, "app.tree.editLabel")) {
+		} else if (matchesKey(keyData, "shift+l")) {
 			const selected = this.filteredNodes[this.selectedIndex];
 			if (selected && this.onLabelEdit) {
 				this.onLabelEdit(selected.node.entry.id, selected.node.label);
 			}
-		} else if (kb.matches(keyData, "app.tree.toggleLabelTimestamp")) {
-			this.showLabelTimestamps = !this.showLabelTimestamps;
 		} else {
 			const hasControlChars = [...keyData].some((ch) => {
 				const code = ch.charCodeAt(0);
@@ -1106,20 +1056,17 @@ class LabelInput implements Component, Focusable {
 		lines.push(truncateToWidth(`${indent}${theme.fg("muted", "Label (empty to remove):")}`, width));
 		lines.push(...this.input.render(availableWidth).map((line) => truncateToWidth(`${indent}${line}`, width)));
 		lines.push(
-			truncateToWidth(
-				`${indent}${keyHint("tui.select.confirm", "save")}  ${keyHint("tui.select.cancel", "cancel")}`,
-				width,
-			),
+			truncateToWidth(`${indent}${keyHint("selectConfirm", "save")}  ${keyHint("selectCancel", "cancel")}`, width),
 		);
 		return lines;
 	}
 
 	handleInput(keyData: string): void {
-		const kb = getKeybindings();
-		if (kb.matches(keyData, "tui.select.confirm")) {
+		const kb = getEditorKeybindings();
+		if (kb.matches(keyData, "selectConfirm")) {
 			const value = this.input.getValue().trim();
 			this.onSubmit?.(this.entryId, value || undefined);
-		} else if (kb.matches(keyData, "tui.select.cancel")) {
+		} else if (kb.matches(keyData, "selectCancel")) {
 			this.onCancel?.();
 		} else {
 			this.input.handleInput(keyData);
@@ -1180,10 +1127,8 @@ export class TreeSelectorComponent extends Container implements Focusable {
 		this.addChild(new Text(theme.bold("  Session Tree"), 1, 0));
 		this.addChild(
 			new TruncatedText(
-				theme.fg(
-					"muted",
-					`  ↑/↓: move. ←/→: page. ^←/^→ or Alt+←/Alt+→: fold/branch. ${keyText("app.tree.editLabel")}: label. ^D/^T/^U/^L/^A: filters (^O/⇧^O cycle). ${keyText("app.tree.toggleLabelTimestamp")}: label time`,
-				),
+				theme.fg("muted", "  ↑/↓: move. ←/→: page. ^←/^→ or Alt+←/Alt+→: fold/branch. Shift+L: label. ") +
+					theme.fg("muted", "^D/^T/^U/^L/^A: filters (^O/⇧^O cycle)"),
 				0,
 				0,
 			),
