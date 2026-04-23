@@ -22,3 +22,6 @@
 [submodule "submodules/ii-agent"]
 	path = submodules/ii-agent
 	url = https://github.com/Intelligent-Internet/ii-agent
+[submodule "submodules/cline"]
+	path = submodules/cline
+	url = https://github.com/cline/cline

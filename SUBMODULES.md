@@ -11,6 +11,7 @@ The following external open-source AI agent tooling has been cloned to the local
 | `submodules/goose` | dc052f44470ab | https://github.com/block/goose | Cleanly architected structural generation frameworks. |
 | `submodules/vscode-copilot-release` | 626080883d9b5 | https://github.com/microsoft/vscode-copilot-release | Leaked/extracted release versions of Copilot, useful to trace strict model/tool parity logic. |
 | `submodules/opencode-cli` | 5b0c8300e56fd | https://github.com/just-every/code | Code CLI (Codex Fork). High-fidelity code interaction primitives. |
+| `submodules/cline` | latest | https://github.com/cline/cline | Highly capable VS Code extension agent interface. Investigating its tool execution loops. |
 | `submodules/ollama` | 7d271e6dc9fb1 (v0.13.4-rc2) | https://github.com/ollama/ollama | Local LLM inference wrapper, used for `ollama` model integrations and sync. |
 
 ## "Clean Room" Schemas Implementation Progress

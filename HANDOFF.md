@@ -20,7 +20,7 @@
 
 ## Completed Phase 8 (Native TUI Frontend)
 - `pkg/tui/tui.go` is now a fully interactive `bubbletea` application, utilizing `bubbles/textarea` and `bubbles/viewport`. It natively passes inputs into the Go execution loops via `Agent.Prompt(ctx, userMsg)` and captures all `EventMsg` outputs. The Go port CLI is now fully usable end-to-end.
-- The next goal will be establishing CI/CD and checking for cross-platform edge cases.
+- The next goal will be checking for cross-platform edge cases and porting multiple UI frontends as dictated by Phase 8.
 ## Optional Extensions Architecture
 - Scaffolded `pkg/extensions/` mapping to popular 3rd-party community plugins from `shittycodingagent.ai` (e.g., `pi-rewind-hook`, `pi-plan-md`). These are disabled by default as specified in the original design mandate.
 ## End of Epoch Goals Met
@@ -29,3 +29,9 @@
 - UI built using `charmbracelet/bubbletea`
 - Continuous Integration tested natively in GitHub Actions.
 - Extraneous submodules natively stubbed in a unified registry via `CleanRoomTools`.
+## Multi-Frontend Refactor
+- Refactored `pkg/tui` into `pkg/frontends/` allowing for dynamic terminal rendering depending on environment bindings. Supports `bubbletea` default, and `cli` generic interface bindings (for legacy pipelines).
+## OpenInterpreter Parity
+- Replaced mock stubs in `handleOpenInterpreterComputerUse` with live execution logic leveraging the host's `xdotool` OS bindings for `type`, `key`, `mouse_move`, and `left_click` behaviors natively passing directly into Go `exec.Command`.
+## Phase 9 Initiated
+- Cloned `cline` submodule to extract unique AST or VSCode specific API control surfaces in upcoming iterations.

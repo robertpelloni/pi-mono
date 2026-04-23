@@ -1,17 +1,26 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/ai"
+	"github.com/badlogic/pi-mono/pkg/frontends/bubbletea"
+	"github.com/badlogic/pi-mono/pkg/frontends/cli"
 	"github.com/badlogic/pi-mono/pkg/tools"
-	"github.com/badlogic/pi-mono/pkg/tui"
 )
 
-// main connects the agent framework to the interactive Bubbletea CLI interface.
+type Renderer interface {
+	Start() error
+	RenderEvent(event agent.AgentEvent)
+}
+
 func main() {
+	frontendType := flag.String("frontend", "bubbletea", "Select frontend UI (bubbletea, cli)")
+	flag.Parse()
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		fmt.Println("Error getting cwd:", err)
@@ -39,10 +48,20 @@ func main() {
 
 	agentLoop.SetSystemPrompt("You are an autonomous coding agent. Use tools whenever possible.")
 
-	renderer := tui.NewInteractiveRenderer(agentLoop)
+	var renderer Renderer
+
+	switch *frontendType {
+	case "cli":
+		renderer = cli.NewCLIRenderer(agentLoop)
+	case "bubbletea":
+		renderer = bubbletea.NewInteractiveRenderer(agentLoop)
+	default:
+		fmt.Println("Invalid frontend type specified. Falling back to bubbletea.")
+		renderer = bubbletea.NewInteractiveRenderer(agentLoop)
+	}
+
 	agentLoop.Subscribe(renderer.RenderEvent)
 
-	// Start the TUI, which will now handle user prompt input interactively.
 	if err := renderer.Start(); err != nil {
 		fmt.Printf("UI execution failed: %v\n", err)
 	}

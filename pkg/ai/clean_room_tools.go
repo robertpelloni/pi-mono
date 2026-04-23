@@ -451,3 +451,30 @@ var OpenInterpreterComputerUse = CleanRoomToolSchema{
 		"required": []string{"action"},
 	},
 }
+
+var AiderReplaceLines = CleanRoomToolSchema{
+	Name:        "replace_lines",
+	Description: "Replace specific lines in a file.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"file_path": map[string]interface{}{
+				"type":        "string",
+				"description": "Path to the file to edit.",
+			},
+			"start_line": map[string]interface{}{
+				"type":        "number",
+				"description": "The 1-indexed start line number to replace.",
+			},
+			"end_line": map[string]interface{}{
+				"type":        "number",
+				"description": "The 1-indexed end line number to replace.",
+			},
+			"replacement": map[string]interface{}{
+				"type":        "string",
+				"description": "The replacement text string.",
+			},
+		},
+		"required": []string{"file_path", "start_line", "end_line", "replacement"},
+	},
+}
