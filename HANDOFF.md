@@ -29,3 +29,5 @@
 - UI built using `charmbracelet/bubbletea`
 - Continuous Integration tested natively in GitHub Actions.
 - Extraneous submodules natively stubbed in a unified registry via `CleanRoomTools`.
+## Multi-Frontend Refactor
+- Refactored `pkg/tui` into `pkg/frontends/` allowing for dynamic terminal rendering depending on environment bindings. Supports `bubbletea` default, and `cli` generic interface bindings (for legacy pipelines).
