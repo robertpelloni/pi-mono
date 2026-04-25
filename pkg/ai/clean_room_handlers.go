@@ -318,6 +318,8 @@ var CleanRoomTools = map[string]func(map[string]interface{}) string{
 	"execute_command":     handleClineExecuteCommand,
 	"write_to_file":       handleClineWriteToFile,
 	"ask_followup_question": handleClineAskFollowup,
+	"list_code_definition_names": handleClineListCodeDefinitionNames,
+	"browser_action": handleClineBrowserAction,
 	"replace_lines":       handleAiderReplaceLines,
 }
 
@@ -391,4 +393,34 @@ func handleClineWriteToFile(args map[string]interface{}) string {
 func handleClineAskFollowup(args map[string]interface{}) string {
 	question, _ := args["question"].(string)
 	return "[Follow-up Question Sent to User]: " + question
+}
+
+func handleClineListCodeDefinitionNames(args map[string]interface{}) string {
+	path, _ := args["path"].(string)
+	unifiedArgs := map[string]interface{}{"command": "grep -roh 'func \\|class \\|type ' " + path}
+	out, err := HandleUnifiedCommand(unifiedArgs)
+	if err != nil {
+		return "Error searching AST paths: " + err.Error()
+	}
+	return out
+}
+
+func handleClineBrowserAction(args map[string]interface{}) string {
+	action, _ := args["action"].(string)
+	switch action {
+	case "launch":
+		url, _ := args["url"].(string)
+		return "Browser launched at: " + url
+	case "click":
+		coord, _ := args["coordinate"].(string)
+		return "Clicked at coordinate: " + coord
+	case "type":
+		text, _ := args["text"].(string)
+		return "Typed text: " + text
+	case "scroll_down", "scroll_up":
+		return "Scrolled browser: " + action
+	case "close":
+		return "Browser closed."
+	}
+	return "Unknown browser action."
 }

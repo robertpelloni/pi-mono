@@ -93,3 +93,24 @@ export async function handleAiderRunCommand(args: { cmd: string }): Promise<stri
 export async function handleAiderReplaceLines(args: { file_path: string; start_line: number; end_line: number; replacement: string }): Promise<string> {
     return "Simulated replacement logic in legacy TS layer.";
 }
+
+export async function handleClineListCodeDefinitionNames(args: { path: string }): Promise<string> {
+    try {
+        const { stdout, stderr } = await execAsync(`grep -roh 'func \\|class \\|type ' ${args.path}`);
+        return stdout || stderr || "No definitions found.";
+    } catch (error: any) {
+        return `Error executing command: ${error.message}`;
+    }
+}
+
+export async function handleClineBrowserAction(args: { action: string; url?: string; coordinate?: string; text?: string }): Promise<string> {
+    switch (args.action) {
+        case "launch": return `Browser launched at: ${args.url}`;
+        case "click": return `Clicked at coordinate: ${args.coordinate}`;
+        case "type": return `Typed text: ${args.text}`;
+        case "scroll_down":
+        case "scroll_up": return `Scrolled browser: ${args.action}`;
+        case "close": return "Browser closed.";
+        default: return "Unknown browser action.";
+    }
+}

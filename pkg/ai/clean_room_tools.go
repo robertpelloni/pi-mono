@@ -533,3 +533,42 @@ var ClineAskFollowup = CleanRoomToolSchema{
 		"required": []string{"question"},
 	},
 }
+
+var ClineListCodeDefinitionNames = CleanRoomToolSchema{
+	Name:        "list_code_definition_names",
+	Description: "List definition names (classes, functions, methods) used in source code files.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"path": map[string]interface{}{
+				"type":        "string",
+				"description": "The directory path.",
+			},
+		},
+		"required": []string{"path"},
+	},
+}
+
+var ClineBrowserAction = CleanRoomToolSchema{
+	Name:        "browser_action",
+	Description: "Interact with a Puppeteer-controlled browser.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"action": map[string]interface{}{
+				"type":        "string",
+				"description": "launch, click, type, scroll_down, scroll_up, close",
+			},
+			"url": map[string]interface{}{
+				"type": "string",
+			},
+			"coordinate": map[string]interface{}{
+				"type": "string",
+			},
+			"text": map[string]interface{}{
+				"type": "string",
+			},
+		},
+		"required": []string{"action"},
+	},
+}

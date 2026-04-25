@@ -3,8 +3,8 @@ import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { Text } from "@mariozechner/pi-tui";
 
 import { openInterpreterComputerUseSchema } from "./clean-room-schemas.js";
-import { handleOpenInterpreterComputerUse, handleHermesMemory, handleAiderRunCommand, handleAiderReplaceLines, handleClineExecuteCommand, handleClineWriteToFile, handleClineAskFollowup } from "./clean-room-handlers.js";
-import { hermesMemorySchema, aiderRunCommandSchema, aiderReplaceLinesSchema, clineExecuteCommandSchema, clineWriteToFileSchema, clineAskFollowupSchema } from "./clean-room-schemas.js";
+import { handleOpenInterpreterComputerUse, handleHermesMemory, handleAiderRunCommand, handleAiderReplaceLines, handleClineExecuteCommand, handleClineWriteToFile, handleClineAskFollowup, handleClineListCodeDefinitionNames, handleClineBrowserAction } from "./clean-room-handlers.js";
+import { hermesMemorySchema, aiderRunCommandSchema, aiderReplaceLinesSchema, clineExecuteCommandSchema, clineWriteToFileSchema, clineAskFollowupSchema, clineListCodeDefinitionNamesSchema, clineBrowserActionSchema } from "./clean-room-schemas.js";
 
 export function createOpenInterpreterComputerUseTool(): AgentTool<typeof openInterpreterComputerUseSchema> {
     return wrapToolDefinition({
@@ -127,6 +127,56 @@ export function createClineAskFollowupTool(): AgentTool<typeof clineAskFollowupS
         renderResult(result, options, theme, context) {
             const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
             text.setText("Question asked.");
+            return text;
+        }
+    });
+}
+
+export function createClineListCodeDefinitionNamesTool(): AgentTool<typeof clineListCodeDefinitionNamesSchema> {
+    return wrapToolDefinition({
+        name: "list_code_definition_names",
+        label: "list_code_definition_names",
+        description: "List definition names (classes, functions, methods) used in source code files.",
+        promptSnippet: "Use list_code_definition_names",
+        promptGuidelines: [],
+        parameters: clineListCodeDefinitionNamesSchema,
+        async execute(toolCallId, args, signal, onUpdate, ctx) {
+            const output = await handleClineListCodeDefinitionNames(args);
+            return { content: [{ type: "text", text: output }], details: {} };
+        },
+        renderCall(args, theme, context) {
+            const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+            text.setText(`${theme.fg("toolTitle", theme.bold("list_code_definition_names"))} (${args.path})`);
+            return text;
+        },
+        renderResult(result, options, theme, context) {
+            const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+            text.setText("Listed definitions.");
+            return text;
+        }
+    });
+}
+
+export function createClineBrowserActionTool(): AgentTool<typeof clineBrowserActionSchema> {
+    return wrapToolDefinition({
+        name: "browser_action",
+        label: "browser_action",
+        description: "Interact with a Puppeteer-controlled browser.",
+        promptSnippet: "Use browser_action",
+        promptGuidelines: [],
+        parameters: clineBrowserActionSchema,
+        async execute(toolCallId, args, signal, onUpdate, ctx) {
+            const output = await handleClineBrowserAction(args);
+            return { content: [{ type: "text", text: output }], details: {} };
+        },
+        renderCall(args, theme, context) {
+            const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+            text.setText(`${theme.fg("toolTitle", theme.bold("browser_action"))} (${args.action})`);
+            return text;
+        },
+        renderResult(result, options, theme, context) {
+            const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+            text.setText("Browser action complete.");
             return text;
         }
     });

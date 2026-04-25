@@ -177,3 +177,14 @@ export const clineWriteToFileSchema = t.Object({
 export const clineAskFollowupSchema = t.Object({
     question: t.String({ description: "The question to ask the user." })
 });
+
+export const clineListCodeDefinitionNamesSchema = t.Object({
+    path: t.String({ description: "The directory path." })
+});
+
+export const clineBrowserActionSchema = t.Object({
+    action: t.String({ description: "launch, click, type, scroll_down, scroll_up, close" }),
+    url: t.Optional(t.String()),
+    coordinate: t.Optional(t.String()),
+    text: t.Optional(t.String())
+});
