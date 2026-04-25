@@ -315,6 +315,9 @@ var CleanRoomTools = map[string]func(map[string]interface{}) string{
 	"skill_manage":        handleHermesSkillManage,
 	"web_search":          handleHermesWebSearch,
 	"run_command":         handleAiderRunCommand,
+	"execute_command":     handleClineExecuteCommand,
+	"write_to_file":       handleClineWriteToFile,
+	"ask_followup_question": handleClineAskFollowup,
 	"replace_lines":       handleAiderReplaceLines,
 }
 
@@ -362,4 +365,30 @@ func handleAiderReplaceLines(args map[string]interface{}) string {
 	}
 
 	return "Lines replaced successfully."
+}
+
+func handleClineExecuteCommand(args map[string]interface{}) string {
+	cmd, _ := args["command"].(string)
+	unifiedArgs := map[string]interface{}{"command": cmd}
+	out, err := HandleUnifiedCommand(unifiedArgs)
+	if err != nil {
+		return "Error: " + err.Error() + "\nOutput: " + out
+	}
+	return out
+}
+
+func handleClineWriteToFile(args map[string]interface{}) string {
+	path, _ := args["path"].(string)
+	content, _ := args["content"].(string)
+	unifiedArgs := map[string]interface{}{"file_path": path, "content": content}
+	out, err := HandleHermesWriteFile(unifiedArgs)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+	return out
+}
+
+func handleClineAskFollowup(args map[string]interface{}) string {
+	question, _ := args["question"].(string)
+	return "[Follow-up Question Sent to User]: " + question
 }

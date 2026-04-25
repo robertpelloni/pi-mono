@@ -478,3 +478,58 @@ var AiderReplaceLines = CleanRoomToolSchema{
 		"required": []string{"file_path", "start_line", "end_line", "replacement"},
 	},
 }
+
+// --- CLINE IDE PARITY SCHEMAS ---
+
+var ClineExecuteCommand = CleanRoomToolSchema{
+	Name:        "execute_command",
+	Description: "Execute a CLI command on the system.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"command": map[string]interface{}{
+				"type":        "string",
+				"description": "The CLI command to execute.",
+			},
+			"requires_approval": map[string]interface{}{
+				"type":        "boolean",
+				"description": "Whether explicit approval is needed.",
+			},
+		},
+		"required": []string{"command", "requires_approval"},
+	},
+}
+
+var ClineWriteToFile = CleanRoomToolSchema{
+	Name:        "write_to_file",
+	Description: "Request to write content to a file at the specified path.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"path": map[string]interface{}{
+				"type":        "string",
+				"description": "The absolute path of the file.",
+			},
+			"content": map[string]interface{}{
+				"type":        "string",
+				"description": "The complete intended content of the file.",
+			},
+		},
+		"required": []string{"path", "content"},
+	},
+}
+
+var ClineAskFollowup = CleanRoomToolSchema{
+	Name:        "ask_followup_question",
+	Description: "Ask the user a question to gather additional information.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"question": map[string]interface{}{
+				"type":        "string",
+				"description": "The question to ask the user.",
+			},
+		},
+		"required": []string{"question"},
+	},
+}

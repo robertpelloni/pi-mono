@@ -29,8 +29,15 @@ export const claudeCodeBashSchema = z.object({
 	command: z.string().describe("The bash command to run."),
 });
 
-export const aiderRunCommandSchema = z.object({
-	cmd: z.string().describe("The command to run in the terminal"),
+export const aiderRunCommandSchema = t.Object({
+	cmd: t.String({ description: "The command to run in the terminal" }),
+});
+
+export const aiderReplaceLinesSchema = t.Object({
+    file_path: t.String({ description: "Path to the file to edit." }),
+    start_line: t.Number({ description: "The 1-indexed start line number to replace." }),
+    end_line: t.Number({ description: "The 1-indexed end line number to replace." }),
+    replacement: t.String({ description: "The replacement text string." })
 });
 
 export const geminiShellSchema = z.object({
@@ -115,9 +122,9 @@ export const hermesHACallServiceSchema = z.object({
 	entity_id: z.string().optional(),
 });
 
-export const hermesMemorySchema = z.object({
-	key: z.string(),
-	value: z.string(),
+export const hermesMemorySchema = t.Object({
+	key: t.String(),
+	value: t.String(),
 });
 
 export const hermesMOASchema = z.object({
@@ -155,4 +162,18 @@ export const openInterpreterComputerUseSchema = t.Object({
     ]),
     text: t.Optional(t.String()),
     coordinate: t.Optional(t.Array(t.Number()))
+});
+
+export const clineExecuteCommandSchema = t.Object({
+    command: t.String({ description: "The CLI command to execute." }),
+    requires_approval: t.Boolean({ description: "Whether explicit approval is needed." })
+});
+
+export const clineWriteToFileSchema = t.Object({
+    path: t.String({ description: "The absolute path of the file." }),
+    content: t.String({ description: "The complete intended content of the file." })
+});
+
+export const clineAskFollowupSchema = t.Object({
+    question: t.String({ description: "The question to ask the user." })
 });

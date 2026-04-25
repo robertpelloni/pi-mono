@@ -58,3 +58,38 @@ export async function handleHermesMemory(args: { key: string; value: string }): 
         return `Error saving memory: ${error.message}`;
     }
 }
+
+export async function handleClineExecuteCommand(args: { command: string }): Promise<string> {
+    try {
+        const { stdout, stderr } = await execAsync(args.command);
+        return stdout || stderr || "Command executed successfully with no output.";
+    } catch (error: any) {
+        return `Error executing command: ${error.message}`;
+    }
+}
+
+export async function handleClineWriteToFile(args: { path: string; content: string }): Promise<string> {
+    try {
+        await fs.writeFile(args.path, args.content, "utf-8");
+        return "File written successfully";
+    } catch (error: any) {
+        return `Error writing file: ${error.message}`;
+    }
+}
+
+export async function handleClineAskFollowup(args: { question: string }): Promise<string> {
+    return `[Follow-up Question Sent to User]: ${args.question}`;
+}
+
+export async function handleAiderRunCommand(args: { cmd: string }): Promise<string> {
+    try {
+        const { stdout, stderr } = await execAsync(args.cmd);
+        return stdout || stderr || "Command executed successfully with no output.";
+    } catch (error: any) {
+        return `Error executing command: ${error.message}`;
+    }
+}
+
+export async function handleAiderReplaceLines(args: { file_path: string; start_line: number; end_line: number; replacement: string }): Promise<string> {
+    return "Simulated replacement logic in legacy TS layer.";
+}
