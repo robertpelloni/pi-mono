@@ -18,21 +18,55 @@ type Renderer interface {
 }
 
 func main() {
+	// Define CLI flags
 	frontendType := flag.String("frontend", "bubbletea", "Select frontend UI (bubbletea, cli)")
+	modelID := flag.String("model", "gpt-4o", "Select the AI model ID to use (e.g., gpt-4o, claude-3-5-sonnet-20240620, gemini-1.5-pro)")
+	providerName := flag.String("provider", "openai", "Select the AI provider (openai, anthropic, google)")
+	systemPrompt := flag.String("prompt", "You are an autonomous coding agent. Use tools whenever possible.", "Override the default system prompt")
+	dir := flag.String("dir", "", "Set the working directory (defaults to current directory)")
+
 	flag.Parse()
 
+	// Determine working directory
 	cwd, err := os.Getwd()
 	if err != nil {
 		fmt.Println("Error getting cwd:", err)
 		return
 	}
-
-	modelInfo := ai.ModelInfo{
-		ID:       "gpt-4o",
-		Provider: ai.ProviderOpenAI,
-		API:      ai.ApiOpenAIResponses,
+	if *dir != "" {
+		cwd = *dir
+		err = os.Chdir(cwd)
+		if err != nil {
+			fmt.Printf("Error changing to directory %s: %v\n", cwd, err)
+			return
+		}
 	}
 
+	// Map Provider
+	var provider ai.Provider
+	var streamFunc ai.StreamFunction
+
+	switch *providerName {
+	case "anthropic":
+		provider = ai.ProviderAnthropic
+		streamFunc = ai.StreamAnthropic
+	case "google", "gemini":
+		provider = ai.ProviderGoogle
+		streamFunc = ai.StreamGoogle
+	case "openai":
+		fallthrough
+	default:
+		provider = ai.ProviderOpenAI
+		streamFunc = ai.StreamOpenAIResponses
+	}
+
+	modelInfo := ai.ModelInfo{
+		ID:       *modelID,
+		Provider: provider,
+		API:      ai.ApiOpenAIResponses, // Simplified for now
+	}
+
+	// Initialize Tools
 	toolList := []agent.AgentTool{
 		tools.ReadTool(cwd),
 		tools.BashTool(cwd),
@@ -42,12 +76,14 @@ func main() {
 		tools.FindTool(cwd),
 	}
 
-	agentLoop := agent.NewAgent(modelInfo, toolList, ai.StreamOpenAIResponses, agent.AgentLoopConfig{
+	// Initialize Agent
+	agentLoop := agent.NewAgent(modelInfo, toolList, streamFunc, agent.AgentLoopConfig{
 		ToolExecution: agent.ToolExecutionParallel,
 	})
 
-	agentLoop.SetSystemPrompt("You are an autonomous coding agent. Use tools whenever possible.")
+	agentLoop.SetSystemPrompt(*systemPrompt)
 
+	// Initialize Frontend Renderer
 	var renderer Renderer
 
 	switch *frontendType {
@@ -62,6 +98,7 @@ func main() {
 
 	agentLoop.Subscribe(renderer.RenderEvent)
 
+	// Start Application
 	if err := renderer.Start(); err != nil {
 		fmt.Printf("UI execution failed: %v\n", err)
 	}
