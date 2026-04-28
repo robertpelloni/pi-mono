@@ -39,5 +39,5 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Port the static asset hosting pipeline for the web frontend into the Go `pkg/server` component.
 
 ## Phase 11 (API & Websocket Integration)
-- [ ] Expose an HTTP/SSE API in `pkg/server` to allow external GUI clients to connect and stream agent `Prompt` cycles.
+- [x] Expose an HTTP/SSE API in `pkg/server` to allow external GUI clients to connect and stream agent `Prompt` cycles.
 - [ ] Integrate React Web UI frontend build hooks directly into the Go module execution.

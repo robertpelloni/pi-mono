@@ -10,7 +10,7 @@ import (
 )
 
 func TestServer_HealthEndpoint(t *testing.T) {
-	srv := NewServer("") // Uses default path
+	srv := NewServer("", nil) // Uses default path
 
 	req, err := http.NewRequest("GET", "/api/health", nil)
 	if err != nil {
@@ -50,7 +50,7 @@ func TestServer_StaticAssetEndpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv := NewServer(tempDir)
+	srv := NewServer(tempDir, nil)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
@@ -84,7 +84,7 @@ func TestServer_SPARoutingEndpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	srv := NewServer(tempDir)
+	srv := NewServer(tempDir, nil)
 
 	req, err := http.NewRequest("GET", "/some/nonexistent/client/route", nil)
 	if err != nil {

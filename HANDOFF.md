@@ -38,3 +38,6 @@
 - Mapped unique Cline tools `list_code_definition_names` (AST parsing via bash grep) and `browser_action` natively into the Go/TS schema registry.
 ## Phase 10: Web UI
 - Ported the static asset hosting pipeline for the web frontend into the Go `pkg/server` component via `http.FileServer` and `http.ServeMux` SPA routing.
+## Phase 11: Websocket & API Streaming
+- Bound `/api/chat` to the `pkg/server` endpoints to accept JSON payloads mapped directly to `Agent.Prompt()` requests.
+- Attached an ad-hoc buffered Go Channel via `Agent.Subscribe` converting output streams back into native SSE blocks over `http.Flusher`. Web clients can now natively interface with the core logic running in Go.
