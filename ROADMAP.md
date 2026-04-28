@@ -25,4 +25,5 @@ This document contains major long-term structural plans for the project.
 - [x] Phase 8: Develop native frontends.
 - [x] Phase 2.2: Ensure robust error recovery during SSE streaming (network dropping, JSON chunk truncation).
 - [x] Phase 8: Testing Harness in Go. Ensure standard Go testing paradigms natively cover execution logic.
-- [ ] Phase 9: Expand clean room parity with new submodule extractions (e.g. Cline).
+- [x] Phase 9: Expand clean room parity with new submodule extractions (e.g. Cline).
+- [x] Phase 10: Port the Web UI serving components natively into Go.

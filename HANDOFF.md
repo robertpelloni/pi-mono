@@ -36,3 +36,5 @@
 ## Phase 9 Initiated
 - Cloned `cline` submodule to extract unique AST or VSCode specific API control surfaces in upcoming iterations.
 - Mapped unique Cline tools `list_code_definition_names` (AST parsing via bash grep) and `browser_action` natively into the Go/TS schema registry.
+## Phase 10: Web UI
+- Ported the static asset hosting pipeline for the web frontend into the Go `pkg/server` component via `http.FileServer` and `http.ServeMux` SPA routing.
