@@ -28,3 +28,4 @@ This document contains major long-term structural plans for the project.
 - [x] Phase 9: Expand clean room parity with new submodule extractions (e.g. Cline).
 - [x] Phase 10: Port the Web UI serving components natively into Go.
 - [x] Phase 11: Create bi-directional API endpoints for the Web UI to communicate with the Agent core.
+- [ ] Phase 12: Wire the legacy React Web UI frontends to natively consume the new Go endpoints.
