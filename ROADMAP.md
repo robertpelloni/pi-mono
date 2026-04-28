@@ -29,3 +29,4 @@ This document contains major long-term structural plans for the project.
 - [x] Phase 10: Port the Web UI serving components natively into Go.
 - [x] Phase 11: Create bi-directional API endpoints for the Web UI to communicate with the Agent core.
 - [x] Phase 12: Wire the legacy React Web UI frontends to natively consume the new Go endpoints.
+- [ ] Phase 13: Deprecate Legacy Pipelines.

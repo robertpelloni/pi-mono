@@ -41,3 +41,8 @@ This document contains individual features, bug fixes, and other fine details th
 ## Phase 11 (API & Websocket Integration)
 - [x] Expose an HTTP/SSE API in `pkg/server` to allow external GUI clients to connect and stream agent `Prompt` cycles.
 - [x] Integrate React Web UI frontend build hooks directly into the Go module execution.
+
+
+## Final Pipeline Tasks
+- [ ] Clean up redundant Node.js testing dependencies now that Go actions are verified.
+- [ ] Release `v0.69.0` marking full feature parity completion.
