@@ -41,6 +41,3 @@ This document contains individual features, bug fixes, and other fine details th
 ## Phase 11 (API & Websocket Integration)
 - [x] Expose an HTTP/SSE API in `pkg/server` to allow external GUI clients to connect and stream agent `Prompt` cycles.
 - [x] Integrate React Web UI frontend build hooks directly into the Go module execution.
-## Phase 12 (Web Frontend Porting)
-- [ ] Update `packages/web-ui/src` fetch handlers to point to the new Go `/api/chat` endpoint.
-- [ ] Ensure static Web UI assets compile correctly and align with the `pkg/server` serving directories.

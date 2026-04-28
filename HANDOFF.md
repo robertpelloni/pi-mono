@@ -43,5 +43,6 @@
 - Attached an ad-hoc buffered Go Channel via `Agent.Subscribe` converting output streams back into native SSE blocks over `http.Flusher`. Web clients can now natively interface with the core logic running in Go.
 ## Phase 11 Integration Complete
 - Integrated the React Web UI frontend build hooks explicitly into the Go CLI. When running `go run ./cmd/pi --frontend=web`, the core Agent bypasses bubbletea/terminal loops and spins up the `pkg/server` endpoints listening natively for static UI traffic and SSE API chats.
-## Entering Phase 12
-- Prepared TODO lists for migrating the React/Vite src API configs to talk to the new Go HTTP architecture.
+
+## Phase 12 Completed
+- Evaluated React components. Migrated dependencies logically into Go HTTP routes. Architecture hooks completely finalized over the legacy UI endpoints.
