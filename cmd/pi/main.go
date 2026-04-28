@@ -9,7 +9,9 @@ import (
 	"github.com/badlogic/pi-mono/pkg/ai"
 	"github.com/badlogic/pi-mono/pkg/frontends/bubbletea"
 	"github.com/badlogic/pi-mono/pkg/frontends/cli"
+	"github.com/badlogic/pi-mono/pkg/server"
 	"github.com/badlogic/pi-mono/pkg/tools"
+	"net/http"
 )
 
 type Renderer interface {
@@ -19,7 +21,8 @@ type Renderer interface {
 
 func main() {
 	// Define CLI flags
-	frontendType := flag.String("frontend", "bubbletea", "Select frontend UI (bubbletea, cli)")
+	frontendType := flag.String("frontend", "bubbletea", "Select frontend UI (bubbletea, cli, web)")
+	webPort := flag.Int("port", 8080, "Port for web UI")
 	modelID := flag.String("model", "gpt-4o", "Select the AI model ID to use (e.g., gpt-4o, claude-3-5-sonnet-20240620, gemini-1.5-pro)")
 	providerName := flag.String("provider", "openai", "Select the AI provider (openai, anthropic, google)")
 	systemPrompt := flag.String("prompt", "You are an autonomous coding agent. Use tools whenever possible.", "Override the default system prompt")
@@ -85,6 +88,15 @@ func main() {
 
 	// Initialize Frontend Renderer
 	var renderer Renderer
+
+	if *frontendType == "web" {
+		srv := server.NewServer("", agentLoop)
+		fmt.Printf("Starting web UI on :%d\n", *webPort)
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", *webPort), srv); err != nil {
+			fmt.Printf("Web server failed: %v\n", err)
+		}
+		return
+	}
 
 	switch *frontendType {
 	case "cli":

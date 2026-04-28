@@ -41,3 +41,5 @@
 ## Phase 11: Websocket & API Streaming
 - Bound `/api/chat` to the `pkg/server` endpoints to accept JSON payloads mapped directly to `Agent.Prompt()` requests.
 - Attached an ad-hoc buffered Go Channel via `Agent.Subscribe` converting output streams back into native SSE blocks over `http.Flusher`. Web clients can now natively interface with the core logic running in Go.
+## Phase 11 Integration Complete
+- Integrated the React Web UI frontend build hooks explicitly into the Go CLI. When running `go run ./cmd/pi --frontend=web`, the core Agent bypasses bubbletea/terminal loops and spins up the `pkg/server` endpoints listening natively for static UI traffic and SSE API chats.
