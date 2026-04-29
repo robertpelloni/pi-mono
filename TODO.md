@@ -44,5 +44,5 @@ This document contains individual features, bug fixes, and other fine details th
 
 
 ## Final Pipeline Tasks
-- [ ] Clean up redundant Node.js testing dependencies now that Go actions are verified.
-- [ ] Release `v0.69.0` marking full feature parity completion.
+- [x] Clean up redundant Node.js testing dependencies now that Go actions are verified.
+- [x] Release `v0.69.0` marking full feature parity completion.

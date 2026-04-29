@@ -25,7 +25,3 @@ jobs:
 
     - name: Run Build
       run: npm run build
-
-    - name: Run Tests
-      run: ./test.sh
-      continue-on-error: true # Several legacy TUI tests are flaky

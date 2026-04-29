@@ -11,6 +11,13 @@
 
 ## [Unreleased]
 
+## [0.69.0] - 2026-04-21
+
+### Added
+- Completed Phase 12 binding React Web UI logic natively to `pkg/server` Go SSE streams.
+- Completed Phase 13 deprecating legacy node testing hooks and pipeline tests in favor of the finalized Go architecture.
+- Reached full "Total Assimilation" parity with the core project goals mapping over 30 submodules schemas to local endpoints.
+
 ## [0.68.0] - 2026-04-21
 
 ### Added
