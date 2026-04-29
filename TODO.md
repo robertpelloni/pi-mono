@@ -46,3 +46,5 @@ This document contains individual features, bug fixes, and other fine details th
 ## Final Pipeline Tasks
 - [x] Clean up redundant Node.js testing dependencies now that Go actions are verified.
 - [x] Release `v0.69.0` marking full feature parity completion.
+## Phase 14
+- Evaluate deployment strategies natively compiling the Go application for target architectures.
