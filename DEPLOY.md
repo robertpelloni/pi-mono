@@ -2,7 +2,7 @@
 
 This document always contains the latest detailed deployment instructions.
 
-## Current State (TypeScript)
+## Legacy State (TypeScript) - DEPRECATED
 
 The current TypeScript monorepo relies on npm.
 
@@ -14,7 +14,7 @@ npm run check
 ./test.sh
 ```
 
-## Go Port Deployment Strategy (Planned)
+## Go Port Deployment Strategy (Active)
 
 The future Go project will compile to a single, statically linked binary, significantly simplifying deployment compared to the Node.js ecosystem.
 
@@ -32,3 +32,13 @@ go build -o pi-agent ./cmd/pi
 ```
 
 *(This file will be updated with containerization, orchestration, and CI/CD specifics as the Go port develops).*
+
+### Cross-Platform Compilation
+A standard `Makefile` is now included. To build binaries for all target architectures (Linux, Darwin, Windows) simultaneously into the `bin/` directory, run:
+```bash
+make build
+```
+To test the Go pipeline:
+```bash
+make test
+```
