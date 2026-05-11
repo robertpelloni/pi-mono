@@ -11,6 +11,11 @@ import (
 	"github.com/badlogic/pi-mono/pkg/frontends/cli"
 	"github.com/badlogic/pi-mono/pkg/server"
 	"github.com/badlogic/pi-mono/pkg/tools"
+	"github.com/badlogic/pi-mono/pkg/extensions/worktrees"
+	"github.com/badlogic/pi-mono/pkg/extensions/plannotator"
+	"github.com/badlogic/pi-mono/pkg/extensions/react_fallback"
+	"github.com/badlogic/pi-mono/pkg/extensions/babysitter"
+	"github.com/badlogic/pi-mono/pkg/extensions/acp_adapter"
 	"net/http"
 )
 
@@ -79,9 +84,23 @@ func main() {
 		tools.FindTool(cwd),
 	}
 
+	// Initialize Community Plugins (Disabled by default)
+	worktreePlugin := worktrees.NewWorktreePlugin()
+	plannotatorPlugin := plannotator.NewPlannotatorPlugin()
+	reactFallbackPlugin := react_fallback.NewReActFallbackPlugin()
+	babysitterPlugin := babysitter.NewBabysitterPlugin()
+	acpAdapterPlugin := acp_adapter.NewACPAdapterPlugin()
+
+	// Optionally inject tools from plugins
+	toolList = worktreePlugin.AddTools(toolList)
+	toolList = plannotatorPlugin.AddTools(toolList)
+	toolList = babysitterPlugin.AddTools(toolList)
+	toolList = acpAdapterPlugin.AddTools(toolList)
+
 	// Initialize Agent
 	agentLoop := agent.NewAgent(modelInfo, toolList, streamFunc, agent.AgentLoopConfig{
 		ToolExecution: agent.ToolExecutionParallel,
+		AfterToolCall: reactFallbackPlugin.InterceptAfterToolCall,
 	})
 
 	agentLoop.SetSystemPrompt(*systemPrompt)

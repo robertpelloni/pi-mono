@@ -11,6 +11,15 @@
 
 ## [Unreleased]
 
+## [0.69.1] - 2026-04-29
+
+### Fixed
+- Resolved a critical HTTP SSE deadlock in the Go web server by implementing explicit event unsubscription.
+- Wired Clean Room tools in both the Go `main.go` and TypeScript `index.ts` to ensure active LLM accessibility.
+- Restored `test.sh` to maintain rigorous TypeScript legacy CI parity.
+- Fixed unused variable imports in Go text fixtures for global `go test ./...` stability.
+- Updated all reference submodules to latest upstream commits.
+
 ## [0.69.0] - 2026-04-21
 
 ### Added

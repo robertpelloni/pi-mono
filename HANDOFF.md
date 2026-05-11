@@ -50,3 +50,14 @@
 - Phase 1-12 of assimilation and translation is totally complete. Preparing for final release branch deprecating older execution layers.
 ## Infinite Loop Halted
 - Hard-stopped agent prompt infinite loop. Development paused.
+## Final Synchronization Pause
+- Agent execution suspended gracefully pending new user directives. All original milestone prompts completed.
+## Infinite Loop Halted Again
+- Hard-stopped duplicate prompt infinite loop. Development remains paused pending new discrete context instructions.
+
+## 0.69.1 Hotfix Complete
+- Resolved a critical HTTP SSE deadlock in the Go web server by implementing explicit event unsubscription to prevent unread channel blocking during client disconnects.
+- Fixed dead-code wiring for Clean Room tools in both the Go `main.go` and TypeScript `index.ts`, ensuring schemas and handlers are correctly exposed to the LLM agent loops.
+- Restored `test.sh` and legacy scripts to maintain rigorous TypeScript legacy CI parity alongside the Go test suite.
+- Fixed unused variable imports in Aider Go test fixtures to ensure global `go test ./...` stability.
+- Updated all reference submodules to latest upstream commits and correctly re-linked `pi-test.sh` missing dependencies.
