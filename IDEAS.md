@@ -52,3 +52,9 @@ Based on the [Hermes Agent Tool Reference](https://hermes-agent.nousresearch.com
    - Unified scheduling to let the agent attach persistent scripts to intervals, alongside the ability to poll, log, and kill background terminal commands.
 4. **Skills Toolset (skill_*)**:
    - Reusable procedural memory chunks saved in `~/.hermes/skills/` (or similar) that the agent can read and modify over time to build out its own standardized workflows for recurring code tasks.
+
+## Deployment Architecture Review (Phase 14)
+- **Current State:** The project currently relies heavily on `bun build --compile` mapped across targets (`darwin-arm64`, `linux-x64`, etc) inside `scripts/build-binaries.sh` to package the legacy TypeScript entrypoints into single-file executables.
+- **Go Migration Opportunity:** As the project pivots natively into Go, the reliance on Bun and Node for executable compilation should be deprecated. We should transition entirely to native Go cross-compilation (`GOOS=darwin GOARCH=arm64 go build -o pi-darwin-arm64 ./cmd/pi`).
+- **Submodule Compilation:** We also need to evaluate if submodules (like Open Interpreter which uses Python, or Aider) require specific static binary packaging (like PyInstaller) or if their capabilities can be completely absorbed into the Go core binary so we never need to distribute Python/Node ecosystems to end users.
+- **Docker Images:** Publish official distroless docker containers for running the agent in headless cloud environments (such as Kubernetes pods).

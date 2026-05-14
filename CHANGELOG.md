@@ -10,6 +10,8 @@
 - Mapped GitHub Actions CI/CD workflows for both TS and Go tests.
 
 ## [Unreleased]
+### Added
+- Completed Phase 14 analysis of deployment strategies. Documented plan to migrate cross-platform compilation targets from Bun/Node backends entirely to native `go build` cross-compilation binaries and distroless Docker containers.
 ### Fixed
 - Fixed missing tool registration for clean-room tools in `packages/coding-agent/src/core/tools/index.ts`.
 - Implemented and registered clean-room tools natively in Go `pkg/tools` and `cmd/pi/main.go` to maintain parity.
