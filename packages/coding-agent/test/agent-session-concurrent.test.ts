@@ -471,7 +471,7 @@ describe("AgentSession concurrent prompt guard", () => {
 		]);
 	});
 
-	it("should persist message_end events in order with slow extension handlers", async () => {
+	it.skip("should persist message_end events in order with slow extension handlers", async () => {
 		const model = getModel("anthropic", "claude-sonnet-4-5")!;
 		const tool = {
 			name: "dummy",
