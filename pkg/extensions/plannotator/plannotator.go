@@ -47,7 +47,7 @@ func (p *PlannotatorPlugin) RequestPlanReviewTool() agent.AgentTool {
 
 			// In a real TUI/Web UI implementation, this would halt execution and trigger a blocking interactive prompt.
 			// For the core interface design, we return a simulated approval or blocking message depending on environment constraints.
-			
+
 			// Simulated behavior for now
 			return agent.AgentToolResult{
 				Content: []ai.Content{

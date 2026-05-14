@@ -107,13 +107,13 @@ import { createWriteTool, createWriteToolDefinition, writeTool, writeToolDefinit
 export type Tool = AgentTool<any>;
 
 import {
-    createOpenInterpreterComputerUseTool,
-    createHermesMemoryTool,
-    createClineExecuteCommandTool,
-    createClineWriteToFileTool,
-    createClineAskFollowupTool,
-    createClineListCodeDefinitionNamesTool,
-    createClineBrowserActionTool
+	createClineAskFollowupTool,
+	createClineBrowserActionTool,
+	createClineExecuteCommandTool,
+	createClineListCodeDefinitionNamesTool,
+	createClineWriteToFileTool,
+	createHermesMemoryTool,
+	createOpenInterpreterComputerUseTool,
 } from "./clean-room-tools.js";
 
 // Note: clean room tools do not have separate tool definition exports in the current implementation,
@@ -133,13 +133,13 @@ export const allTools = {
 	find: findTool,
 	ls: lsTool,
 
-    openInterpreterComputerUse: createOpenInterpreterComputerUseTool(),
-    hermesMemory: createHermesMemoryTool(),
-    clineExecuteCommand: createClineExecuteCommandTool(),
-    clineWriteToFile: createClineWriteToFileTool(),
-    clineAskFollowup: createClineAskFollowupTool(),
-    clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
-    clineBrowserAction: createClineBrowserActionTool(),
+	openInterpreterComputerUse: createOpenInterpreterComputerUseTool(),
+	hermesMemory: createHermesMemoryTool(),
+	clineExecuteCommand: createClineExecuteCommandTool(),
+	clineWriteToFile: createClineWriteToFileTool(),
+	clineAskFollowup: createClineAskFollowupTool(),
+	clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
+	clineBrowserAction: createClineBrowserActionTool(),
 };
 
 export const allToolDefinitions = {
@@ -151,13 +151,13 @@ export const allToolDefinitions = {
 	find: findToolDefinition,
 	ls: lsToolDefinition,
 
-    openInterpreterComputerUse: createOpenInterpreterComputerUseTool(),
-    hermesMemory: createHermesMemoryTool(),
-    clineExecuteCommand: createClineExecuteCommandTool(),
-    clineWriteToFile: createClineWriteToFileTool(),
-    clineAskFollowup: createClineAskFollowupTool(),
-    clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
-    clineBrowserAction: createClineBrowserActionTool(),
+	openInterpreterComputerUse: createOpenInterpreterComputerUseTool(),
+	hermesMemory: createHermesMemoryTool(),
+	clineExecuteCommand: createClineExecuteCommandTool(),
+	clineWriteToFile: createClineWriteToFileTool(),
+	clineAskFollowup: createClineAskFollowupTool(),
+	clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
+	clineBrowserAction: createClineBrowserActionTool(),
 };
 
 export type ToolName = keyof typeof allTools;
@@ -195,13 +195,13 @@ export function createAllToolDefinitions(cwd: string, options?: ToolsOptions): R
 		find: createFindToolDefinition(cwd),
 		ls: createLsToolDefinition(cwd),
 
-        openInterpreterComputerUse: createOpenInterpreterComputerUseTool(),
-        hermesMemory: createHermesMemoryTool(),
-        clineExecuteCommand: createClineExecuteCommandTool(),
-        clineWriteToFile: createClineWriteToFileTool(),
-        clineAskFollowup: createClineAskFollowupTool(),
-        clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
-        clineBrowserAction: createClineBrowserActionTool(),
+		openInterpreterComputerUse: createOpenInterpreterComputerUseTool(),
+		hermesMemory: createHermesMemoryTool(),
+		clineExecuteCommand: createClineExecuteCommandTool(),
+		clineWriteToFile: createClineWriteToFileTool(),
+		clineAskFollowup: createClineAskFollowupTool(),
+		clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
+		clineBrowserAction: createClineBrowserActionTool(),
 	};
 }
 
@@ -228,12 +228,12 @@ export function createAllTools(cwd: string, options?: ToolsOptions): Record<Tool
 		find: createFindTool(cwd),
 		ls: createLsTool(cwd),
 
-        openInterpreterComputerUse: createOpenInterpreterComputerUseTool(),
-        hermesMemory: createHermesMemoryTool(),
-        clineExecuteCommand: createClineExecuteCommandTool(),
-        clineWriteToFile: createClineWriteToFileTool(),
-        clineAskFollowup: createClineAskFollowupTool(),
-        clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
-        clineBrowserAction: createClineBrowserActionTool(),
+		openInterpreterComputerUse: createOpenInterpreterComputerUseTool(),
+		hermesMemory: createHermesMemoryTool(),
+		clineExecuteCommand: createClineExecuteCommandTool(),
+		clineWriteToFile: createClineWriteToFileTool(),
+		clineAskFollowup: createClineAskFollowupTool(),
+		clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
+		clineBrowserAction: createClineBrowserActionTool(),
 	};
 }

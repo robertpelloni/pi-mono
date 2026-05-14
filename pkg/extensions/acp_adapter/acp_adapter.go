@@ -36,11 +36,11 @@ func (p *ACPAdapterPlugin) QueryACPServerTool() agent.AgentTool {
 			"type": "object",
 			"properties": map[string]any{
 				"server_url": map[string]any{
-					"type": "string",
+					"type":        "string",
 					"description": "The URL or IPC path to the ACP/MCP provider.",
 				},
 				"request_payload": map[string]any{
-					"type": "string",
+					"type":        "string",
 					"description": "JSON serialized payload mapping to the target server's schema.",
 				},
 			},

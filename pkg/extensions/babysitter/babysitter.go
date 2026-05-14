@@ -37,7 +37,7 @@ func (p *BabysitterPlugin) HealthCheckTool() agent.AgentTool {
 			"type": "object",
 			"properties": map[string]any{
 				"pid": map[string]any{
-					"type": "number",
+					"type":        "number",
 					"description": "The process ID to monitor.",
 				},
 			},
@@ -62,7 +62,7 @@ func (p *BabysitterPlugin) OrchestrateRecoveryTool() agent.AgentTool {
 			"type": "object",
 			"properties": map[string]any{
 				"target_command": map[string]any{
-					"type": "string",
+					"type":        "string",
 					"description": "The target to respawn.",
 				},
 			},

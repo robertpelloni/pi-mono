@@ -24,15 +24,15 @@ var (
 
 // AgentUIModel represents the Bubbletea state for the interactive AI agent interface.
 type AgentUIModel struct {
-	eventsChan    chan agent.AgentEvent
-	conversation  strings.Builder
-	viewport      viewport.Model
-	textarea      textarea.Model
-	agent         *agent.Agent
-	activeTool    string
-	isGenerating  bool
-	err           error
-	quitting      bool
+	eventsChan   chan agent.AgentEvent
+	conversation strings.Builder
+	viewport     viewport.Model
+	textarea     textarea.Model
+	agent        *agent.Agent
+	activeTool   string
+	isGenerating bool
+	err          error
+	quitting     bool
 }
 
 // EventMsg is a wrapper to send AgentEvent instances into the Bubbletea Update loop.
