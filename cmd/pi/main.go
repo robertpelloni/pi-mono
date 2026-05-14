@@ -7,15 +7,15 @@ import (
 
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/ai"
+	"github.com/badlogic/pi-mono/pkg/extensions/acp_adapter"
+	"github.com/badlogic/pi-mono/pkg/extensions/babysitter"
+	"github.com/badlogic/pi-mono/pkg/extensions/plannotator"
+	"github.com/badlogic/pi-mono/pkg/extensions/react_fallback"
+	"github.com/badlogic/pi-mono/pkg/extensions/worktrees"
 	"github.com/badlogic/pi-mono/pkg/frontends/bubbletea"
 	"github.com/badlogic/pi-mono/pkg/frontends/cli"
 	"github.com/badlogic/pi-mono/pkg/server"
 	"github.com/badlogic/pi-mono/pkg/tools"
-	"github.com/badlogic/pi-mono/pkg/extensions/worktrees"
-	"github.com/badlogic/pi-mono/pkg/extensions/plannotator"
-	"github.com/badlogic/pi-mono/pkg/extensions/react_fallback"
-	"github.com/badlogic/pi-mono/pkg/extensions/babysitter"
-	"github.com/badlogic/pi-mono/pkg/extensions/acp_adapter"
 	"net/http"
 )
 
@@ -82,6 +82,13 @@ func main() {
 		tools.LsTool(cwd),
 		tools.GrepTool(cwd),
 		tools.FindTool(cwd),
+		tools.OpenInterpreterComputerUseTool(),
+		tools.HermesMemoryTool(),
+		tools.ClineExecuteCommandTool(),
+		tools.ClineWriteToFileTool(),
+		tools.ClineAskFollowupTool(),
+		tools.ClineListCodeDefinitionNamesTool(),
+		tools.ClineBrowserActionTool(),
 	}
 
 	// Initialize Community Plugins (Disabled by default)

@@ -25,7 +25,7 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Hermes Agent (Extract browser controls, home assistant, MOA, memory natively)
 
 # Crucial Code Review Fixes (Next Session)
-1. **Fix Missing Tool Registration**: The TypeScript `clean-room-tools.ts` and `clean-room-schemas.ts` were built, but they need to be actively exported from `packages/coding-agent/src/core/tools/index.ts` in order to be functionally available to the user, not just exist as dead code. Ensure they are mapped to `allToolDefinitions` and `allTools`.~~
+1. ~~**Fix Missing Tool Registration**: The TypeScript `clean-room-tools.ts` and `clean-room-schemas.ts` were built, but they need to be actively exported from `packages/coding-agent/src/core/tools/index.ts` in order to be functionally available to the user, not just exist as dead code. Ensure they are mapped to `allToolDefinitions` and `allTools`.~~
 2. ~~**Remove Node Scripts**~~: If any leftover `.cjs` scripts exist from previous automation (e.g. `patch_agent_hooks.cjs`), remove them explicitly. Do not commit scratchpad scripts into the repo.
 
 # Next Session Tasks
@@ -34,6 +34,8 @@ This document contains individual features, bug fixes, and other fine details th
 3. ~~Explore new submodules to add to Phase 9.~~
 ## Submodule Tool Assimilation (Phase 9)
 - [x] Analyze `cline` submodule schemas and assimilate unique capabilities.
+- [x] Add Codebuff and Mistral Vibe as submodules for analysis.
+- [x] Catalog unavailable/closed-source CLIs in SUBMODULE_INVENTORY.md.
 
 ## Phase 10 (Web UI Integration)
 - [x] Port the static asset hosting pipeline for the web frontend into the Go `pkg/server` component.

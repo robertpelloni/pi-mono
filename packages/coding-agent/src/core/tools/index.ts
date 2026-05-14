@@ -105,6 +105,20 @@ import {
 import { createWriteTool, createWriteToolDefinition, writeTool, writeToolDefinition } from "./write.js";
 
 export type Tool = AgentTool<any>;
+
+import {
+    createOpenInterpreterComputerUseTool,
+    createHermesMemoryTool,
+    createClineExecuteCommandTool,
+    createClineWriteToFileTool,
+    createClineAskFollowupTool,
+    createClineListCodeDefinitionNamesTool,
+    createClineBrowserActionTool
+} from "./clean-room-tools.js";
+
+// Note: clean room tools do not have separate tool definition exports in the current implementation,
+// so we'll reuse the tools for definitions.
+
 export type ToolDef = ToolDefinition<any, any>;
 
 export const codingTools: Tool[] = [readTool, bashTool, editTool, writeTool];
@@ -118,6 +132,14 @@ export const allTools = {
 	grep: grepTool,
 	find: findTool,
 	ls: lsTool,
+
+    openInterpreterComputerUse: createOpenInterpreterComputerUseTool(),
+    hermesMemory: createHermesMemoryTool(),
+    clineExecuteCommand: createClineExecuteCommandTool(),
+    clineWriteToFile: createClineWriteToFileTool(),
+    clineAskFollowup: createClineAskFollowupTool(),
+    clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
+    clineBrowserAction: createClineBrowserActionTool(),
 };
 
 export const allToolDefinitions = {
@@ -128,6 +150,14 @@ export const allToolDefinitions = {
 	grep: grepToolDefinition,
 	find: findToolDefinition,
 	ls: lsToolDefinition,
+
+    openInterpreterComputerUse: createOpenInterpreterComputerUseTool(),
+    hermesMemory: createHermesMemoryTool(),
+    clineExecuteCommand: createClineExecuteCommandTool(),
+    clineWriteToFile: createClineWriteToFileTool(),
+    clineAskFollowup: createClineAskFollowupTool(),
+    clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
+    clineBrowserAction: createClineBrowserActionTool(),
 };
 
 export type ToolName = keyof typeof allTools;
@@ -164,6 +194,14 @@ export function createAllToolDefinitions(cwd: string, options?: ToolsOptions): R
 		grep: createGrepToolDefinition(cwd),
 		find: createFindToolDefinition(cwd),
 		ls: createLsToolDefinition(cwd),
+
+        openInterpreterComputerUse: createOpenInterpreterComputerUseTool(),
+        hermesMemory: createHermesMemoryTool(),
+        clineExecuteCommand: createClineExecuteCommandTool(),
+        clineWriteToFile: createClineWriteToFileTool(),
+        clineAskFollowup: createClineAskFollowupTool(),
+        clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
+        clineBrowserAction: createClineBrowserActionTool(),
 	};
 }
 
@@ -189,5 +227,13 @@ export function createAllTools(cwd: string, options?: ToolsOptions): Record<Tool
 		grep: createGrepTool(cwd),
 		find: createFindTool(cwd),
 		ls: createLsTool(cwd),
+
+        openInterpreterComputerUse: createOpenInterpreterComputerUseTool(),
+        hermesMemory: createHermesMemoryTool(),
+        clineExecuteCommand: createClineExecuteCommandTool(),
+        clineWriteToFile: createClineWriteToFileTool(),
+        clineAskFollowup: createClineAskFollowupTool(),
+        clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
+        clineBrowserAction: createClineBrowserActionTool(),
 	};
 }
