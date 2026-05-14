@@ -68,3 +68,5 @@
 - **Added Submodules:** Added Codebuff and Mistral Vibe public repositories as submodules under `submodules/`. Analyzed their file structures and schemas.
 - **Cataloged Unavailable Tools:** Added a list of the requested tools that are closed-source/proprietary to `SUBMODULE_INVENTORY.md`.
 - **Phase 14 Deployment Review:** Evaluated `scripts/build-binaries.sh` against the ongoing Go migration. Formulated a strategic shift documented in `IDEAS.md` to abandon Bun binaries for pure `GOOS`/`GOARCH` compilation and multi-arch Docker distribution. Ticked off the final task in `TODO.md`.
+
+- **Project Memory Summary:** Compiled a comprehensive summary of the project's architecture, patterns, and decisions inside `MEMORY.md` under the `[PROJECT_MEMORY]` tag as explicitly requested by the user.

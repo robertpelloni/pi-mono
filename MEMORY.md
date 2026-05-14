@@ -2,19 +2,23 @@
 
 This document contains ongoing observations about the codebase and design preferences.
 
-## Current TypeScript Project
+[PROJECT_MEMORY]
+## Project Vision & Architecture
+This project, `pi-mono`, is an ambitious effort labeled "Total Assimilation". It aims to build the most comprehensive and functional AI coding agent ecosystem. Originally developed as a complex TypeScript monorepo (`packages/ai`, `packages/coding-agent`, `packages/tui`, etc.), the project is currently undergoing a massive systematic rewrite into a robust Go architecture.
 
-- The project is well-structured using npm workspaces (`packages/*`).
-- There are strict linting and formatting rules via Biome.
-- The `packages/ai` module uses an interesting lazy registration system for providers. This will be a key architectural piece to translate into Go's plugin or interface system.
-- `AGENTS.md` contains strict rules regarding how AI agents should interact with the repo, including a mandatory "OSS Weekend" check, PR workflow rules, and strict git operation rules to prevent conflicts between parallel agents.
+### Key Goals
+- **Go Port:** Transition the entire TypeScript monorepo into Go while maintaining strict 1:1 feature parity. The Go port is organized into `/cmd/pi` (for the CLI app) and `/pkg/...` (for libraries).
+- **Tool Parity ("Clean Room"):** Implement "clean-room" versions of tools used by over 30 leading AI coding agents (Aider, Claude Code, Cursor, Copilot, etc.). The schemas expected by models like `claude-3.5-sonnet` must map precisely to internal execution handlers.
+- **Multiple Native Frontends:** Support Terminal UI (using `bubbletea` in Go, or `@mariozechner/pi-tui` in TS) and Web UI (`pkg/server` in Go serves static frontend assets).
+- **Submodule Integration:** Third-party agents are cloned into `submodules/` (e.g. `goose`, `aider`, `cline`, `codebuff`) for study and feature extraction.
 
-## Go Port Design Preferences
+### Execution Loop & State
+The agent interacts with LLMs via Server-Sent Events (SSE). It captures tool execution requests, maps them to native host OS operations (file read/write, bash execution, AST analysis via `grep`, GUI interaction via `xdotool` logic port), and synchronously maintains state in an `AgentContext`. A `FileMutationQueue` manages concurrent modifications to the same file.
 
-- Go's interface system will perfectly replace the TypeScript generic types used for API providers (`stream<Provider>()`, etc.).
-- We need to establish a `go.mod` structure that mimics the monorepo workspace functionality, potentially using Go workspaces (`go.work`) or a single massive module with internal packages. Given the "unified ultra-project" vision, a single module with deep `internal/` packages might be preferable.
-- Tool implementation (bash, grep, read) needs to exactly match the argument names and structures expected by top models. This will require rigorous struct tags (`json:"..."`) to mimic the JSON schema inputs expected by the models.
+### Testing & CI
+- **TypeScript:** Uses `vitest` mapped via npm workspaces (`npm test --workspaces`). CI tests run node tasks, but some TUI terminal layout tests are notoriously flaky and have been explicitly mocked out.
+- **Go:** Follows standard `go test` paradigms natively mirroring TS functionality. Excludes submodules from unit testing.
+- The `.github/workflows` run on every PR and main branch push. There are multiple pipelines dictating cross-compilation binaries building and matrix verifications.
 
-## Open Questions / Challenges
-
-- Most of the requested "submodules" were provided as website links (e.g., `https://claude.ai/`, `https://grok.com`). We need a process to find the actual open-source repositories for these tools (if they exist) to add them as submodules. Tools like Codex CLI or Grok CLI might not have public repos.
+### Documentation Workflow
+The system strictly enforces maintaining documentation files (`ROADMAP.md`, `TODO.md`, `CHANGELOG.md`, `VISION.md`, `HANDOFF.md`, `SUBMODULES.md`, `SUBMODULE_INVENTORY.md`) constantly in sync with every iterative step. Each session explicitly leaves breadcrumbs for parallel or future agents inside `HANDOFF.md`.
