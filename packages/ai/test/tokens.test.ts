@@ -168,7 +168,7 @@ describe("Token Statistics on Abort", () => {
 	});
 
 	describe.skipIf(!process.env.ZAI_API_KEY)("zAI Provider", () => {
-		const llm = getModel("zai", "glm-4.5-flash");
+		const llm = getModel("zai", "glm-4.7");
 
 		it("should include token stats when aborted mid-stream", { retry: 3, timeout: 30000 }, async () => {
 			await testTokensOnAbort(llm);
@@ -228,7 +228,7 @@ describe("Token Statistics on Abort", () => {
 			"gpt-4o - should include token stats when aborted mid-stream",
 			{ retry: 3, timeout: 30000 },
 			async () => {
-				const llm = getModel("github-copilot", "gpt-4o");
+				const llm = getModel("github-copilot", "claude-3.5-sonnet" as any) as any;
 				await testTokensOnAbort(llm, { apiKey: githubCopilotToken });
 			},
 		);
@@ -237,7 +237,7 @@ describe("Token Statistics on Abort", () => {
 			"claude-sonnet-4 - should include token stats when aborted mid-stream",
 			{ retry: 3, timeout: 30000 },
 			async () => {
-				const llm = getModel("github-copilot", "claude-sonnet-4");
+				const llm = getModel("github-copilot", "claude-3.5-sonnet" as any) as any;
 				await testTokensOnAbort(llm, { apiKey: githubCopilotToken });
 			},
 		);

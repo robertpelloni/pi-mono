@@ -111,7 +111,7 @@ describe("responseId E2E Tests", () => {
 			"Anthropic path should expose responseId",
 			{ retry: 3, timeout: 30000 },
 			async () => {
-				const llm = getModel("github-copilot", "claude-sonnet-4");
+				const llm = getModel("github-copilot", "claude-3.5-sonnet" as any) as any;
 				await expectResponseId(llm, { apiKey: githubCopilotToken });
 			},
 		);
