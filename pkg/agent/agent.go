@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/badlogic/pi-mono/pkg/ai"
 )
@@ -26,9 +27,8 @@ type Agent struct {
 	errorMessage     string
 
 	listeners []AgentEventListener
-
-	streamFn ai.StreamFunction
-	config   AgentLoopConfig
+	streamFn  ai.StreamFunction
+	config    AgentLoopConfig
 }
 
 // NewAgent creates a new Agent instance with the given dependencies.
@@ -41,6 +41,8 @@ func NewAgent(model ai.ModelInfo, tools []AgentTool, streamFn ai.StreamFunction,
 		pendingToolCalls: make(map[string]struct{}),
 	}
 }
+
+// --- AgentState interface ---
 
 func (a *Agent) SystemPrompt() string {
 	a.mu.RLock()
@@ -81,7 +83,6 @@ func (a *Agent) SetThinkingLevel(t ai.ThinkingLevel) {
 func (a *Agent) Tools() []AgentTool {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	// Return a copy to prevent mutation
 	tools := make([]AgentTool, len(a.tools))
 	copy(tools, a.tools)
 	return tools
@@ -135,15 +136,22 @@ func (a *Agent) ErrorMessage() string {
 	return a.errorMessage
 }
 
-// Subscribe adds an event listener. It returns a function to unsubscribe.
+// --- Event system ---
+
+// Subscribe adds an event listener. Returns an unsubscribe function.
 func (a *Agent) Subscribe(listener AgentEventListener) func() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.listeners = append(a.listeners, listener)
-
-	// Return an unsubscribe function (simplified; in real production we'd use IDs or reflect matching)
 	return func() {
-		// Omitted for brevity in this PoC
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		for i, l := range a.listeners {
+			if &l == &listener {
+				a.listeners = append(a.listeners[:i], a.listeners[i+1:]...)
+				break
+			}
+		}
 	}
 }
 
@@ -151,18 +159,21 @@ func (a *Agent) emit(event AgentEvent) {
 	a.mu.RLock()
 	listeners := a.listeners
 	a.mu.RUnlock()
-
 	for _, l := range listeners {
 		l(event)
 	}
 }
 
-// Prompt processes a user input and triggers the LLM response stream.
+// --- Public API ---
+
+// Prompt processes a user input and triggers the full agentic loop.
+// This adds the user message, then runs the LLM -> tool-execution loop
+// until the model stops with a non-tool reason or an error occurs.
 func (a *Agent) Prompt(ctx context.Context, msg ai.UserMessage) error {
 	a.mu.Lock()
 	if a.isStreaming {
 		a.mu.Unlock()
-		return errors.New("Agent is already processing a prompt")
+		return errors.New("agent is already processing a prompt")
 	}
 	a.isStreaming = true
 	a.messages = append(a.messages, msg)
@@ -173,16 +184,120 @@ func (a *Agent) Prompt(ctx context.Context, msg ai.UserMessage) error {
 		a.isStreaming = false
 		a.streamingMessage = nil
 		a.mu.Unlock()
-		a.emit(AgentEvent{Type: EventAgentEnd, Messages: a.Messages()})
 	}()
 
 	a.emit(AgentEvent{Type: EventAgentStart})
 
-	return a.runLoop(ctx)
+	// Emit message events for the user prompt
+	a.emit(AgentEvent{Type: EventMessageStart, Message: msg})
+	a.emit(AgentEvent{Type: EventMessageEnd, Message: msg})
+
+	err := a.runLoop(ctx)
+
+	a.emit(AgentEvent{Type: EventAgentEnd, Messages: a.Messages()})
+	return err
 }
 
-// runLoop handles the underlying call to the AI StreamFunction and tool executions
+// --- Core loop ---
+
+// runLoop is the main agentic loop. It repeatedly:
+//   1. Calls the LLM with the current context
+//   2. Collects the assistant response
+//   3. If the response contains tool calls, executes them and appends results
+//   4. Loops back to step 1 with the updated context
+//   5. Stops when the model gives a non-tool stop reason or an error occurs
 func (a *Agent) runLoop(ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		// Check for steering messages (injected between turns)
+		if a.config.GetSteeringMessages != nil {
+			steeringMsgs, err := a.config.GetSteeringMessages()
+			if err == nil && len(steeringMsgs) > 0 {
+				a.mu.Lock()
+				for _, sm := range steeringMsgs {
+					a.messages = append(a.messages, sm)
+				}
+				a.mu.Unlock()
+				for _, sm := range steeringMsgs {
+					a.emit(AgentEvent{Type: EventMessageStart, Message: sm})
+					a.emit(AgentEvent{Type: EventMessageEnd, Message: sm})
+				}
+			}
+		}
+
+		a.emit(AgentEvent{Type: EventTurnStart})
+
+		// Stream assistant response from the LLM
+		assistantMsg, err := a.streamAssistantResponse(ctx)
+		if err != nil {
+			a.emit(AgentEvent{Type: EventTurnEnd, Message: ai.AssistantMessage{}, ToolResults: nil})
+			return err
+		}
+
+		// Check stop reason: if error/aborted, end
+		if assistantMsg.StopReason == ai.StopReasonError || assistantMsg.StopReason == ai.StopReasonAborted {
+			a.emit(AgentEvent{Type: EventTurnEnd, Message: assistantMsg, ToolResults: nil})
+			return nil
+		}
+
+		// Collect tool calls from the assistant message
+		toolCalls := extractToolCalls(assistantMsg)
+
+		if len(toolCalls) == 0 {
+			// No tool calls — agent turn is done
+			a.emit(AgentEvent{Type: EventTurnEnd, Message: assistantMsg, ToolResults: nil})
+			// Check for follow-up messages
+			if a.config.GetFollowUpMessages != nil {
+				followUps, err := a.config.GetFollowUpMessages()
+				if err == nil && len(followUps) > 0 {
+					a.mu.Lock()
+					for _, fm := range followUps {
+						a.messages = append(a.messages, fm)
+					}
+					a.mu.Unlock()
+					for _, fm := range followUps {
+						a.emit(AgentEvent{Type: EventMessageStart, Message: fm})
+						a.emit(AgentEvent{Type: EventMessageEnd, Message: fm})
+					}
+					continue // loop back for another LLM call
+				}
+			}
+			return nil
+		}
+
+		// Execute tool calls
+		var toolResults []ai.ToolResultMessage
+		if a.config.ToolExecution == ToolExecutionSequential {
+			toolResults, err = a.executeToolCallsSequential(ctx, assistantMsg, toolCalls)
+		} else {
+			toolResults, err = a.executeToolCallsParallel(ctx, assistantMsg, toolCalls)
+		}
+		if err != nil {
+			a.emit(AgentEvent{Type: EventTurnEnd, Message: assistantMsg, ToolResults: nil})
+			return err
+		}
+
+		// Append tool results to message history
+		a.mu.Lock()
+		for _, tr := range toolResults {
+			a.messages = append(a.messages, tr)
+		}
+		a.mu.Unlock()
+
+		a.emit(AgentEvent{Type: EventTurnEnd, Message: assistantMsg, ToolResults: toolResults})
+
+		// Loop continues — the next iteration will call the LLM again
+		// with the tool results now in the message history
+	}
+}
+
+// streamAssistantResponse calls the LLM StreamFunction and collects the full response.
+func (a *Agent) streamAssistantResponse(ctx context.Context) (ai.AssistantMessage, error) {
 	a.mu.RLock()
 	contextPayload := ai.Context{
 		Messages: a.messages,
@@ -191,33 +306,39 @@ func (a *Agent) runLoop(ctx context.Context) error {
 		sysPrompt := a.systemPrompt
 		contextPayload.SystemPrompt = &sysPrompt
 	}
-
 	var aiTools []ai.Tool
 	for _, t := range a.tools {
 		aiTools = append(aiTools, t.ToAITool())
 	}
 	contextPayload.Tools = aiTools
+
+	// Apply context transform if configured
+	if a.config.TransformContext != nil {
+		transformed, err := a.config.TransformContext(ctx, a.messages)
+		if err == nil && transformed != nil {
+			contextPayload.Messages = transformed
+		}
+	}
 	a.mu.RUnlock()
 
-	a.emit(AgentEvent{Type: EventTurnStart})
-
-	// Call the generic StreamFunction logic defined in pkg/ai
+	// Call the AI StreamFunction
 	stream := a.streamFn(ctx, a.model, contextPayload, a.config.SimpleStreamOptions)
 
-	var finalMsg = &ai.AssistantMessage{
+	finalMsg := &ai.AssistantMessage{
 		API:      a.model.API,
 		Provider: a.model.Provider,
 		Model:    a.model.ID,
 		Content:  []ai.Content{},
 	}
-
 	var activeTextContent *ai.TextContent
 	var activeToolCall *ai.ToolCall
+
+	a.emit(AgentEvent{Type: EventMessageStart, Message: *finalMsg})
 
 	for event := range stream {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return ai.AssistantMessage{}, ctx.Err()
 		default:
 		}
 
@@ -228,42 +349,59 @@ func (a *Agent) runLoop(ctx context.Context) error {
 					activeTextContent = &ai.TextContent{Text: *event.Delta}
 					finalMsg.Content = append(finalMsg.Content, *activeTextContent)
 				} else {
-					// We need to update the last element in Content
 					activeTextContent.Text += *event.Delta
 					finalMsg.Content[len(finalMsg.Content)-1] = *activeTextContent
 				}
 			}
+
+		case ai.EventThinkingStart:
+			// Forward thinking events
+			eventCopy := event
+			eventCopy.Partial = finalMsg
+			a.emit(AgentEvent{Type: EventMessageUpdate, AssistantMessageEvent: &eventCopy})
+
+		case ai.EventThinkingDelta:
+			if event.Delta != nil {
+				eventCopy := event
+				eventCopy.Partial = finalMsg
+				a.emit(AgentEvent{Type: EventMessageUpdate, AssistantMessageEvent: &eventCopy})
+			}
+
 		case ai.EventToolCallStart:
 			if event.ToolCall != nil {
 				activeTextContent = nil
-
 				activeToolCall = &ai.ToolCall{
-					ID:        event.ToolCall.ID,
-					Name:      event.ToolCall.Name,
-					Arguments: make(map[string]any),
+					ID:   event.ToolCall.ID,
+					Name: event.ToolCall.Name,
+					Arguments: map[string]any{
+						"__raw_args__": "",
+					},
 				}
-
-				activeToolCall.Arguments["raw_args"] = ""
 				finalMsg.Content = append(finalMsg.Content, *activeToolCall)
 			}
+
 		case ai.EventToolCallDelta:
 			if activeToolCall != nil && event.Delta != nil {
-				if currentArgs, ok := activeToolCall.Arguments["raw_args"].(string); ok {
-					activeToolCall.Arguments["raw_args"] = currentArgs + *event.Delta
+				if currentArgs, ok := activeToolCall.Arguments["__raw_args__"].(string); ok {
+					activeToolCall.Arguments["__raw_args__"] = currentArgs + *event.Delta
 					finalMsg.Content[len(finalMsg.Content)-1] = *activeToolCall
 				}
 			}
+
 		case ai.EventToolCallEnd:
 			if activeToolCall != nil {
-				if rawArgs, ok := activeToolCall.Arguments["raw_args"].(string); ok && rawArgs != "" {
+				if rawArgs, ok := activeToolCall.Arguments["__raw_args__"].(string); ok && rawArgs != "" {
 					var parsedArgs map[string]any
 					if err := json.Unmarshal([]byte(rawArgs), &parsedArgs); err == nil {
 						activeToolCall.Arguments = parsedArgs
-						finalMsg.Content[len(finalMsg.Content)-1] = *activeToolCall
+					} else {
+						activeToolCall.Arguments = map[string]any{"__raw_args__": rawArgs}
 					}
+					finalMsg.Content[len(finalMsg.Content)-1] = *activeToolCall
 				}
 				activeToolCall = nil
 			}
+
 		case ai.EventError:
 			a.mu.Lock()
 			if event.Error != nil && event.Error.ErrorMessage != nil {
@@ -272,26 +410,33 @@ func (a *Agent) runLoop(ctx context.Context) error {
 				a.errorMessage = "unknown API error"
 			}
 			a.mu.Unlock()
-			return fmt.Errorf("API stream error: %s", a.errorMessage)
+			finalMsg.StopReason = ai.StopReasonError
+			a.mu.Lock()
+			a.messages = append(a.messages, *finalMsg)
+			a.mu.Unlock()
+			a.emit(AgentEvent{Type: EventMessageEnd, Message: *finalMsg})
+			return *finalMsg, fmt.Errorf("API stream error: %s", a.errorMessage)
+
 		case ai.EventDone:
 			if event.Reason != nil {
 				finalMsg.StopReason = *event.Reason
 			}
-
+			// Finalize any remaining active tool call
 			if activeToolCall != nil {
-				if rawArgs, ok := activeToolCall.Arguments["raw_args"].(string); ok && rawArgs != "" {
+				if rawArgs, ok := activeToolCall.Arguments["__raw_args__"].(string); ok && rawArgs != "" {
 					var parsedArgs map[string]any
 					if err := json.Unmarshal([]byte(rawArgs), &parsedArgs); err == nil {
 						activeToolCall.Arguments = parsedArgs
-						finalMsg.Content[len(finalMsg.Content)-1] = *activeToolCall
 					}
+					finalMsg.Content[len(finalMsg.Content)-1] = *activeToolCall
 				}
 				activeToolCall = nil
 			}
-
+			// Done — break out of the stream loop
 			goto StreamComplete
 		}
 
+		// Forward streaming updates to UI
 		eventCopy := event
 		eventCopy.Partial = finalMsg
 		a.mu.Lock()
@@ -301,17 +446,226 @@ func (a *Agent) runLoop(ctx context.Context) error {
 	}
 
 StreamComplete:
-	if finalMsg != nil {
-		a.mu.Lock()
-		a.messages = append(a.messages, *finalMsg)
-		a.mu.Unlock()
+	// Set usage/timestamp if available
+	finalMsg.Timestamp = time.Now().UnixMilli()
 
-		a.emit(AgentEvent{Type: EventMessageEnd, Message: *finalMsg})
+	a.mu.Lock()
+	a.messages = append(a.messages, *finalMsg)
+	a.mu.Unlock()
 
-		// Here we would implement Tool Execution based on pendingToolCalls in a full port.
-		// For this core PoC phase, we acknowledge the turn end.
-		a.emit(AgentEvent{Type: EventTurnEnd, Message: *finalMsg, ToolResults: nil})
+	a.emit(AgentEvent{Type: EventMessageEnd, Message: *finalMsg})
+	return *finalMsg, nil
+}
+
+// --- Tool execution ---
+
+// extractToolCalls returns all ToolCall content from an assistant message.
+func extractToolCalls(msg ai.AssistantMessage) []ai.ToolCall {
+	var calls []ai.ToolCall
+	for _, c := range msg.Content {
+		if tc, ok := c.(ai.ToolCall); ok {
+			calls = append(calls, tc)
+		}
+	}
+	return calls
+}
+
+// executeToolCallsSequential runs tool calls one after another.
+func (a *Agent) executeToolCallsSequential(ctx context.Context, assistantMsg ai.AssistantMessage, toolCalls []ai.ToolCall) ([]ai.ToolResultMessage, error) {
+	var results []ai.ToolResultMessage
+	for _, tc := range toolCalls {
+		result, err := a.executeSingleToolCall(ctx, assistantMsg, tc)
+		if err != nil {
+			return results, err
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
+// executeToolCallsParallel runs tool calls concurrently.
+func (a *Agent) executeToolCallsParallel(ctx context.Context, assistantMsg ai.AssistantMessage, toolCalls []ai.ToolCall) ([]ai.ToolResultMessage, error) {
+	type indexedResult struct {
+		index  int
+		result ai.ToolResultMessage
+		err    error
+	}
+	ch := make(chan indexedResult, len(toolCalls))
+
+	for i, tc := range toolCalls {
+		go func(idx int, toolCall ai.ToolCall) {
+			result, err := a.executeSingleToolCall(ctx, assistantMsg, toolCall)
+			ch <- indexedResult{index: idx, result: result, err: err}
+		}(i, tc)
 	}
 
-	return nil
+	results := make([]ai.ToolResultMessage, len(toolCalls))
+	for range toolCalls {
+		ir := <-ch
+		if ir.err != nil {
+			return results[:ir.index], ir.err
+		}
+		results[ir.index] = ir.result
+	}
+	return results, nil
+}
+
+// executeSingleToolCall handles the full lifecycle of one tool call:
+// resolve tool, prepare args, before-hook, execute, after-hook, emit events.
+func (a *Agent) executeSingleToolCall(ctx context.Context, assistantMsg ai.AssistantMessage, tc ai.ToolCall) (ai.ToolResultMessage, error) {
+	// Clean up __raw_args__ if present
+	args := tc.Arguments
+	if rawArgs, ok := args["__raw_args__"].(string); ok {
+		var parsed map[string]any
+		if err := json.Unmarshal([]byte(rawArgs), &parsed); err == nil {
+			args = parsed
+		} else {
+			// Fallback: treat raw string as a single "input" parameter
+			args = map[string]any{"input": rawArgs}
+		}
+	}
+
+	// Resolve the tool by name
+	var tool *AgentTool
+	a.mu.RLock()
+	for i := range a.tools {
+		if a.tools[i].Name == tc.Name {
+			tool = &a.tools[i]
+			break
+		}
+	}
+	a.mu.RUnlock()
+
+	if tool == nil {
+		return a.emitToolCallError(ctx, tc, fmt.Sprintf("tool %q not found", tc.Name)), nil
+	}
+
+	// Prepare arguments if the tool has a PrepareArguments hook
+	if tool.PrepareArguments != nil {
+		prepared, err := tool.PrepareArguments(args)
+		if err != nil {
+			return a.emitToolCallError(ctx, tc, fmt.Sprintf("argument preparation failed: %v", err)), nil
+		}
+		args = prepared
+	}
+
+	// Emit tool_execution_start
+	a.emit(AgentEvent{
+		Type:      EventToolExecutionStart,
+		ToolCallID: tc.ID,
+		ToolName:  tc.Name,
+		Args:      args,
+	})
+
+	// BeforeToolCall hook
+	if a.config.BeforeToolCall != nil {
+		callCtx := BeforeToolCallContext{
+			AssistantMessage: assistantMsg,
+			ToolCall:         tc,
+			Args:             args,
+			AgentContext: AgentContext{
+				SystemPrompt: a.systemPrompt,
+				Messages:     a.messages,
+				Tools:        a.tools,
+			},
+		}
+		beforeResult, err := a.config.BeforeToolCall(ctx, callCtx)
+		if err != nil {
+			return a.emitToolCallError(ctx, tc, fmt.Sprintf("beforeToolCall hook error: %v", err)), nil
+		}
+		if beforeResult != nil && beforeResult.Block {
+			msg := "tool execution was blocked"
+			return a.emitToolCallOutcome(ctx, tc, AgentToolResult{
+				Content: []ai.Content{ai.TextContent{Text: msg}},
+			}, true), nil
+		}
+	}
+
+	// Execute the tool
+	var toolResult AgentToolResult
+	var execErr error
+
+	onUpdate := func(partialResult AgentToolResult) {
+		a.emit(AgentEvent{
+			Type:      EventToolExecutionUpdate,
+			ToolCallID: tc.ID,
+			ToolName:  tc.Name,
+			Args:      args,
+			PartialResult: partialResult,
+		})
+	}
+
+	toolResult, execErr = tool.Execute(ctx, tc.ID, args, onUpdate)
+
+	isError := execErr != nil
+	if isError {
+		errMsg := execErr.Error()
+		toolResult = AgentToolResult{
+			Content: []ai.Content{ai.TextContent{Text: errMsg}},
+		}
+	}
+
+	// AfterToolCall hook
+	if a.config.AfterToolCall != nil {
+		callCtx := AfterToolCallContext{
+			AssistantMessage: assistantMsg,
+			ToolCall:         tc,
+			Args:             args,
+			Result:           toolResult,
+			IsError:          isError,
+			AgentContext: AgentContext{
+				SystemPrompt: a.systemPrompt,
+				Messages:     a.messages,
+				Tools:        a.tools,
+			},
+		}
+		afterResult, err := a.config.AfterToolCall(ctx, callCtx)
+		if err == nil && afterResult != nil {
+			if afterResult.Content != nil {
+				toolResult.Content = afterResult.Content
+			}
+			if afterResult.Details != nil {
+				toolResult.Details = afterResult.Details
+			}
+			if afterResult.IsError != nil {
+				isError = *afterResult.IsError
+			}
+		}
+	}
+
+	return a.emitToolCallOutcome(ctx, tc, toolResult, isError), nil
+}
+
+// emitToolCallOutcome sends the tool_execution_end, message_start/end events
+// and returns the ToolResultMessage to be appended to the conversation.
+func (a *Agent) emitToolCallOutcome(ctx context.Context, tc ai.ToolCall, result AgentToolResult, isError bool) ai.ToolResultMessage {
+	a.emit(AgentEvent{
+		Type:      EventToolExecutionEnd,
+		ToolCallID: tc.ID,
+		ToolName:  tc.Name,
+		Result:    result,
+		IsError:   isError,
+	})
+
+	toolResultMsg := ai.ToolResultMessage{
+		ToolCallID: tc.ID,
+		ToolName:  tc.Name,
+		Content:   result.Content,
+		Details:   result.Details,
+		IsError:   isError,
+		Timestamp: time.Now().UnixMilli(),
+	}
+
+	a.emit(AgentEvent{Type: EventMessageStart, Message: toolResultMsg})
+	a.emit(AgentEvent{Type: EventMessageEnd, Message: toolResultMsg})
+
+	return toolResultMsg
+}
+
+// emitToolCallError is a convenience for emitting error tool results.
+func (a *Agent) emitToolCallError(ctx context.Context, tc ai.ToolCall, errMsg string) ai.ToolResultMessage {
+	return a.emitToolCallOutcome(ctx, tc, AgentToolResult{
+		Content: []ai.Content{ai.TextContent{Text: errMsg}},
+		Details: map[string]any{"error": errMsg},
+	}, true)
 }
