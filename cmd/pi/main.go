@@ -186,15 +186,7 @@ func main() {
 	// ─── Initialize Tools ───
 	var toolList []agent.AgentTool
 	if !*noTools {
-		toolList = []agent.AgentTool{
-			tools.ReadTool(cwd),
-			tools.BashTool(cwd),
-			tools.WriteTool(cwd),
-			tools.EditTool(cwd),
-			tools.LsTool(cwd),
-			tools.GrepTool(cwd),
-			tools.FindTool(cwd),
-		}
+		toolList = tools.CreateAllTools(cwd)
 	}
 
 	// Community Plugins

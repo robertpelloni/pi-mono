@@ -8,8 +8,9 @@ import (
 
 // AgentToolResult represents the final or partial result produced by a tool.
 type AgentToolResult struct {
-	Content []ai.Content `json:"content"` // Contains ai.TextContent or ai.ImageContent
-	Details any          `json:"details,omitempty"`
+	Content  []ai.Content `json:"content"`           // Contains ai.TextContent or ai.ImageContent
+	IsError  bool         `json:"isError,omitempty"` // True if the tool execution failed
+	Details  any          `json:"details,omitempty"` // Extra metadata (e.g., diff, truncation info)
 }
 
 // AgentToolUpdateCallback is used by tools to stream partial execution updates.
@@ -21,6 +22,11 @@ type AgentTool struct {
 	Description string
 	Label       string
 	Parameters  any // Usually a JSON schema map
+
+	// PromptSnippet is a short description injected into the system prompt.
+	PromptSnippet string
+	// PromptGuidelines are usage instructions injected into the system prompt.
+	PromptGuidelines []string
 
 	// PrepareArguments is an optional compatibility shim for raw tool-call arguments before schema validation.
 	PrepareArguments func(args map[string]any) (map[string]any, error)

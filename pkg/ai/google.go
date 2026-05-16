@@ -253,7 +253,7 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 		defer resp.Body.Close()
 
 		if resp.StatusCode != 200 {
-			errMsg := fmt.Sprintf("Google API error: status %d", resp.StatusCode)
+			errMsg := fmt.Sprintf("Google API error: status %d: %s", resp.StatusCode, readErrorBody(resp.Body))
 			reason := StopReasonError
 			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
 				return

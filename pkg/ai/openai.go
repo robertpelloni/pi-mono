@@ -260,7 +260,7 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 		defer resp.Body.Close()
 
 		if resp.StatusCode != 200 {
-			errMsg := fmt.Sprintf("OpenAI API error: status %d", resp.StatusCode)
+			errMsg := fmt.Sprintf("OpenAI API error: status %d: %s", resp.StatusCode, readErrorBody(resp.Body))
 			reason := StopReasonError
 			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
 				return

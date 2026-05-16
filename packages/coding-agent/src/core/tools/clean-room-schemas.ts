@@ -34,10 +34,10 @@ export const aiderRunCommandSchema = t.Object({
 });
 
 export const aiderReplaceLinesSchema = t.Object({
-    file_path: t.String({ description: "Path to the file to edit." }),
-    start_line: t.Number({ description: "The 1-indexed start line number to replace." }),
-    end_line: t.Number({ description: "The 1-indexed end line number to replace." }),
-    replacement: t.String({ description: "The replacement text string." })
+	file_path: t.String({ description: "Path to the file to edit." }),
+	start_line: t.Number({ description: "The 1-indexed start line number to replace." }),
+	end_line: t.Number({ description: "The 1-indexed end line number to replace." }),
+	replacement: t.String({ description: "The replacement text string." }),
 });
 
 export const geminiShellSchema = z.object({
@@ -57,7 +57,6 @@ export const openCodeSearchSchema = z.object({
 	query: z.string().describe("The search query"),
 	directory: z.string().optional().describe("The directory to search"),
 });
-
 
 // --- HERMES AGENT & II-AGENT PARITY SCHEMAS ---
 
@@ -145,46 +144,45 @@ export const hermesWebSearchSchema = z.object({
 	query: z.string(),
 });
 
-
 import { Type as t } from "@sinclair/typebox";
 export const openInterpreterComputerUseSchema = t.Object({
-    action: t.Union([
-        t.Literal("key"),
-        t.Literal("type"),
-        t.Literal("mouse_move"),
-        t.Literal("left_click"),
-        t.Literal("left_click_drag"),
-        t.Literal("right_click"),
-        t.Literal("middle_click"),
-        t.Literal("double_click"),
-        t.Literal("screenshot"),
-        t.Literal("cursor_position")
-    ]),
-    text: t.Optional(t.String()),
-    coordinate: t.Optional(t.Array(t.Number()))
+	action: t.Union([
+		t.Literal("key"),
+		t.Literal("type"),
+		t.Literal("mouse_move"),
+		t.Literal("left_click"),
+		t.Literal("left_click_drag"),
+		t.Literal("right_click"),
+		t.Literal("middle_click"),
+		t.Literal("double_click"),
+		t.Literal("screenshot"),
+		t.Literal("cursor_position"),
+	]),
+	text: t.Optional(t.String()),
+	coordinate: t.Optional(t.Array(t.Number())),
 });
 
 export const clineExecuteCommandSchema = t.Object({
-    command: t.String({ description: "The CLI command to execute." }),
-    requires_approval: t.Boolean({ description: "Whether explicit approval is needed." })
+	command: t.String({ description: "The CLI command to execute." }),
+	requires_approval: t.Boolean({ description: "Whether explicit approval is needed." }),
 });
 
 export const clineWriteToFileSchema = t.Object({
-    path: t.String({ description: "The absolute path of the file." }),
-    content: t.String({ description: "The complete intended content of the file." })
+	path: t.String({ description: "The absolute path of the file." }),
+	content: t.String({ description: "The complete intended content of the file." }),
 });
 
 export const clineAskFollowupSchema = t.Object({
-    question: t.String({ description: "The question to ask the user." })
+	question: t.String({ description: "The question to ask the user." }),
 });
 
 export const clineListCodeDefinitionNamesSchema = t.Object({
-    path: t.String({ description: "The directory path." })
+	path: t.String({ description: "The directory path." }),
 });
 
 export const clineBrowserActionSchema = t.Object({
-    action: t.String({ description: "launch, click, type, scroll_down, scroll_up, close" }),
-    url: t.Optional(t.String()),
-    coordinate: t.Optional(t.String()),
-    text: t.Optional(t.String())
+	action: t.String({ description: "launch, click, type, scroll_down, scroll_up, close" }),
+	url: t.Optional(t.String()),
+	coordinate: t.Optional(t.String()),
+	text: t.Optional(t.String()),
 });

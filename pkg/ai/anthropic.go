@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -242,7 +243,7 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 		defer resp.Body.Close()
 
 		if resp.StatusCode != 200 {
-			errMsg := fmt.Sprintf("Anthropic API error: status %d", resp.StatusCode)
+			errMsg := fmt.Sprintf("Anthropic API error: status %d: %s", resp.StatusCode, readErrorBody(resp.Body))
 			reason := StopReasonError
 			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
 				return
@@ -329,4 +330,13 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 	}()
 
 	return stream
+}
+
+// readErrorBody reads up to 1KB of an error response body for debugging.
+func readErrorBody(body io.Reader) string {
+	data, err := io.ReadAll(io.LimitReader(body, 1024))
+	if err != nil {
+		return "(could not read body)"
+	}
+	return string(data)
 }

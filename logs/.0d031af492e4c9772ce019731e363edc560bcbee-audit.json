@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\hyper\\workspace\\pi-mono\\logs\\.0d031af492e4c9772ce019731e363edc560bcbee-audit.json",
+    "files": [
+        {
+            "date": 1778938583950,
+            "name": "C:\\Users\\hyper\\workspace\\pi-mono\\logs\\mcp-puppeteer-2026-05-16.log",
+            "hash": "64996f138df509717d552a408b3cb8b7a5016c1ec396d70669ec06546afc0912"
+        }
+    ],
+    "hashType": "sha256"
+}
