@@ -8,6 +8,7 @@ import (
 
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/ai"
+	"github.com/badlogic/pi-mono/pkg/slashcommands"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -20,6 +21,10 @@ var (
 	styleTool      = lipgloss.NewStyle().Foreground(lipgloss.Color("214"))
 	styleError     = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
 	styleSystem    = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	styleThinking  = lipgloss.NewStyle().Foreground(lipgloss.Color("63")).Italic(true)
+	styleSlashInfo = lipgloss.NewStyle().Foreground(lipgloss.Color("120"))
+	styleSlashErr  = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+	styleHeader    = lipgloss.NewStyle().Foreground(lipgloss.Color("86")).Bold(true)
 )
 
 // AgentUIModel represents the Bubbletea state for the interactive AI agent interface.
@@ -29,10 +34,12 @@ type AgentUIModel struct {
 	viewport      viewport.Model
 	textarea      textarea.Model
 	agent         *agent.Agent
+	slashRegistry *slashcommands.Registry
 	activeTool    string
 	isGenerating  bool
 	err           error
 	quitting      bool
+	statusLine    string
 }
 
 // EventMsg is a wrapper to send AgentEvent instances into the Bubbletea Update loop.
@@ -43,9 +50,14 @@ type ExecutionDoneMsg struct {
 	Err error
 }
 
-func InitialModel(ag *agent.Agent, eventsChan chan agent.AgentEvent) *AgentUIModel {
+// SlashResultMsg wraps a slash command result for the tea loop.
+type SlashResultMsg struct {
+	Result slashcommands.SlashCommandResult
+}
+
+func InitialModel(ag *agent.Agent, eventsChan chan agent.AgentEvent, slashReg *slashcommands.Registry) *AgentUIModel {
 	ta := textarea.New()
-	ta.Placeholder = "Type a message... (Ctrl+S to send)"
+	ta.Placeholder = "Type a message... (Ctrl+S to send, / for commands)"
 	ta.Focus()
 	ta.Prompt = "┃ "
 	ta.CharLimit = 20000
@@ -56,10 +68,11 @@ func InitialModel(ag *agent.Agent, eventsChan chan agent.AgentEvent) *AgentUIMod
 	vp.SetContent("Welcome to the Pi Go Agent CLI! Type your prompt below.")
 
 	return &AgentUIModel{
-		eventsChan: eventsChan,
-		viewport:   vp,
-		textarea:   ta,
-		agent:      ag,
+		eventsChan:    eventsChan,
+		viewport:      vp,
+		textarea:      ta,
+		agent:         ag,
+		slashRegistry: slashReg,
 	}
 }
 
@@ -95,13 +108,28 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC:
 			m.quitting = true
 			return m, tea.Quit
-
-		case tea.KeyCtrlS: // Using Ctrl+S to submit so Enter can be used for newlines
+		case tea.KeyCtrlS:
 			if !m.isGenerating && m.textarea.Value() != "" {
 				userText := m.textarea.Value()
 				m.textarea.Reset()
-				m.isGenerating = true
 
+				// Check if it's a slash command
+				if strings.HasPrefix(strings.TrimSpace(userText), "/") && m.slashRegistry != nil {
+					result, isCommand, err := m.slashRegistry.Execute(userText)
+					if isCommand {
+						if err != nil {
+							m.conversation.WriteString(styleSlashErr.Render(fmt.Sprintf("\n[Error] %v\n", err)))
+						} else {
+							m.handleSlashResult(result)
+						}
+						m.viewport.SetContent(m.conversation.String())
+						m.viewport.GotoBottom()
+						return m, tea.Batch(tiCmd, vpCmd)
+					}
+				}
+
+				// Regular user message
+				m.isGenerating = true
 				m.conversation.WriteString(styleUser.Render(fmt.Sprintf("\n[User]: %s\n", userText)))
 				m.viewport.SetContent(m.conversation.String())
 				m.viewport.GotoBottom()
@@ -110,9 +138,7 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Batch(
 					func() tea.Msg {
 						userMsg := ai.UserMessage{
-							Content: []ai.Content{
-								ai.TextContent{Text: userText},
-							},
+							Content:   []ai.Content{ai.TextContent{Text: userText}},
 							Timestamp: time.Now().UnixMilli(),
 						}
 						err := m.agent.Prompt(context.Background(), userMsg)
@@ -120,8 +146,9 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					},
 				)
 			}
+		case tea.KeyEscape:
+			// Could cancel current generation in the future
 		}
-
 	case ExecutionDoneMsg:
 		m.isGenerating = false
 		if msg.Err != nil {
@@ -130,66 +157,73 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.conversation.WriteString("\n")
 		m.viewport.SetContent(m.conversation.String())
 		m.viewport.GotoBottom()
-
+	case SlashResultMsg:
+		m.handleSlashResult(msg.Result)
+		m.viewport.SetContent(m.conversation.String())
+		m.viewport.GotoBottom()
 	case EventMsg:
 		event := agent.AgentEvent(msg)
 		switch event.Type {
 		case agent.EventAgentStart:
 			m.conversation.WriteString(styleSystem.Render("\n[Agent] Starting...\n"))
-
+			m.statusLine = "Generating..."
 		case agent.EventMessageStart:
 			if event.Message != nil {
 				if event.Message.GetRole() == ai.RoleAssistant {
 					m.conversation.WriteString(styleAssistant.Render("\n[Assistant]: "))
 				}
 			}
-
 		case agent.EventMessageUpdate:
-			if event.AssistantMessageEvent != nil && event.AssistantMessageEvent.Type == ai.EventTextDelta {
-				if event.AssistantMessageEvent.Delta != nil {
-					m.conversation.WriteString(*event.AssistantMessageEvent.Delta)
-				}
-			}
-
-		case agent.EventMessageEnd:
-			m.conversation.WriteString("\n")
-
-		case agent.EventToolExecutionStart:
-			m.activeTool = event.ToolName
-			argsStr := fmt.Sprintf("%v", event.Args)
-			m.conversation.WriteString(styleTool.Render(fmt.Sprintf("\n  [Running Tool] %s(%s)...", m.activeTool, argsStr)))
-
-		case agent.EventToolExecutionEnd:
-			status := "SUCCESS"
-			if event.IsError {
-				status = "ERROR"
-			}
-
-			contentStr := ""
-			if res, ok := event.Result.(agent.AgentToolResult); ok {
-				for _, c := range res.Content {
-					if txt, ok := c.(ai.TextContent); ok {
-						contentStr += txt.Text
+			if event.AssistantMessageEvent != nil {
+				switch event.AssistantMessageEvent.Type {
+				case ai.EventTextDelta:
+					if event.AssistantMessageEvent.Delta != nil {
+						m.conversation.WriteString(*event.AssistantMessageEvent.Delta)
+					}
+				case ai.EventThinkingStart:
+					m.conversation.WriteString(styleThinking.Render("\n[Thinking] "))
+				case ai.EventThinkingDelta:
+					if event.AssistantMessageEvent.Delta != nil {
+						m.conversation.WriteString(styleThinking.Render(*event.AssistantMessageEvent.Delta))
 					}
 				}
 			}
-
-			displayStr := contentStr
-			if len(displayStr) > 100 {
-				displayStr = displayStr[:97] + "..."
+		case agent.EventMessageEnd:
+			m.conversation.WriteString("\n")
+		case agent.EventToolExecutionStart:
+			m.activeTool = event.ToolName
+			argsStr := formatArgs(event.Args)
+			m.conversation.WriteString(styleTool.Render(fmt.Sprintf("\n  [Running Tool] %s(%s)...", m.activeTool, argsStr)))
+			m.statusLine = fmt.Sprintf("Running: %s", m.activeTool)
+		case agent.EventToolExecutionUpdate:
+			// Stream partial tool results if available
+		case agent.EventToolExecutionEnd:
+			status := "✓"
+			if event.IsError {
+				status = "✗"
 			}
+			contentStr := extractContent(event.Result)
+			displayStr := contentStr
+			if len(displayStr) > 200 {
+				displayStr = displayStr[:197] + "..."
+			}
+			displayStr = strings.ReplaceAll(displayStr, "\n", "\n  ")
 
 			if event.IsError {
-				m.conversation.WriteString(styleError.Render(fmt.Sprintf(" -> %s\n    %s\n", status, strings.ReplaceAll(displayStr, "\n", "\n    "))))
+				m.conversation.WriteString(styleError.Render(fmt.Sprintf(" %s\n  %s\n", status, displayStr)))
 			} else {
-				m.conversation.WriteString(styleTool.Render(fmt.Sprintf(" -> %s\n    %s\n", status, strings.ReplaceAll(displayStr, "\n", "\n    "))))
+				m.conversation.WriteString(styleTool.Render(fmt.Sprintf(" %s\n  %s\n", status, displayStr)))
 			}
 			m.activeTool = ""
-
+			m.statusLine = ""
+		case agent.EventTurnStart:
+			m.statusLine = "Generating response..."
+		case agent.EventTurnEnd:
+			m.statusLine = ""
 		case agent.EventAgentEnd:
 			m.conversation.WriteString(styleSystem.Render("\n[Agent] Done.\n"))
+			m.statusLine = "Ready"
 		}
-
 		m.viewport.SetContent(m.conversation.String())
 		m.viewport.GotoBottom()
 		return m, m.listenForEvents()
@@ -204,11 +238,89 @@ func (m *AgentUIModel) View() string {
 		return "Goodbye!\n"
 	}
 
+	header := ""
+	if m.statusLine != "" {
+		header = styleHeader.Render(fmt.Sprintf("  %s", m.statusLine))
+	}
+
 	return fmt.Sprintf(
-		"%s\n\n%s",
+		"%s\n%s\n\n%s",
+		header,
 		m.viewport.View(),
 		m.textarea.View(),
 	)
+}
+
+// handleSlashResult processes a slash command result.
+func (m *AgentUIModel) handleSlashResult(result slashcommands.SlashCommandResult) {
+	if result.Error != "" {
+		m.conversation.WriteString(styleSlashErr.Render(fmt.Sprintf("\n[Error] %s\n", result.Error)))
+	}
+	if result.Info != "" {
+		m.conversation.WriteString(styleSlashInfo.Render(fmt.Sprintf("\n%s\n", result.Info)))
+	}
+	if result.Message != "" {
+		// The slash command wants to send a message as if the user typed it
+		m.isGenerating = true
+		m.conversation.WriteString(styleUser.Render(fmt.Sprintf("\n[User]: %s\n", result.Message)))
+		go func() {
+			userMsg := ai.UserMessage{
+				Content:   []ai.Content{ai.TextContent{Text: result.Message}},
+				Timestamp: time.Now().UnixMilli(),
+			}
+			m.agent.Prompt(context.Background(), userMsg)
+		}()
+	}
+	if result.Quit {
+		m.quitting = true
+	}
+	if result.SwitchModel != "" {
+		m.conversation.WriteString(styleSystem.Render(fmt.Sprintf("\n[System] Switching model to: %s\n", result.SwitchModel)))
+		// Model switching would be handled by the application layer
+	}
+	if result.SwitchProvider != "" {
+		m.conversation.WriteString(styleSystem.Render(fmt.Sprintf("\n[System] Switching provider to: %s\n", result.SwitchProvider)))
+	}
+	if result.Compact {
+		m.conversation.WriteString(styleSystem.Render("\n[System] Compaction requested\n"))
+	}
+}
+
+// formatArgs creates a short display string for tool arguments.
+func formatArgs(args map[string]any) string {
+	if len(args) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(args))
+	for k, v := range args {
+		s := fmt.Sprintf("%v", v)
+		if len(s) > 50 {
+			s = s[:47] + "..."
+		}
+		parts = append(parts, fmt.Sprintf("%s=%s", k, s))
+	}
+	result := strings.Join(parts, ", ")
+	if len(result) > 100 {
+		result = result[:97] + "..."
+	}
+	return result
+}
+
+// extractContent pulls text content from a tool result.
+func extractContent(result any) string {
+	if result == nil {
+		return ""
+	}
+	if tr, ok := result.(agent.AgentToolResult); ok {
+		var sb strings.Builder
+		for _, c := range tr.Content {
+			if txt, ok := c.(ai.TextContent); ok {
+				sb.WriteString(txt.Text)
+			}
+		}
+		return sb.String()
+	}
+	return fmt.Sprintf("%v", result)
 }
 
 // BubbleteaRenderer adapts the Agent setup to the interactive UI model.
@@ -219,10 +331,19 @@ type BubbleteaRenderer struct {
 
 func NewInteractiveRenderer(ag *agent.Agent) *BubbleteaRenderer {
 	eventsChan := make(chan agent.AgentEvent, 100)
-
-	model := InitialModel(ag, eventsChan)
+	model := InitialModel(ag, eventsChan, nil)
 	p := tea.NewProgram(model, tea.WithAltScreen())
+	return &BubbleteaRenderer{
+		eventsChan: eventsChan,
+		program:    p,
+	}
+}
 
+// NewInteractiveRendererWithSlashCommands creates a renderer with slash command support.
+func NewInteractiveRendererWithSlashCommands(ag *agent.Agent, slashReg *slashcommands.Registry) *BubbleteaRenderer {
+	eventsChan := make(chan agent.AgentEvent, 100)
+	model := InitialModel(ag, eventsChan, slashReg)
+	p := tea.NewProgram(model, tea.WithAltScreen())
 	return &BubbleteaRenderer{
 		eventsChan: eventsChan,
 		program:    p,

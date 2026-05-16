@@ -30,7 +30,8 @@ type BeforeToolCallContext struct {
 }
 
 type BeforeToolCallResult struct {
-	Block bool
+	Block  bool
+	Reason string
 }
 
 // AfterToolCallContext provides contextual information to AfterToolCall hooks.

@@ -168,6 +168,7 @@ const (
 
 type Message interface {
 	GetRole() MessageRole
+	GetTimestamp() int64
 }
 
 type UserMessage struct {
@@ -175,7 +176,8 @@ type UserMessage struct {
 	Timestamp int64     `json:"timestamp"`
 }
 
-func (m UserMessage) GetRole() MessageRole { return RoleUser }
+func (m UserMessage) GetRole() MessageRole  { return RoleUser }
+func (m UserMessage) GetTimestamp() int64    { return m.Timestamp }
 
 type AssistantMessage struct {
 	Content      []Content  `json:"content"` // TextContent | ThinkingContent | ToolCall
@@ -189,7 +191,8 @@ type AssistantMessage struct {
 	Timestamp    int64      `json:"timestamp"`
 }
 
-func (m AssistantMessage) GetRole() MessageRole { return RoleAssistant }
+func (m AssistantMessage) GetRole() MessageRole  { return RoleAssistant }
+func (m AssistantMessage) GetTimestamp() int64    { return m.Timestamp }
 
 type ToolResultMessage struct {
 	ToolCallID string    `json:"toolCallId"`
@@ -200,7 +203,8 @@ type ToolResultMessage struct {
 	Timestamp  int64     `json:"timestamp"`
 }
 
-func (m ToolResultMessage) GetRole() MessageRole { return RoleTool }
+func (m ToolResultMessage) GetRole() MessageRole  { return RoleTool }
+func (m ToolResultMessage) GetTimestamp() int64    { return m.Timestamp }
 
 type Tool struct {
 	Name        string `json:"name"`
