@@ -131,9 +131,9 @@ func (s *Server) handleChat() http.HandlerFunc {
 				eventsChan <- agent.AgentEvent{
 					Type: agent.EventMessageUpdate,
 					AssistantMessageEvent: &ai.AssistantMessageEvent{
-						Type: ai.EventError,
+						Type:   ai.EventError,
 						Reason: &reason,
-						Error: &ai.AssistantMessage{ErrorMessage: &errMsg},
+						Error:  &ai.AssistantMessage{ErrorMessage: &errMsg},
 					},
 				}
 			}

@@ -14,6 +14,9 @@ The following external open-source AI agent tooling has been cloned to the local
 | `submodules/cline` | latest | https://github.com/cline/cline | Highly capable VS Code extension agent interface. Investigating its tool execution loops. |
 | `submodules/ollama` | 7d271e6dc9fb1 (v0.13.4-rc2) | https://github.com/ollama/ollama | Local LLM inference wrapper, used for `ollama` model integrations and sync. |
 
+| `submodules/codebuff` | latest | https://github.com/CodebuffAI/codebuff | Experimental Codebuff components and UI configurations. |
+| `submodules/mistral-vibe` | latest | https://github.com/mistralai/mistral-vibe | Mistral's Vibe agent CLI containing internal tool definitions and schemas. |
+
 ## "Clean Room" Schemas Implementation Progress
 
 We map strictly specific tool schemas that external LLM providers expect (from the models listed above) back to our unified TypeScript/Go implementations using the `clean-room-tools` pattern.

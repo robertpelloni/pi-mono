@@ -25,3 +25,9 @@
 [submodule "submodules/cline"]
 	path = submodules/cline
 	url = https://github.com/cline/cline
+[submodule "submodules/codebuff"]
+	path = submodules/codebuff
+	url = https://github.com/CodebuffAI/codebuff
+[submodule "submodules/mistral-vibe"]
+	path = submodules/mistral-vibe
+	url = https://github.com/mistralai/mistral-vibe

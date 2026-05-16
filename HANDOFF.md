@@ -61,3 +61,12 @@
 - Restored `test.sh` and legacy scripts to maintain rigorous TypeScript legacy CI parity alongside the Go test suite.
 - Fixed unused variable imports in Aider Go test fixtures to ensure global `go test ./...` stability.
 - Updated all reference submodules to latest upstream commits and correctly re-linked `pi-test.sh` missing dependencies.
+
+## Session Handoff
+- **Completed Tasks:** Added missing clean-room tools to `allTools` and `allToolDefinitions` in the TS codebase (`packages/coding-agent/src/core/tools/index.ts`). Implemented these clean-room tools natively in Go in `pkg/tools/clean_room_tools.go` to maintain 1:1 parity with the external AI CLI tools. Registered them in `cmd/pi/main.go`.
+- **Issues Addressed:** Addressed the crucial code review fix #1 in TODO.md.
+- **Added Submodules:** Added Codebuff and Mistral Vibe public repositories as submodules under `submodules/`. Analyzed their file structures and schemas.
+- **Cataloged Unavailable Tools:** Added a list of the requested tools that are closed-source/proprietary to `SUBMODULE_INVENTORY.md`.
+- **Phase 14 Deployment Review:** Evaluated `scripts/build-binaries.sh` against the ongoing Go migration. Formulated a strategic shift documented in `IDEAS.md` to abandon Bun binaries for pure `GOOS`/`GOARCH` compilation and multi-arch Docker distribution. Ticked off the final task in `TODO.md`.
+
+- **Project Memory Summary:** Compiled a comprehensive summary of the project's architecture, patterns, and decisions inside `MEMORY.md` under the `[PROJECT_MEMORY]` tag as explicitly requested by the user.

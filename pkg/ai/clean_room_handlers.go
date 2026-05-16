@@ -151,8 +151,6 @@ func MapHermesCleanRoomParams(toolName string, rawArgs []byte) (map[string]inter
 	return unified, nil
 }
 
-
-
 // Native OpenInterpreter bindings for specific action enums.
 // These interact directly with 'xdotool' (Linux) or 'cliclick' natively if installed.
 func handleOpenInterpreterComputerUse(args map[string]interface{}) string {
@@ -299,28 +297,28 @@ func handleHermesWebSearch(args map[string]interface{}) string {
 }
 
 var CleanRoomTools = map[string]func(map[string]interface{}) string{
-	"computer":            handleOpenInterpreterComputerUse,
-	"memory":              handleHermesMemory,
-	"browser_navigate":    handleHermesBrowserNavigate,
-	"browser_click":       handleHermesBrowserClick,
-	"browser_type":        handleHermesBrowserType,
-	"browser_snapshot":    handleHermesBrowserSnapshot,
-	"clarify":             handleHermesClarify,
-	"execute_code":        handleHermesExecuteCode,
-	"cronjob":             handleHermesCronjob,
-	"delegate_task":       handleHermesDelegateTask,
-	"ha_call_service":     handleHermesHACallService,
-	"mixture_of_agents":   handleHermesMOA,
-	"session_search":      handleHermesSessionSearch,
-	"skill_manage":        handleHermesSkillManage,
-	"web_search":          handleHermesWebSearch,
-	"run_command":         handleAiderRunCommand,
-	"execute_command":     handleClineExecuteCommand,
-	"write_to_file":       handleClineWriteToFile,
-	"ask_followup_question": handleClineAskFollowup,
+	"computer":                   handleOpenInterpreterComputerUse,
+	"memory":                     handleHermesMemory,
+	"browser_navigate":           handleHermesBrowserNavigate,
+	"browser_click":              handleHermesBrowserClick,
+	"browser_type":               handleHermesBrowserType,
+	"browser_snapshot":           handleHermesBrowserSnapshot,
+	"clarify":                    handleHermesClarify,
+	"execute_code":               handleHermesExecuteCode,
+	"cronjob":                    handleHermesCronjob,
+	"delegate_task":              handleHermesDelegateTask,
+	"ha_call_service":            handleHermesHACallService,
+	"mixture_of_agents":          handleHermesMOA,
+	"session_search":             handleHermesSessionSearch,
+	"skill_manage":               handleHermesSkillManage,
+	"web_search":                 handleHermesWebSearch,
+	"run_command":                handleAiderRunCommand,
+	"execute_command":            handleClineExecuteCommand,
+	"write_to_file":              handleClineWriteToFile,
+	"ask_followup_question":      handleClineAskFollowup,
 	"list_code_definition_names": handleClineListCodeDefinitionNames,
-	"browser_action": handleClineBrowserAction,
-	"replace_lines":       handleAiderReplaceLines,
+	"browser_action":             handleClineBrowserAction,
+	"replace_lines":              handleAiderReplaceLines,
 }
 
 func handleAiderRunCommand(args map[string]interface{}) string {
