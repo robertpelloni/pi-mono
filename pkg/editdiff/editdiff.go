@@ -125,9 +125,10 @@ func FuzzyFindText(content, oldText string) FuzzyMatchResult {
 }
 
 // StripBom removes a UTF-8 BOM if present.
+// The UTF-8 BOM is the byte sequence 0xEF,0xBB,0xBF.
 func StripBom(content string) (bom, text string) {
-	if strings.HasPrefix(content, "\uFEFF") {
-		return "\uFEFF", content[1:]
+	if len(content) >= 3 && content[0] == 0xEF && content[1] == 0xBB && content[2] == 0xBF {
+		return content[:3], content[3:]
 	}
 	return "", content
 }

@@ -42,8 +42,8 @@ func TestRestoreLineEndings(t *testing.T) {
 }
 
 func TestStripBom(t *testing.T) {
-	bom, text := StripBom("\uFEFFhello")
-	if bom != "\uFEFF" {
+	bom, text := StripBom("\xEF\xBB\xBFhello")
+	if bom != "\xEF\xBB\xBF" {
 		t.Errorf("Expected BOM, got %q", bom)
 	}
 	if text != "hello" {

@@ -49,6 +49,9 @@ type AgentSession struct {
 	thinkingLevel ai.ThinkingLevel
 	listeners     []AgentSessionEventListener
 	stats         SessionStats
+
+	steeringMessages []string
+	followUpMessages []string
 }
 
 // AgentSessionEvent represents events emitted by the AgentSession.
@@ -348,3 +351,72 @@ func providerToAPI(provider ai.Provider) ai.Api {
 		return ai.ApiOpenAICompletions
 	}
 }
+
+// Steer adds a steering message that interrupts the current turn.
+func (as *AgentSession) Steer(text string) {
+	as.mu.Lock()
+	defer as.mu.Unlock()
+	as.steeringMessages = append(as.steeringMessages, text)
+}
+
+// FollowUp adds a follow-up message that waits for the current turn to complete.
+func (as *AgentSession) FollowUp(text string) {
+	as.mu.Lock()
+	defer as.mu.Unlock()
+	as.followUpMessages = append(as.followUpMessages, text)
+}
+
+// GetSteeringMessages returns and clears pending steering messages.
+func (as *AgentSession) GetSteeringMessages() []string {
+	as.mu.Lock()
+	defer as.mu.Unlock()
+	msgs := as.steeringMessages
+	as.steeringMessages = nil
+	return msgs
+}
+
+// GetFollowUpMessages returns and clears pending follow-up messages.
+func (as *AgentSession) GetFollowUpMessages() []string {
+	as.mu.Lock()
+	defer as.mu.Unlock()
+	msgs := as.followUpMessages
+	as.followUpMessages = nil
+	return msgs
+}
+
+// CycleModel cycles through available models in the registry.
+func (as *AgentSession) CycleModel(direction string) *ai.ModelInfo {
+	if as.config.ModelRegistry == nil {
+		return nil
+	}
+	models := as.config.ModelRegistry.AllModels()
+	if len(models) == 0 {
+		return nil
+	}
+	currentIdx := -1
+	for i, m := range models {
+		if m.ID == as.activeModel.ID {
+			currentIdx = i
+			break
+		}
+	}
+	if direction == "backward" {
+		currentIdx--
+		if currentIdx < 0 {
+			currentIdx = len(models) - 1
+		}
+	} else {
+		currentIdx++
+		if currentIdx >= len(models) {
+			currentIdx = 0
+		}
+	}
+	as.mu.Lock()
+	as.activeModel = models[currentIdx]
+	as.mu.Unlock()
+	as.config.Agent.SetModel(models[currentIdx])
+	as.emit(AgentSessionEvent{Type: "model_switch", Data: models[currentIdx].ID})
+	return &models[currentIdx]
+}
+
+
