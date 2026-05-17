@@ -23,7 +23,10 @@ func TestCreateAllTools(t *testing.T) {
 }
 
 func TestDefaultToolNames(t *testing.T) {
-	names := DefaultToolNames()
+	names := make([]string, len(DefaultToolNames))
+	for i, n := range DefaultToolNames {
+		names[i] = string(n)
+	}
 	if len(names) != 4 {
 		t.Errorf("Expected 4 default tool names, got %d", len(names))
 	}
