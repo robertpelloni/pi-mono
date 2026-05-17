@@ -116,15 +116,13 @@ if *listModels {
 	if pattern != "" {
 		models = modelRegistry.Search(pattern)
 	}
-	fmt.Fprintf(os.Stderr, "Available models (%d):
-", len(models))
+	fmt.Fprintf(os.Stderr, "Available models (%d):\n", len(models))
 	for _, m := range models {
 		reasoning := ""
 		if m.Reasoning {
 			reasoning = " [reasoning]"
 		}
-		fmt.Fprintf(os.Stderr, " %-40s %-15s %s%s
-", m.ID, m.Provider, m.Name, reasoning)
+		fmt.Fprintf(os.Stderr, " %-40s %-15s %s%s\n", m.ID, m.Provider, m.Name, reasoning)
 	}
 	os.Exit(0)
 }

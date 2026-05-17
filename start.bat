@@ -205,7 +205,7 @@ echo │    --thinking    Set thinking level (low/medium/high)    │
 echo │    --offline     Run offline                             │
 echo │    --continue    Continue last session                   │
 echo │    --message     Single message mode                     │
-echo │    --list-models="" List available models                │
+echo │    --list-models  List available models                │
 echo └──────────────────────────────────────────────────────────┘
 echo.
 
@@ -247,7 +247,7 @@ echo     start.bat run --provider anthropic --api-key sk-xxx
 echo     start.bat run --offline
 echo     start.bat run --continue
 echo     start.bat run --message "explain this codebase"
-echo     start.bat run --list-models=""
+echo     start.bat run --list-models
 echo.
 echo !BOLD!Environment Variables:!RESET!
 echo   OPENAI_API_KEY       OpenAI API key
@@ -261,7 +261,7 @@ echo   start.bat build                    Build only
 echo   start.bat test                     Run tests
 echo   start.bat run --model gpt-4o      Run with specific model
 echo   start.bat run --offline            Run in offline mode
-echo   start.bat run --list-models=""     List available models
+echo   start.bat run --list-models     List available models
 echo.
 goto :end
 
