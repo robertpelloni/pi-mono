@@ -4,234 +4,318 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
-	"sync"
 
-	"github.com/badlogic/pi-mono/pkg/ai"
+	"github.com/badlogic/pi-mono/pkg/frontmatter"
+	"github.com/badlogic/pi-mono/pkg/sourceinfo"
 )
 
-// PromptTemplate is a reusable prompt definition loaded from a markdown file.
+// PromptTemplate represents a prompt template loaded from a markdown file.
 type PromptTemplate struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	FilePath    string `json:"filePath"`
-	BaseDir     string `json:"baseDir"`
-	Content     string `json:"-"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	Content     string                `json:"content"`
+	SourceInfo  sourceinfo.SourceInfo `json:"sourceInfo"`
+	FilePath    string                `json:"filePath"`
 }
 
-// PromptTemplateLoader discovers and loads prompt templates from the filesystem.
-type PromptTemplateLoader struct {
-	mu    sync.RWMutex
-	cache map[string]*LoadResult
+// LoadPromptTemplatesOptions configures template loading.
+type LoadPromptTemplatesOptions struct {
+	CWD           string
+	AgentDir      string
+	PromptPaths   []string
+	IncludeDefaults bool
 }
 
-// LoadResult contains loaded templates and diagnostics.
-type LoadResult struct {
-	Templates   []PromptTemplate      `json:"templates"`
-	Diagnostics []TemplateDiagnostic  `json:"diagnostics"`
+// LoadPromptTemplates loads all prompt templates from global, project, and explicit paths.
+func LoadPromptTemplates(options LoadPromptTemplatesOptions) []PromptTemplate {
+	if options.CWD == "" {
+		options.CWD, _ = os.Getwd()
+	}
+	if options.AgentDir == "" {
+		home, _ := os.UserHomeDir()
+		options.AgentDir = filepath.Join(home, ".pi")
+	}
+	if !options.IncludeDefaults {
+		options.IncludeDefaults = true
+	}
+
+	var templates []PromptTemplate
+
+	if options.IncludeDefaults {
+		globalPromptsDir := filepath.Join(options.AgentDir, "prompts")
+		projectPromptsDir := filepath.Join(options.CWD, ".pi", "prompts")
+
+		templates = append(templates, loadTemplatesFromDir(globalPromptsDir, "user", globalPromptsDir)...)
+		templates = append(templates, loadTemplatesFromDir(projectPromptsDir, "project", projectPromptsDir)...)
+	}
+
+	// Load explicit prompt paths
+	for _, rawPath := range options.PromptPaths {
+		resolvedPath := resolvePromptPath(rawPath, options.CWD)
+		if _, err := os.Stat(resolvedPath); os.IsNotExist(err) {
+			continue
+		}
+
+		info, err := os.Stat(resolvedPath)
+		if err != nil {
+			continue
+		}
+
+		if info.IsDir() {
+			templates = append(templates, loadTemplatesFromDir(resolvedPath, "explicit", resolvedPath)...)
+		} else if strings.HasSuffix(resolvedPath, ".md") {
+			tmpl := loadTemplateFromFile(resolvedPath, sourceinfo.SourceInfo{
+				Source: "local",
+				Scope:  "explicit",
+				BaseDir: filepath.Dir(resolvedPath),
+			})
+			if tmpl != nil {
+				templates = append(templates, *tmpl)
+			}
+		}
+	}
+
+	return templates
 }
 
-// TemplateDiagnostic is a non-fatal issue loading a template.
-type TemplateDiagnostic struct {
-	Path    string `json:"path"`
-	Message string `json:"message"`
+// loadTemplatesFromDir loads .md files from a directory as prompt templates.
+func loadTemplatesFromDir(dir, scope, baseDir string) []PromptTemplate {
+	var templates []PromptTemplate
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return templates
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+			fullPath := filepath.Join(dir, entry.Name())
+			tmpl := loadTemplateFromFile(fullPath, sourceinfo.SourceInfo{
+				Source:  "local",
+				Scope:   scope,
+				BaseDir: baseDir,
+			})
+			if tmpl != nil {
+				templates = append(templates, *tmpl)
+			}
+		}
+	}
+
+	return templates
 }
 
-// NewPromptTemplateLoader creates a new loader.
-func NewPromptTemplateLoader() *PromptTemplateLoader {
-	return &PromptTemplateLoader{
-		cache: make(map[string]*LoadResult),
+// loadTemplateFromFile loads a prompt template from a markdown file.
+func loadTemplateFromFile(filePath string, si sourceinfo.SourceInfo) *PromptTemplate {
+	rawContent, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil
+	}
+
+	fmResult := frontmatter.ParseFrontMatter(string(rawContent))
+	name := strings.TrimSuffix(filepath.Base(filePath), ".md")
+
+	// Get description from frontmatter or first non-empty line
+	description := ""
+	if fmResult.Fields != nil {
+		if desc, ok := fmResult.Fields["description"].(string); ok {
+			description = desc
+		}
+	}
+	if description == "" {
+		lines := strings.Split(fmResult.Content, "\n")
+		for _, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if trimmed != "" {
+				description = trimmed
+				if len(description) > 60 {
+					description = description[:60] + "..."
+				}
+				break
+			}
+		}
+	}
+
+	return &PromptTemplate{
+		Name:        name,
+		Description: description,
+		Content:     fmResult.Content,
+		SourceInfo:  si,
+		FilePath:    filePath,
 	}
 }
 
-// Load discovers prompt templates from the agent and project directories.
-// Templates are .md files in:
-//   - ~/.pi/prompts/ (global)
-//   - .pi/prompts/   (project)
-func (l *PromptTemplateLoader) Load(agentDir, projectDir string) *LoadResult {
-	key := agentDir + ":" + projectDir
-	l.mu.RLock()
-	if cached, ok := l.cache[key]; ok {
-		l.mu.RUnlock()
-		return cached
+// resolvePromptPath resolves a prompt path relative to cwd.
+func resolvePromptPath(p, cwd string) string {
+	trimmed := strings.TrimSpace(p)
+	if trimmed == "~" {
+		home, _ := os.UserHomeDir()
+		return home
 	}
-	l.mu.RUnlock()
+	if strings.HasPrefix(trimmed, "~/") {
+		home, _ := os.UserHomeDir()
+		return filepath.Join(home, trimmed[2:])
+	}
+	if filepath.IsAbs(trimmed) {
+		return trimmed
+	}
+	return filepath.Join(cwd, trimmed)
+}
 
-	result := &LoadResult{}
+// ParseCommandArgs parses command arguments respecting quoted strings.
+func ParseCommandArgs(argsString string) []string {
+	var args []string
+	var current strings.Builder
+	inQuote := byte(0)
 
-	// Load global prompts
-	l.loadFromDir(filepath.Join(agentDir, "prompts"), "global", result)
+	for i := 0; i < len(argsString); i++ {
+		char := argsString[i]
+		if inQuote != 0 {
+			if char == inQuote {
+				inQuote = 0
+			} else {
+				current.WriteByte(char)
+			}
+		} else if char == '"' || char == '\'' {
+			inQuote = char
+		} else if char == ' ' || char == '\t' {
+			if current.Len() > 0 {
+				args = append(args, current.String())
+				current.Reset()
+			}
+		} else {
+			current.WriteByte(char)
+		}
+	}
 
-	// Load project prompts
-	l.loadFromDir(filepath.Join(projectDir, ".pi", "prompts"), "project", result)
+	if current.Len() > 0 {
+		args = append(args, current.String())
+	}
 
-	l.mu.Lock()
-	l.cache[key] = result
-	l.mu.Unlock()
+	return args
+}
+
+// SubstituteArgs replaces argument placeholders in template content.
+// Supports: $1, $2, ... for positional args, $@ and $ARGUMENTS for all args,
+// ${@:N} for args from Nth onwards, ${@:N:L} for L args starting from Nth.
+func SubstituteArgs(content string, args []string) string {
+	result := content
+
+	// Replace $1, $2, etc. with positional args FIRST
+	positionalRe := regexp.MustCompile(`\$(\d+)`)
+	result = positionalRe.ReplaceAllStringFunc(result, func(match string) string {
+		sub := positionalRe.FindStringSubmatch(match)
+		if len(sub) < 2 {
+			return match
+		}
+		index := 0
+		fmt.Sscanf(sub[1], "%d", &index)
+		index-- // Convert to 0-indexed
+		if index >= 0 && index < len(args) {
+			return args[index]
+		}
+		return ""
+	})
+
+	// Replace ${@:start} or ${@:start:length} with sliced args
+	sliceRe := regexp.MustCompile(`\$\{@:(\d+)(?::(\d+))?\}`)
+	result = sliceRe.ReplaceAllStringFunc(result, func(match string) string {
+		sub := sliceRe.FindStringSubmatch(match)
+		if len(sub) < 2 {
+			return match
+		}
+		start := 0
+		fmt.Sscanf(sub[1], "%d", &start)
+		start-- // Convert to 0-indexed
+		if start < 0 {
+			start = 0
+		}
+
+		if len(sub) >= 3 && sub[2] != "" {
+			length := 0
+			fmt.Sscanf(sub[2], "%d", &length)
+			if start+length <= len(args) {
+				return strings.Join(args[start:start+length], " ")
+			}
+			return strings.Join(args[start:], " ")
+		}
+		return strings.Join(args[start:], " ")
+	})
+
+	// Replace $ARGUMENTS and $@ with all args joined
+	allArgs := strings.Join(args, " ")
+	result = strings.ReplaceAll(result, "$ARGUMENTS", allArgs)
+	result = strings.ReplaceAll(result, "$@", allArgs)
 
 	return result
 }
 
-// ExpandPromptTemplate resolves a prompt template reference and returns the expanded content.
-// Template references look like: /my-template or template:my-template
-// If the input doesn't match a template, it's returned as-is.
-func (l *PromptTemplateLoader) ExpandPromptTemplate(input string, templates []PromptTemplate) string {
-	name := extractTemplateName(input)
-	if name == "" {
-		return input
+// ExpandPromptTemplate expands a prompt template if it matches a template name.
+// Returns the expanded content or the original text if not a template.
+func ExpandPromptTemplate(text string, templates []PromptTemplate) string {
+	if !strings.HasPrefix(text, "/") {
+		return text
+	}
+
+	spaceIndex := strings.Index(text, " ")
+	templateName := ""
+	argsString := ""
+
+	if spaceIndex == -1 {
+		templateName = text[1:]
+	} else {
+		templateName = text[1:spaceIndex]
+		argsString = text[spaceIndex+1:]
 	}
 
 	for _, tmpl := range templates {
-		if tmpl.Name == name {
-			return tmpl.Content
+		if tmpl.Name == templateName {
+			args := ParseCommandArgs(argsString)
+			return SubstituteArgs(tmpl.Content, args)
 		}
 	}
 
-	return input
+	return text
 }
 
-// ClearCache clears the loader cache.
-func (l *PromptTemplateLoader) ClearCache() {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.cache = make(map[string]*LoadResult)
+// Ensure fmt is used
+var _ = fmt.Sprintf
+
+// PromptTemplateDiagnostic represents a non-fatal issue loading a template.
+type PromptTemplateDiagnostic struct {
+	Path    string `json:"path"`
+	Message string `json:"message"`
 }
 
-func (l *PromptTemplateLoader) loadFromDir(dir, scope string, result *LoadResult) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		if !strings.HasSuffix(entry.Name(), ".md") {
-			continue
-		}
-
-		filePath := filepath.Join(dir, entry.Name())
-		data, err := os.ReadFile(filePath)
-		if err != nil {
-			result.Diagnostics = append(result.Diagnostics, TemplateDiagnostic{
-				Path:    filePath,
-				Message: err.Error(),
-			})
-			continue
-		}
-
-		content := string(data)
-		fm, body := parsePromptFrontmatter(content)
-
-		name := strings.TrimSuffix(entry.Name(), ".md")
-		if n, ok := fm["name"].(string); ok && n != "" {
-			name = n
-		}
-
-		description := ""
-		if d, ok := fm["description"].(string); ok {
-			description = d
-		}
-
-		result.Templates = append(result.Templates, PromptTemplate{
-			Name:        name,
-			Description: description,
-			FilePath:    filePath,
-			BaseDir:     dir,
-			Content:     strings.TrimSpace(body),
-		})
-	}
+// PromptTemplateLoadResult holds the result of loading prompt templates.
+type PromptTemplateLoadResult struct {
+	Templates   []PromptTemplate          `json:"templates"`
+	Diagnostics []PromptTemplateDiagnostic `json:"diagnostics"`
 }
 
-func parsePromptFrontmatter(content string) (map[string]any, string) {
-	fm := make(map[string]any)
+// PromptTemplateLoader loads prompt templates from disk.
+type PromptTemplateLoader struct{}
 
-	if !strings.HasPrefix(content, "---") {
-		return fm, content
-	}
-
-	lines := strings.SplitN(content, "\n", -1)
-	closingIdx := -1
-	for i := 1; i < len(lines); i++ {
-		if strings.TrimSpace(lines[i]) == "---" {
-			closingIdx = i
-			break
-		}
-	}
-
-	if closingIdx == -1 {
-		return fm, content
-	}
-
-	for i := 1; i < closingIdx; i++ {
-		line := strings.TrimSpace(lines[i])
-		colonIdx := strings.Index(line, ":")
-		if colonIdx == -1 {
-			continue
-		}
-		key := strings.TrimSpace(line[:colonIdx])
-		value := strings.TrimSpace(line[colonIdx+1:])
-		fm[key] = value
-	}
-
-	body := strings.Join(lines[closingIdx+1:], "\n")
-	return fm, body
+// NewPromptTemplateLoader creates a new prompt template loader.
+func NewPromptTemplateLoader() *PromptTemplateLoader {
+	return &PromptTemplateLoader{}
 }
 
-func extractTemplateName(input string) string {
-	input = strings.TrimSpace(input)
+// Load loads prompt templates from agent and project directories.
+func (l *PromptTemplateLoader) Load(agentDir, cwd string) PromptTemplateLoadResult {
+	templates := LoadPromptTemplates(LoadPromptTemplatesOptions{
+		CWD:           cwd,
+		AgentDir:      agentDir,
+		IncludeDefaults: true,
+	})
 
-	// /template-name
-	if strings.HasPrefix(input, "/") && !strings.Contains(input, " ") {
-		return input[1:]
+	if templates == nil {
+		templates = []PromptTemplate{}
 	}
 
-	// template:template-name
-	if strings.HasPrefix(input, "template:") {
-		name := strings.TrimPrefix(input, "template:")
-		if name != "" && !strings.Contains(name, " ") {
-			return name
-		}
-	}
-
-	return ""
-}
-
-// FormatTemplatesForPrompt generates a help string listing available templates.
-func FormatTemplatesForPrompt(templates []PromptTemplate) string {
-	if len(templates) == 0 {
-		return ""
-	}
-
-	var sb strings.Builder
-	sb.WriteString("\n\n# Prompt Templates\n\n")
-	sb.WriteString("You can reference these prompt templates by name:\n\n")
-
-	for _, tmpl := range templates {
-		desc := tmpl.Description
-		if desc == "" {
-			desc = "(no description)"
-		}
-		sb.WriteString(fmt.Sprintf("- **%s**: %s\n", tmpl.Name, desc))
-	}
-
-	return sb.String()
-}
-
-// InjectTemplatesIntoContext creates a UserMessage from a template expansion
-// and appends any images.
-func InjectTemplatesIntoContext(text string, templates []PromptTemplate, images []ai.ImageContent) ai.UserMessage {
-	expanded := NewPromptTemplateLoader().ExpandPromptTemplate(text, templates)
-
-	content := []ai.Content{ai.TextContent{Text: expanded}}
-	for _, img := range images {
-		content = append(content, img)
-	}
-
-	return ai.UserMessage{
-		Content:   content,
-		Timestamp: 0, // Will be set by caller
+	return PromptTemplateLoadResult{
+		Templates:   templates,
+		Diagnostics: []PromptTemplateDiagnostic{},
 	}
 }
-

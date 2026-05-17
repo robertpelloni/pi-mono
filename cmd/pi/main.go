@@ -10,14 +10,16 @@ import (
 
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/ai"
+	"github.com/badlogic/pi-mono/pkg/auth"
 	"github.com/badlogic/pi-mono/pkg/compaction"
 	"github.com/badlogic/pi-mono/pkg/extensions/acp_adapter"
 	"github.com/badlogic/pi-mono/pkg/extensions/babysitter"
 	"github.com/badlogic/pi-mono/pkg/extensions/plannotator"
-	"github.com/badlogic/pi-mono/pkg/extensions/react_fallback"
 	"github.com/badlogic/pi-mono/pkg/extensions/worktrees"
+	"github.com/badlogic/pi-mono/pkg/fileprocessor"
 	"github.com/badlogic/pi-mono/pkg/frontends/bubbletea"
 	"github.com/badlogic/pi-mono/pkg/frontends/cli"
+	cliflags "github.com/badlogic/pi-mono/pkg/listmodels"
 	"github.com/badlogic/pi-mono/pkg/modelresolver"
 	"github.com/badlogic/pi-mono/pkg/outputguard"
 	"github.com/badlogic/pi-mono/pkg/server"
@@ -41,30 +43,43 @@ type Renderer interface {
 func main() {
 	// Define CLI flags
 	versionFlag := flag.Bool("version", false, "Print version and exit")
+	helpFlag := flag.Bool("help", false, "Show help")
 	frontendType := flag.String("frontend", "bubbletea", "Select frontend UI (bubbletea, cli, web)")
 	webPort := flag.Int("port", 8080, "Port for web UI")
-	modelID := flag.String("model", "", "Select the AI model ID (e.g., gpt-4o, claude-sonnet-4-20250514, gemini-2.5-pro)")
-	providerName := flag.String("provider", "", "Select the AI provider (openai, anthropic, google)")
+	modelID := flag.String("model", "", "Select the AI model ID")
+	providerName := flag.String("provider", "", "Select the AI provider")
 	systemPromptFlag := flag.String("prompt", "", "Override the default system prompt")
-	dir := flag.String("dir", "", "Set the working directory (defaults to current directory)")
-	thinkingLevel := flag.String("thinking", "", "Set thinking/reasoning level (low, medium, high, off)")
+	appendSystemPromptFlag := flag.String("append-prompt", "", "Append to the default system prompt")
+	dir := flag.String("dir", "", "Set the working directory")
+	thinkingLevelFlag := flag.String("thinking", "", "Set thinking/reasoning level (off, minimal, low, medium, high, xhigh)")
 	toolMode := flag.String("tools", "parallel", "Tool execution mode (parallel, sequential)")
-	apiKeyFlag := flag.String("api-key", "", "API key for the selected provider (overrides env var)")
+	apiKeyFlag := flag.String("api-key", "", "API key for the selected provider")
 	noTools := flag.Bool("no-tools", false, "Disable all built-in tools")
-	offline := flag.Bool("offline", false, "Run in offline mode (disables version checks)")
+	offline := flag.Bool("offline", false, "Run in offline mode")
 	continueSession := flag.Bool("continue", false, "Continue the most recent session")
-	resumeSession := flag.Bool("resume", false, "Interactively select a session to resume")
-	sessionID := flag.String("session", "", "Open a specific session by ID prefix")
-	noSession := flag.Bool("no-session", false, "Run without persisting the session to disk")
+	resumeSession := flag.Bool("resume", false, "Select a session to resume")
+	sessionID := flag.String("session", "", "Open a specific session by ID")
+	noSession := flag.Bool("no-session", false, "Run without persisting the session")
 	forkSession := flag.String("fork", "", "Fork from an existing session")
-	listModels := flag.Bool("list-models", false, "List available models")
+	listModelsFlag := flag.Bool("list-models", false, "List available models")
 	listModelsPattern := flag.String("list-models-pattern", "", "Filter model list by pattern")
 	messageFlag := flag.String("message", "", "Send a single message and exit (non-interactive)")
-	noSkills := flag.Bool("no-skills", false, "Disable loading of skills from ~/.pi/skills and .pi/skills")
-	noGuard := flag.Bool("no-guard", false, "Disable output guard (secret redaction, safety checks)")
+	printFlag := flag.Bool("print", false, "Non-interactive mode: process prompt and exit")
+	noSkills := flag.Bool("no-skills", false, "Disable loading of skills")
+	noGuard := flag.Bool("no-guard", false, "Disable output guard")
 	compactThreshold := flag.Int("compact-threshold", 100000, "Token threshold for auto-compaction (0 to disable)")
+	noExtensions := flag.Bool("no-extensions", false, "Disable extension discovery")
 
 	flag.Parse()
+
+	// Help
+	if *helpFlag {
+		fmt.Fprintf(os.Stderr, "pi-go - AI coding assistant with read, bash, edit, write tools\n\n")
+		fmt.Fprintf(os.Stderr, "Usage: pi-go [options] [@files...] [messages...]\n\n")
+		fmt.Fprintf(os.Stderr, "Options:\n")
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
 
 	// Version
 	if *versionFlag {
@@ -86,8 +101,7 @@ func main() {
 	}
 	if *dir != "" {
 		cwd = *dir
-		err = os.Chdir(cwd)
-		if err != nil {
+		if err := os.Chdir(cwd); err != nil {
 			fmt.Fprintf(os.Stderr, "Error changing to directory %s: %v\n", cwd, err)
 			os.Exit(1)
 		}
@@ -100,36 +114,41 @@ func main() {
 		agentDir = settings.AgentDir()
 	}
 	settingsManager := settings.Create(cwd, agentDir)
-
-	// Drain any non-fatal settings errors
 	for _, se := range settingsManager.DrainErrors() {
 		fmt.Fprintf(os.Stderr, "Warning: settings %s: %v\n", se.Scope, se.Error)
+	}
+
+	// ─── Initialize Auth Storage ───
+	authPath := agentDir + string(os.PathSeparator) + "auth.json"
+	authStorage := auth.NewAuthStorage(authPath)
+	if err := authStorage.DrainErrors(); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: auth storage error: %v\n", err)
+	}
+
+	// Override API key from CLI flag
+	if *apiKeyFlag != "" {
+		authStorage.SetRuntimeAPIKey(*providerName, *apiKeyFlag)
 	}
 
 	// ─── Initialize Model Registry ───
 	modelRegistry := modelresolver.NewModelRegistryWithDefaults()
 
-	// ─── List Models ───
-if *listModels {
-	pattern := *listModelsPattern
-	models := modelRegistry.AllModels()
-	if pattern != "" {
-		models = modelRegistry.Search(pattern)
+	// Load models.json if it exists
+	modelsJSONPath := modelresolver.GetModelsJSONPath(agentDir)
+	if err := modelRegistry.LoadFromModelsJSON(modelsJSONPath, authStorage); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: models.json error: %v\n", err)
 	}
-	fmt.Fprintf(os.Stderr, "Available models (%d):\n", len(models))
-	for _, m := range models {
-		reasoning := ""
-		if m.Reasoning {
-			reasoning = " [reasoning]"
-		}
-		fmt.Fprintf(os.Stderr, " %-40s %-15s %s%s\n", m.ID, m.Provider, m.Name, reasoning)
-	}
-	os.Exit(0)
-}
 
-// ─── Resolve Model & Provider ───
+	// ─── List Models ───
+	if *listModelsFlag {
+		available := modelRegistry.GetAvailable(authStorage)
+		cliflags.ListModels(available, *listModelsPattern, os.Stdout)
+		os.Exit(0)
+	}
+
+	// ─── Resolve Model & Provider ───
 	if *providerName == "" && *modelID != "" {
-		*providerName = detectProvider(*modelID)
+		*providerName = modelresolver.DetectProvider(*modelID)
 	}
 	if *providerName == "" {
 		*providerName = settingsManager.GetDefaultProvider()
@@ -137,7 +156,6 @@ if *listModels {
 	if *providerName == "" {
 		*providerName = "openai"
 	}
-
 	if *modelID == "" {
 		*modelID = settingsManager.GetDefaultModel()
 	}
@@ -174,10 +192,40 @@ if *listModels {
 		streamFunc = ai.StreamOpenAIResponses
 	}
 
-	// Override API key from CLI flag
-	if *apiKeyFlag != "" {
-		os.Setenv(providerAPIKeyEnv(modelInfo.Provider), *apiKeyFlag)
+	// ─── Resolve Thinking Level ───
+	thinkingLevel := ai.ThinkingLevel("medium")
+	if *thinkingLevelFlag != "" {
+		thinkingLevel = ai.ThinkingLevel(*thinkingLevelFlag)
 	}
+	if !modelInfo.Reasoning {
+		thinkingLevel = ai.ThinkingLevel("off")
+	}
+
+	// ─── Process @file arguments ───
+	var fileText string
+	var fileImages []ai.ImageContent
+	fileArgs := flag.Args()
+	filePaths := extractFileArgs(fileArgs)
+	messages := extractMessages(fileArgs)
+
+	if len(filePaths) > 0 {
+		fileContent, err := fileprocessor.ProcessFileArgs(cwd, filePaths)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: file processing error: %v\n", err)
+		} else {
+			fileText = fileContent.Text
+			for _, img := range fileContent.Images {
+				fileImages = append(fileImages, ai.ImageContent{
+					Data:     img.Data,
+					MimeType: img.MimeType,
+				})
+			}
+		}
+	}
+
+	// Build initial message from stdin, @files, and CLI messages
+	stdinContent := readStdinIfPiped()
+	initialMessage := fileprocessor.BuildInitialMessage(stdinContent, fileText, messages)
 
 	// ─── Initialize Tools ───
 	var toolList []agent.AgentTool
@@ -186,17 +234,18 @@ if *listModels {
 	}
 
 	// Community Plugins
-	worktreePlugin := worktrees.NewWorktreePlugin()
-	plannotatorPlugin := plannotator.NewPlannotatorPlugin()
-	reactFallbackPlugin := react_fallback.NewReActFallbackPlugin()
-	babysitterPlugin := babysitter.NewBabysitterPlugin()
-	acpAdapterPlugin := acp_adapter.NewACPAdapterPlugin()
+	if !*noExtensions {
+		worktreePlugin := worktrees.NewWorktreePlugin()
+		plannotatorPlugin := plannotator.NewPlannotatorPlugin()
+		babysitterPlugin := babysitter.NewBabysitterPlugin()
+		acpAdapterPlugin := acp_adapter.NewACPAdapterPlugin()
 
-	if !*noTools {
-		toolList = worktreePlugin.AddTools(toolList)
-		toolList = plannotatorPlugin.AddTools(toolList)
-		toolList = babysitterPlugin.AddTools(toolList)
-		toolList = acpAdapterPlugin.AddTools(toolList)
+		if !*noTools {
+			toolList = worktreePlugin.AddTools(toolList)
+			toolList = plannotatorPlugin.AddTools(toolList)
+			toolList = babysitterPlugin.AddTools(toolList)
+			toolList = acpAdapterPlugin.AddTools(toolList)
+		}
 	}
 
 	// ─── Load Skills ───
@@ -218,36 +267,31 @@ if *listModels {
 	for _, t := range toolList {
 		selectedToolNames = append(selectedToolNames, t.Name)
 	}
-
 	toolSnippets := systemprompt.DefaultToolSnippets()
 	customSnippets := systemprompt.BuildToolSnippetsFromAgentTools(toolList)
 	for k, v := range customSnippets {
 		toolSnippets[k] = v
 	}
-
 	contextFiles := systemprompt.LoadProjectContextFiles(cwd)
 	skillRefs := skills.ToSkillRefs(loadedSkills)
-
 	effectiveSystemPrompt := systemprompt.BuildSystemPrompt(systemprompt.BuildSystemPromptOptions{
-		CustomPrompt:   *systemPromptFlag,
-		SelectedTools:  selectedToolNames,
-		ToolSnippets:   toolSnippets,
-		ContextFiles:   contextFiles,
-		Skills:         skillRefs,
-		CWD:            cwd,
+		CustomPrompt:        *systemPromptFlag,
+		AppendSystemPrompt:  *appendSystemPromptFlag,
+		SelectedTools:       selectedToolNames,
+		ToolSnippets:        toolSnippets,
+		ContextFiles:        contextFiles,
+		Skills:              skillRefs,
+		CWD:                 cwd,
 	})
 
 	// ─── Output Guard ───
 	var beforeToolCallHooks []func(ctx context.Context, callCtx agent.BeforeToolCallContext) (*agent.BeforeToolCallResult, error)
 	var afterToolCallHooks []func(ctx context.Context, callCtx agent.AfterToolCallContext) (*agent.AfterToolCallResult, error)
-
 	if !*noGuard {
 		beforeToolCallHooks = append(beforeToolCallHooks, outputguard.InitBeforeHook(cwd))
 		afterToolCallHooks = append(afterToolCallHooks, outputguard.InitAfterHook(cwd))
 	}
-	afterToolCallHooks = append(afterToolCallHooks, reactFallbackPlugin.InterceptAfterToolCall)
 
-	// Compose BeforeToolCall from all hooks
 	composedBeforeToolCall := func(ctx context.Context, callCtx agent.BeforeToolCallContext) (*agent.BeforeToolCallResult, error) {
 		for _, hook := range beforeToolCallHooks {
 			result, err := hook(ctx, callCtx)
@@ -261,7 +305,6 @@ if *listModels {
 		return nil, nil
 	}
 
-	// Compose AfterToolCall from all hooks
 	composedAfterToolCall := func(ctx context.Context, callCtx agent.AfterToolCallContext) (*agent.AfterToolCallResult, error) {
 		for _, hook := range afterToolCallHooks {
 			result, err := hook(ctx, callCtx)
@@ -283,9 +326,9 @@ if *listModels {
 
 	// ─── Initialize Agent ───
 	agentConfig := agent.AgentLoopConfig{
-		ToolExecution:  toolExecution,
-		BeforeToolCall: composedBeforeToolCall,
-		AfterToolCall:  composedAfterToolCall,
+		ToolExecution:   toolExecution,
+		BeforeToolCall:  composedBeforeToolCall,
+		AfterToolCall:   composedAfterToolCall,
 	}
 
 	// ─── Compaction ───
@@ -306,15 +349,10 @@ if *listModels {
 
 	agentLoop := agent.NewAgent(modelInfo, toolList, streamFunc, agentConfig)
 	agentLoop.SetSystemPrompt(effectiveSystemPrompt)
-
-	if *thinkingLevel != "" {
-		agentLoop.SetThinkingLevel(ai.ThinkingLevel(*thinkingLevel))
-	}
+	agentLoop.SetThinkingLevel(thinkingLevel)
 
 	// ─── Slash Commands ───
 	slashRegistry := slashcommands.NewRegistry()
-
-	// Register dynamic model/provider switching
 	slashRegistry.Register(slashcommands.SlashCommandInfo{
 		Name:        "model",
 		Description: "Switch the active model (e.g., /model gpt-4o)",
@@ -329,7 +367,6 @@ if *listModels {
 	// ─── Initialize Session ───
 	sessionDir := settingsManager.GetSessionDir()
 	var sess *session.Session
-
 	if *noSession {
 		sess = session.InMemorySession()
 	} else if *forkSession != "" {
@@ -357,19 +394,16 @@ if *listModels {
 	} else if *continueSession {
 		sess, err = session.ContinueRecent(cwd, sessionDir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error continuing session: %v\n", err)
 			sess = session.NewSession(cwd, sessionDir)
 		}
 	} else if *resumeSession {
 		sessions, _ := session.ListSessions(cwd, sessionDir)
 		if len(sessions) == 0 {
-			fmt.Fprintln(os.Stderr, "No sessions found")
 			sess = session.NewSession(cwd, sessionDir)
 		} else {
 			fmt.Fprintf(os.Stderr, "Available sessions:\n")
 			for i, si := range sessions {
-				fmt.Fprintf(os.Stderr, "  %d. %s (updated %s, %d messages)\n",
-					i+1, si.ID, si.Updated.Format("2006-01-02 15:04"), si.MessageCount)
+				fmt.Fprintf(os.Stderr, " %d. %s (updated %s, %d messages)\n", i+1, si.ID, si.Updated.Format("2006-01-02 15:04"), si.MessageCount)
 			}
 			sess, err = session.OpenSession(sessions[0].Path, cwd)
 			if err != nil {
@@ -380,12 +414,10 @@ if *listModels {
 		sess = session.NewSession(cwd, sessionDir)
 	}
 
-	// Restore session messages
 	if len(sess.Messages()) > 0 {
 		agentLoop.SetMessages(sess.Messages())
 	}
 
-	// Persist messages to session
 	agentLoop.Subscribe(func(event agent.AgentEvent) {
 		if event.Type == agent.EventMessageEnd && event.Message != nil {
 			sess.AppendMessage(event.Message)
@@ -395,28 +427,38 @@ if *listModels {
 	// ─── Startup Banner ───
 	fmt.Fprintf(os.Stderr, "pi-go v%s | model: %s | provider: %s | tools: %d | frontend: %s | session: %s\n",
 		Version, *modelID, *providerName, len(toolList), *frontendType, sess.ID)
-
 	if len(contextFiles) > 0 {
-		fmt.Fprintf(os.Stderr, "  context: %s\n", contextFileNames(contextFiles))
+		fmt.Fprintf(os.Stderr, " context: %s\n", contextFileNames(contextFiles))
 	}
 	if len(loadedSkills) > 0 {
-		fmt.Fprintf(os.Stderr, "  skills: %s\n", skillNames(loadedSkills))
+		fmt.Fprintf(os.Stderr, " skills: %s\n", skillNames(loadedSkills))
 	}
 
-	apiKey := ai.GetEnvAPIKey(modelInfo.Provider)
+	apiKey := authStorage.GetAPIKey(*providerName)
 	if apiKey == "" {
 		fmt.Fprintf(os.Stderr, "\n⚠ No API key set for %s. Set %s or use --api-key.\n",
-			*providerName, providerAPIKeyEnv(modelInfo.Provider))
+			*providerName, providerAPIKeyEnv(ai.Provider(*providerName)))
 	}
 
-	// ─── Single Message Mode ───
-	if *messageFlag != "" {
-		userMsg := ai.UserMessage{
-			Content:   []ai.Content{ai.TextContent{Text: *messageFlag}},
+	// ─── Print/Non-interactive Mode ───
+	if *printFlag || *messageFlag != "" {
+		msg := *messageFlag
+		if msg == "" {
+			msg = initialMessage
 		}
+		if msg == "" && stdinContent != "" {
+			msg = stdinContent
+		}
+
+		userMsg := ai.UserMessage{
+			Content: []ai.Content{ai.TextContent{Text: msg}},
+		}
+		for _, img := range fileImages {
+			userMsg.Content = append(userMsg.Content, img)
+		}
+
 		renderer := cli.NewCLIRenderer(agentLoop)
 		agentLoop.Subscribe(renderer.RenderEvent)
-
 		err := agentLoop.Prompt(context.Background(), userMsg)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -447,33 +489,15 @@ if *listModels {
 		fmt.Fprintf(os.Stderr, "Invalid frontend %q. Falling back to bubbletea.\n", *frontendType)
 		renderer = bubbletea.NewInteractiveRendererWithSlashCommands(agentLoop, slashRegistry)
 	}
-
 	agentLoop.Subscribe(renderer.RenderEvent)
 
-	// Start the UI
 	if err := renderer.Start(); err != nil {
 		fmt.Fprintf(os.Stderr, "UI execution failed: %v\n", err)
 		os.Exit(1)
 	}
-
-	// Slash commands are handled inside the frontend's input loop
 }
 
 // ─── Helpers ───
-
-func detectProvider(modelID string) string {
-	m := strings.ToLower(modelID)
-	if strings.HasPrefix(m, "claude") {
-		return "anthropic"
-	}
-	if strings.HasPrefix(m, "gemini") || strings.HasPrefix(m, "gemma-") {
-		return "google"
-	}
-	if strings.HasPrefix(m, "gpt") || strings.HasPrefix(m, "o1-") || strings.HasPrefix(m, "o3-") || strings.HasPrefix(m, "o4-") || strings.HasPrefix(m, "codex") {
-		return "openai"
-	}
-	return "openai"
-}
 
 func providerAPIKeyEnv(provider ai.Provider) string {
 	switch provider {
@@ -521,4 +545,40 @@ func skillNames(s []skills.Skill) string {
 		names[i] = sk.Name
 	}
 	return strings.Join(names, ", ")
+}
+
+// extractFileArgs extracts @file arguments from the CLI args.
+func extractFileArgs(args []string) []string {
+	var fileArgs []string
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "@") {
+			fileArgs = append(fileArgs, arg[1:])
+		}
+	}
+	return fileArgs
+}
+
+// extractMessages extracts non-file arguments (plain messages).
+func extractMessages(args []string) []string {
+	var messages []string
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "@") && !strings.HasPrefix(arg, "-") {
+			messages = append(messages, arg)
+		}
+	}
+	return messages
+}
+
+// readStdinIfPiped reads stdin if it's piped (not a terminal).
+func readStdinIfPiped() string {
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) != 0 {
+		return "" // Terminal, not piped
+	}
+	buf := make([]byte, 1024*1024) // 1MB max
+	n, _ := os.Stdin.Read(buf)
+	if n > 0 {
+		return string(buf[:n])
+	}
+	return ""
 }

@@ -1,174 +1,91 @@
 package footerdata
 
 import (
-	"bufio"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
-// FooterDataProvider provides git branch and extension statuses.
+// FooterDataProvider provides git branch and extension status data.
 type FooterDataProvider struct {
-	mu                sync.RWMutex
-	cwd               string
-	cachedBranch      string // "" = not in repo, "detached" = detached HEAD, else branch name
-	gitPaths          *gitPaths
-	extensionStatuses map[string]string
-	availableProviders int
-
-	onBranchChange []func()
+	cwd                    string
+	cachedBranch           atomic.Value // string | nil
+	extensionStatuses      map[string]string
+	extensionStatusesMu    sync.RWMutex
+	availableProviderCount int
+	branchChangeCallbacks  []func()
+	branchChangeMu        sync.Mutex
 }
 
-type gitPaths struct {
-	repoDir      string
-	commonGitDir string
-	headPath     string
-}
-
-// NewFooterDataProvider creates a new footer data provider.
+// NewFooterDataProvider creates a new FooterDataProvider for the given cwd.
 func NewFooterDataProvider(cwd string) *FooterDataProvider {
-	p := &FooterDataProvider{
+	fdp := &FooterDataProvider{
 		cwd:               cwd,
 		extensionStatuses: make(map[string]string),
 	}
-	p.gitPaths = p.findGitPaths(cwd)
-	p.cachedBranch = p.resolveGitBranch()
-	return p
+	fdp.cachedBranch.Store((*string)(nil))
+	return fdp
 }
 
-// GetGitBranch returns the current git branch.
-// Returns "" if not in a repo, "detached" if detached HEAD.
-func (p *FooterDataProvider) GetGitBranch() string {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-	return p.cachedBranch
+// GitPaths holds paths to git metadata.
+type GitPaths struct {
+	RepoDir      string
+	CommonGitDir string
+	HeadPath     string
 }
 
-// GetExtensionStatuses returns extension status texts.
-func (p *FooterDataProvider) GetExtensionStatuses() map[string]string {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-	result := make(map[string]string)
-	for k, v := range p.extensionStatuses {
-		result[k] = v
-	}
-	return result
-}
-
-// SetExtensionStatus sets an extension status.
-func (p *FooterDataProvider) SetExtensionStatus(key, text string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if text == "" {
-		delete(p.extensionStatuses, key)
-	} else {
-		p.extensionStatuses[key] = text
-	}
-}
-
-// GetAvailableProviderCount returns the number of available providers.
-func (p *FooterDataProvider) GetAvailableProviderCount() int {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-	return p.availableProviders
-}
-
-// SetAvailableProviderCount sets the available provider count.
-func (p *FooterDataProvider) SetAvailableProviderCount(count int) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.availableProviders = count
-}
-
-// OnBranchChange subscribes to git branch changes. Returns unsubscribe function.
-func (p *FooterDataProvider) OnBranchChange(callback func()) func() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.onBranchChange = append(p.onBranchChange, callback)
-	return func() {
-		p.mu.Lock()
-		defer p.mu.Unlock()
-		for i, cb := range p.onBranchChange {
-			if &cb == &callback {
-				p.onBranchChange = append(p.onBranchChange[:i], p.onBranchChange[i+1:]...)
-				break
-			}
-		}
-	}
-}
-
-// SetCwd changes the current working directory.
-func (p *FooterDataProvider) SetCwd(cwd string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.cwd == cwd {
-		return
-	}
-	p.cwd = cwd
-	p.gitPaths = p.findGitPaths(cwd)
-	p.cachedBranch = p.resolveGitBranch()
-	for _, cb := range p.onBranchChange {
-		cb()
-	}
-}
-
-// RefreshBranch re-reads the git branch.
-func (p *FooterDataProvider) RefreshBranch() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	newBranch := p.resolveGitBranch()
-	if p.cachedBranch != newBranch {
-		p.cachedBranch = newBranch
-		for _, cb := range p.onBranchChange {
-			cb()
-		}
-	}
-}
-
-// Dispose cleans up the provider.
-func (p *FooterDataProvider) Dispose() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.onBranchChange = nil
-}
-
-func (p *FooterDataProvider) findGitPaths(cwd string) *gitPaths {
+// FindGitPaths finds git metadata paths by walking up from cwd.
+func FindGitPaths(cwd string) *GitPaths {
 	dir := cwd
 	for {
 		gitPath := filepath.Join(dir, ".git")
 		info, err := os.Stat(gitPath)
 		if err == nil {
-			if info.IsDir() {
-				headPath := filepath.Join(gitPath, "HEAD")
-				if _, err := os.Stat(headPath); err == nil {
-					return &gitPaths{
-						repoDir:      dir,
-						commonGitDir: gitPath,
-						headPath:     headPath,
+			if !info.IsDir() {
+				// Worktree: .git is a file pointing to gitdir
+				content, err := os.ReadFile(gitPath)
+				if err == nil && strings.HasPrefix(string(content), "gitdir: ") {
+					gitDir := strings.TrimSpace(string(content)[8:])
+					if !filepath.IsAbs(gitDir) {
+						gitDir = filepath.Join(dir, gitDir)
+					}
+					headPath := filepath.Join(gitDir, "HEAD")
+					if _, err := os.Stat(headPath); err != nil {
+						return nil
+					}
+					commonDirPath := filepath.Join(gitDir, "commondir")
+					commonGitDir := gitDir
+					if content, err := os.ReadFile(commonDirPath); err == nil {
+						relDir := strings.TrimSpace(string(content))
+						if !filepath.IsAbs(relDir) {
+							commonGitDir = filepath.Join(gitDir, relDir)
+						} else {
+							commonGitDir = relDir
+						}
+					}
+					return &GitPaths{
+						RepoDir:      dir,
+						CommonGitDir: commonGitDir,
+						HeadPath:     headPath,
 					}
 				}
 			} else {
-				// Worktree: .git is a file
-				content, err := os.ReadFile(gitPath)
-				if err == nil {
-					line := strings.TrimSpace(string(content))
-					if strings.HasPrefix(line, "gitdir: ") {
-						gitDir := filepath.Join(dir, strings.TrimSpace(line[8:]))
-						headPath := filepath.Join(gitDir, "HEAD")
-						if _, err := os.Stat(headPath); err == nil {
-							return &gitPaths{
-								repoDir:      dir,
-								commonGitDir: gitDir,
-								headPath:     headPath,
-							}
-						}
-					}
+				// Regular repo
+				headPath := filepath.Join(gitPath, "HEAD")
+				if _, err := os.Stat(headPath); err != nil {
+					return nil
+				}
+				return &GitPaths{
+					RepoDir:      dir,
+					CommonGitDir: gitPath,
+					HeadPath:     headPath,
 				}
 			}
 		}
+
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			return nil
@@ -177,40 +94,139 @@ func (p *FooterDataProvider) findGitPaths(cwd string) *gitPaths {
 	}
 }
 
-func (p *FooterDataProvider) resolveGitBranch() string {
-	if p.gitPaths == nil {
-		return ""
-	}
-
-	// Read HEAD file
-	content, err := os.ReadFile(p.gitPaths.headPath)
-	if err != nil {
-		return ""
-	}
-
-	line := strings.TrimSpace(string(content))
-	if strings.HasPrefix(line, "ref: refs/heads/") {
-		branch := line[16:]
-		if branch == ".invalid" {
-			// Try git command
-			cmd := exec.Command("git", "--no-optional-locks", "symbolic-ref", "--quiet", "--short", "HEAD")
-			cmd.Dir = p.gitPaths.repoDir
-			out, err := cmd.Output()
-			if err != nil {
-				return "detached"
-			}
-			result := strings.TrimSpace(string(out))
-			if result == "" {
-				return "detached"
-			}
-			return result
+// GetGitBranch returns the current git branch, nil if not in repo, "detached" if detached HEAD.
+func (f *FooterDataProvider) GetGitBranch() *string {
+	cached := f.cachedBranch.Load()
+	if cached != nil {
+		if s, ok := cached.(*string); ok && s != nil {
+			return s
 		}
-		return branch
 	}
 
-	return "detached"
+	branch := f.resolveGitBranchSync()
+	f.cachedBranch.Store(branch)
+	return branch
 }
 
-// Ensure fmt and bufio are used
-var _ = fmt.Sprintf
-var _ = bufio.Scanner{}
+// GetExtensionStatuses returns a copy of the extension status map.
+func (f *FooterDataProvider) GetExtensionStatuses() map[string]string {
+	f.extensionStatusesMu.RLock()
+	defer f.extensionStatusesMu.RUnlock()
+
+	result := make(map[string]string, len(f.extensionStatuses))
+	for k, v := range f.extensionStatuses {
+		result[k] = v
+	}
+	return result
+}
+
+// SetExtensionStatus sets an extension status.
+func (f *FooterDataProvider) SetExtensionStatus(key, text string) {
+	f.extensionStatusesMu.Lock()
+	defer f.extensionStatusesMu.Unlock()
+
+	if text == "" {
+		delete(f.extensionStatuses, key)
+	} else {
+		f.extensionStatuses[key] = text
+	}
+}
+
+// ClearExtensionStatuses clears all extension statuses.
+func (f *FooterDataProvider) ClearExtensionStatuses() {
+	f.extensionStatusesMu.Lock()
+	defer f.extensionStatusesMu.Unlock()
+	f.extensionStatuses = make(map[string]string)
+}
+
+// GetAvailableProviderCount returns the number of providers with available models.
+func (f *FooterDataProvider) GetAvailableProviderCount() int {
+	return f.availableProviderCount
+}
+
+// SetAvailableProviderCount sets the available provider count.
+func (f *FooterDataProvider) SetAvailableProviderCount(count int) {
+	f.availableProviderCount = count
+}
+
+// OnBranchChange subscribes to git branch changes. Returns unsubscribe function.
+func (f *FooterDataProvider) OnBranchChange(callback func()) func() {
+	f.branchChangeMu.Lock()
+	defer f.branchChangeMu.Unlock()
+
+	f.branchChangeCallbacks = append(f.branchChangeCallbacks, callback)
+	return func() {
+		f.branchChangeMu.Lock()
+		defer f.branchChangeMu.Unlock()
+		for i, cb := range f.branchChangeCallbacks {
+			if &cb == &callback {
+				f.branchChangeCallbacks = append(f.branchChangeCallbacks[:i], f.branchChangeCallbacks[i+1:]...)
+				break
+			}
+		}
+	}
+}
+
+// SetCwd updates the working directory and refreshes git info.
+func (f *FooterDataProvider) SetCwd(cwd string) {
+	if f.cwd == cwd {
+		return
+	}
+	f.cwd = cwd
+	f.cachedBranch.Store((*string)(nil))
+	f.notifyBranchChange()
+}
+
+func (f *FooterDataProvider) notifyBranchChange() {
+	f.branchChangeMu.Lock()
+	callbacks := make([]func(), len(f.branchChangeCallbacks))
+	copy(callbacks, f.branchChangeCallbacks)
+	f.branchChangeMu.Unlock()
+
+	for _, cb := range callbacks {
+		cb()
+	}
+}
+
+func (f *FooterDataProvider) resolveGitBranchSync() *string {
+	gitPaths := FindGitPaths(f.cwd)
+	if gitPaths == nil {
+		return nil
+	}
+
+	content, err := os.ReadFile(gitPaths.HeadPath)
+	if err != nil {
+		return nil
+	}
+
+	headContent := strings.TrimSpace(string(content))
+	if strings.HasPrefix(headContent, "ref: refs/heads/") {
+		branch := headContent[16:]
+		if branch == ".invalid" {
+			resolved := resolveBranchWithGitSync(gitPaths.RepoDir)
+			if resolved != nil {
+				return resolved
+			}
+			detached := "detached"
+			return &detached
+		}
+		return &branch
+	}
+
+	detached := "detached"
+	return &detached
+}
+
+func resolveBranchWithGitSync(repoDir string) *string {
+	cmd := exec.Command("git", "--no-optional-locks", "symbolic-ref", "--quiet", "--short", "HEAD")
+	cmd.Dir = repoDir
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	branch := strings.TrimSpace(string(out))
+	if branch == "" {
+		return nil
+	}
+	return &branch
+}

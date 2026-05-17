@@ -2,41 +2,46 @@ package messages
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/badlogic/pi-mono/pkg/ai"
 )
 
 const (
-	CompactionSummaryPrefix = "The conversation history before this point was compacted into the following summary:\n<summary>\n"
+	// CompactionSummaryPrefix is prepended to compaction summaries.
+	CompactionSummaryPrefix = "The conversation history before this point was compacted into the following summary: <summary>\n"
+	// CompactionSummarySuffix is appended to compaction summaries.
 	CompactionSummarySuffix = "\n</summary>"
-	BranchSummaryPrefix     = "The following is a summary of a branch that this conversation came back from:\n<summary>\n"
-	BranchSummarySuffix     = "\n</summary>"
+	// BranchSummaryPrefix is prepended to branch summaries.
+	BranchSummaryPrefix = "The following is a summary of a branch that this conversation came back from: <summary>\n"
+	// BranchSummarySuffix is appended to branch summaries.
+	BranchSummarySuffix = "\n</summary>"
 )
 
-// BashExecutionMessage represents a bash command executed via the ! command.
+// BashExecutionMessage represents a bash execution in the conversation.
 type BashExecutionMessage struct {
-	Role               string `json:"role"` // "bashExecution"
-	Command            string `json:"command"`
-	Output             string `json:"output"`
-	ExitCode           int    `json:"exitCode"`
-	Cancelled          bool   `json:"cancelled"`
-	Truncated          bool   `json:"truncated"`
-	FullOutputPath     string `json:"fullOutputPath,omitempty"`
-	Timestamp          int64  `json:"timestamp"`
-	ExcludeFromContext bool   `json:"excludeFromContext,omitempty"`
+	Role              string `json:"role"`              // "bashExecution"
+	Command           string `json:"command"`
+	Output            string `json:"output"`
+	ExitCode          int    `json:"exitCode"`
+	Cancelled         bool   `json:"cancelled"`
+	Truncated         bool   `json:"truncated"`
+	FullOutputPath    string `json:"fullOutputPath,omitempty"`
+	Timestamp         int64  `json:"timestamp"`
+	ExcludeFromContext bool  `json:"excludeFromContext,omitempty"` // If true, excluded from LLM context (!! prefix)
 }
 
 // CustomMessage represents an extension-injected message.
 type CustomMessage struct {
-	Role       string      `json:"role"` // "custom"
+	Role       string      `json:"role"`       // "custom"
 	CustomType string      `json:"customType"`
-	Content    any         `json:"content"` // string or []Content
+	Content    string      `json:"content"`
 	Display    bool        `json:"display"`
-	Details    any         `json:"details,omitempty"`
+	Details    interface{} `json:"details,omitempty"`
 	Timestamp  int64       `json:"timestamp"`
 }
 
-// BranchSummaryMessage represents a summary from a returned-from branch.
+// BranchSummaryMessage represents a branch summary.
 type BranchSummaryMessage struct {
 	Role      string `json:"role"` // "branchSummary"
 	Summary   string `json:"summary"`
@@ -44,7 +49,7 @@ type BranchSummaryMessage struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
-// CompactionSummaryMessage represents a summary from context compaction.
+// CompactionSummaryMessage represents a compaction summary.
 type CompactionSummaryMessage struct {
 	Role        string `json:"role"` // "compactionSummary"
 	Summary     string `json:"summary"`
@@ -71,66 +76,42 @@ func BashExecutionToText(msg BashExecutionMessage) string {
 	return text
 }
 
-// CreateBranchSummaryMessage creates a branch summary message.
-func CreateBranchSummaryMessage(summary, fromID string, timestamp int64) BranchSummaryMessage {
-	return BranchSummaryMessage{
-		Role:      "branchSummary",
-		Summary:   summary,
-		FromID:    fromID,
-		Timestamp: timestamp,
-	}
-}
-
-// CreateCompactionSummaryMessage creates a compaction summary message.
-func CreateCompactionSummaryMessage(summary string, tokensBefore int, timestamp int64) CompactionSummaryMessage {
-	return CompactionSummaryMessage{
-		Role:         "compactionSummary",
-		Summary:      summary,
-		TokensBefore: tokensBefore,
-		Timestamp:    timestamp,
-	}
-}
-
-// ConvertCustomToLlm converts custom message types to LLM-compatible ai.Messages.
-func ConvertCustomToLlm(messages []any) []ai.Message {
+// ConvertToLlm transforms AgentMessages (including custom types) to LLM-compatible Messages.
+// This handles bashExecution, custom, branchSummary, and compactionSummary message types.
+func ConvertToLlm(messages []ai.Message) []ai.Message {
 	var result []ai.Message
+
 	for _, m := range messages {
-		switch msg := m.(type) {
-		case BashExecutionMessage:
-			if msg.ExcludeFromContext {
-				continue
-			}
-			result = append(result, ai.UserMessage{
-				Content:   []ai.Content{ai.TextContent{Text: BashExecutionToText(msg)}},
-				Timestamp: msg.Timestamp,
-			})
-		case CustomMessage:
-			var content []ai.Content
-			switch c := msg.Content.(type) {
-			case string:
-				content = []ai.Content{ai.TextContent{Text: c}}
-			case []ai.Content:
-				content = c
-			default:
-				content = []ai.Content{ai.TextContent{Text: fmt.Sprintf("%v", c)}}
-			}
-			result = append(result, ai.UserMessage{
-				Content:   content,
-				Timestamp: msg.Timestamp,
-			})
-		case BranchSummaryMessage:
-			result = append(result, ai.UserMessage{
-				Content:   []ai.Content{ai.TextContent{Text: BranchSummaryPrefix + msg.Summary + BranchSummarySuffix}},
-				Timestamp: msg.Timestamp,
-			})
-		case CompactionSummaryMessage:
-			result = append(result, ai.UserMessage{
-				Content:   []ai.Content{ai.TextContent{Text: CompactionSummaryPrefix + msg.Summary + CompactionSummarySuffix}},
-				Timestamp: msg.Timestamp,
-			})
-		case ai.UserMessage, ai.AssistantMessage, ai.ToolResultMessage:
-			result = append(result, m.(ai.Message))
+		switch m.GetRole() {
+		case ai.RoleUser, ai.RoleAssistant, ai.RoleTool:
+			result = append(result, m)
+		default:
+			// Custom message types would be converted to user messages here
+			// For now, include them as-is
+			result = append(result, m)
 		}
 	}
+
 	return result
+}
+
+// FormatBashOutput formats bash output for display, including truncation and error info.
+func FormatBashOutput(output string, exitCode int, cancelled, truncated bool, fullOutputPath string) string {
+	var parts []string
+
+	if output != "" {
+		parts = append(parts, output)
+	}
+
+	if cancelled {
+		parts = append(parts, "\n\nCommand aborted")
+	} else if exitCode != 0 {
+		parts = append(parts, fmt.Sprintf("\n\nCommand exited with code %d", exitCode))
+	}
+
+	if truncated && fullOutputPath != "" {
+		parts = append(parts, fmt.Sprintf("\n\n[Output truncated. Full output: %s]", fullOutputPath))
+	}
+
+	return strings.Join(parts, "")
 }

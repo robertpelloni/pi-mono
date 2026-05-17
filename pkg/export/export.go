@@ -1,210 +1,268 @@
 package export
 
 import (
-	"encoding/json"
 	"fmt"
 	"html"
+	"io"
 	"os"
-	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/badlogic/pi-mono/pkg/ai"
 )
 
-// ExportSession exports a conversation to HTML format.
-func ExportSessionHTML(messages []ai.Message, outputPath string, meta SessionMeta) error {
-	var body strings.Builder
-
-	body.WriteString(htmlHeader(meta))
-
-	for _, msg := range messages {
-		switch m := msg.(type) {
-		case ai.UserMessage:
-			body.WriteString(renderUserMessage(m))
-		case ai.AssistantMessage:
-			body.WriteString(renderAssistantMessage(m))
-		case ai.ToolResultMessage:
-			body.WriteString(renderToolResult(m))
-		}
-	}
-
-	body.WriteString(htmlFooter(meta))
-
-	return os.WriteFile(outputPath, []byte(body.String()), 0644)
+// ExportHTMLOptions configures HTML export.
+type ExportHTMLOptions struct {
+	Title     string
+	Theme     string // "light", "dark", or "auto" (default)
+	FontSize  int    // Font size in pixels (default 14)
+	MaxOutput int    // Max tool output characters (default 5000)
 }
 
-// ExportSessionJSONL exports a conversation to JSONL format.
-func ExportSessionJSONL(messages []ai.Message, outputPath string) error {
+// ExportHTML exports conversation messages to an HTML file.
+func ExportHTML(messages []ai.Message, outputPath string, options ExportHTMLOptions) error {
+	if options.FontSize == 0 {
+		options.FontSize = 14
+	}
+	if options.MaxOutput == 0 {
+		options.MaxOutput = 5000
+	}
+	if options.Theme == "" {
+		options.Theme = "auto"
+	}
+
 	f, err := os.Create(outputPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create export file: %w", err)
 	}
 	defer f.Close()
 
-	for _, msg := range messages {
-		wrapper := struct {
-			Role    string     `json:"role"`
-			Message ai.Message `json:"message"`
-		}{
-			Role:    string(msg.GetRole()),
-			Message: msg,
-		}
+	return WriteHTML(messages, f, options)
+}
 
-		data, err := json.Marshal(wrapper)
-		if err != nil {
-			continue
-		}
-		f.Write(data)
-		f.Write([]byte("\n"))
+// WriteHTML writes HTML-serialized conversation to a writer.
+func WriteHTML(messages []ai.Message, w io.Writer, options ExportHTMLOptions) error {
+	title := options.Title
+	if title == "" {
+		title = fmt.Sprintf("Pi Session - %s", time.Now().Format("2006-01-02 15:04"))
 	}
+
+	// Write HTML header
+	fmt.Fprintf(w, `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>%s</title>
+<style>
+`, html.EscapeString(title))
+
+	writeCSS(w, options)
+
+	fmt.Fprintf(w, `</style>
+</head>
+<body>
+<div class="container">
+<h1>%s</h1>
+<div class="timestamp">%s</div>
+`, html.EscapeString(title), time.Now().Format("Mon Jan 2 15:04:05 2006"))
+
+	// Write messages
+	for _, msg := range messages {
+		switch msg.GetRole() {
+		case ai.RoleUser:
+			writeUserMessage(w, msg, options)
+		case ai.RoleAssistant:
+			writeAssistantMessage(w, msg, options)
+		case ai.RoleTool:
+			writeToolResultMessage(w, msg, options)
+		}
+	}
+
+	fmt.Fprintf(w, `</div>
+</body>
+</html>
+`)
 
 	return nil
 }
 
-// SessionMeta contains metadata for the exported session.
-type SessionMeta struct {
-	Title   string `json:"title"`
-	Model   string `json:"model"`
-	Provider string `json:"provider"`
-	Version string `json:"version"`
-	Date    string `json:"date"`
-	MessageCount int `json:"messageCount"`
+func writeCSS(w io.Writer, options ExportHTMLOptions) {
+	themeCSS := getThemeCSS(options.Theme)
+	fmt.Fprintf(w, `%s
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: %dpx;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+}
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+.message {
+    margin: 16px 0;
+    padding: 12px 16px;
+    border-radius: 8px;
+}
+.user {
+    background: var(--user-bg);
+    border: 1px solid var(--user-border);
+}
+.assistant {
+    background: var(--assistant-bg);
+    border: 1px solid var(--assistant-border);
+}
+.tool-result {
+    background: var(--tool-bg);
+    border: 1px solid var(--tool-border);
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: %dpx;
+}
+.role-label {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: var(--label-color);
+}
+.content {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.timestamp {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 20px;
+}
+h1 { color: var(--heading-color); }
+`, themeCSS, options.FontSize, options.FontSize-1)
 }
 
-// --- HTML Rendering ---
-
-func htmlHeader(meta SessionMeta) string {
-	if meta.Date == "" {
-		meta.Date = time.Now().Format("2006-01-02 15:04:05")
+func getThemeCSS(theme string) string {
+	switch theme {
+	case "dark":
+		return darkThemeCSS
+	case "light":
+		return lightThemeCSS
+	default: // "auto"
+		return autoThemeCSS
 	}
-	if meta.Version == "" {
-		meta.Version = "pi-go"
+}
+
+const lightThemeCSS = `
+:root {
+    --bg: #ffffff;
+    --text: #1a1a1a;
+    --user-bg: #f0f4ff;
+    --user-border: #c7d2fe;
+    --assistant-bg: #f9fafb;
+    --assistant-border: #e5e7eb;
+    --tool-bg: #f8f9fa;
+    --tool-border: #dee2e6;
+    --label-color: #374151;
+    --heading-color: #111827;
+    --muted: #9ca3af;
+}
+body { background: var(--bg); color: var(--text); }
+`
+
+const darkThemeCSS = `
+:root {
+    --bg: #1a1a2e;
+    --text: #e0e0e0;
+    --user-bg: #1e2a3a;
+    --user-border: #2d4a6f;
+    --assistant-bg: #22223b;
+    --assistant-border: #3a3a5c;
+    --tool-bg: #1a1a2e;
+    --tool-border: #333355;
+    --label-color: #a0a0c0;
+    --heading-color: #e0e0e0;
+    --muted: #666688;
+}
+body { background: var(--bg); color: var(--text); }
+`
+
+const autoThemeCSS = lightThemeCSS + `
+@media (prefers-color-scheme: dark) {
+:root {
+    --bg: #1a1a2e;
+    --text: #e0e0e0;
+    --user-bg: #1e2a3a;
+    --user-border: #2d4a6f;
+    --assistant-bg: #22223b;
+    --assistant-border: #3a3a5c;
+    --tool-bg: #1a1a2e;
+    --tool-border: #333355;
+    --label-color: #a0a0c0;
+    --heading-color: #e0e0e0;
+    --muted: #666688;
+}
+}
+`
+
+func writeUserMessage(w io.Writer, msg ai.Message, options ExportHTMLOptions) {
+	fmt.Fprintf(w, `<div class="message user">
+<div class="role-label">You</div>
+<div class="content">`)
+	text := extractTextContent(msg)
+	fmt.Fprintf(w, "%s", html.EscapeString(text))
+	fmt.Fprintf(w, `</div></div>`)
+}
+
+func writeAssistantMessage(w io.Writer, msg ai.Message, options ExportHTMLOptions) {
+	fmt.Fprintf(w, `<div class="message assistant">
+<div class="role-label">Assistant</div>
+<div class="content">`)
+	text := extractTextContent(msg)
+	fmt.Fprintf(w, "%s", html.EscapeString(text))
+	fmt.Fprintf(w, `</div></div>`)
+}
+
+func writeToolResultMessage(w io.Writer, msg ai.Message, options ExportHTMLOptions) {
+	fmt.Fprintf(w, `<div class="message tool-result">
+<div class="role-label">Tool Result</div>
+<div class="content">`)
+	text := extractTextContent(msg)
+	if len(text) > options.MaxOutput {
+		text = text[:options.MaxOutput] + "\n\n[... truncated ...]"
 	}
-
-	return fmt.Sprintf(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>%s</title>
-<style>
-  :root { --bg: #1a1a2e; --surface: #16213e; --text: #e0e0e0; --accent: #0f3460; --user: #7b2ff7; --assistant: #00b4d8; --tool: #f77f00; --error: #ef476f; --thinking: #6c63ff; }
-  body { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; background: var(--bg); color: var(--text); max-width: 900px; margin: 0 auto; padding: 20px; }
-  .header { background: var(--surface); border-radius: 8px; padding: 16px; margin-bottom: 20px; }
-  .header h1 { margin: 0 0 8px 0; font-size: 18px; }
-  .header .meta { font-size: 12px; color: #888; }
-  .message { margin: 12px 0; border-radius: 8px; padding: 12px 16px; }
-  .user { background: linear-gradient(135deg, rgba(123,47,247,0.15), rgba(123,47,247,0.05)); border-left: 3px solid var(--user); }
-  .assistant { background: linear-gradient(135deg, rgba(0,180,216,0.15), rgba(0,180,216,0.05)); border-left: 3px solid var(--assistant); }
-  .tool { background: linear-gradient(135deg, rgba(247,127,0,0.15), rgba(247,127,0,0.05)); border-left: 3px solid var(--tool); }
-  .error { border-left-color: var(--error); }
-  .role { font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-  .user .role { color: var(--user); }
-  .assistant .role { color: var(--assistant); }
-  .tool .role { color: var(--tool); }
-  .content { white-space: pre-wrap; word-wrap: break-word; font-size: 13px; line-height: 1.5; }
-  .thinking { color: var(--thinking); font-style: italic; }
-  .tool-name { font-weight: bold; }
-  .stats { font-size: 11px; color: #666; margin-top: 20px; text-align: center; }
-  code { background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 3px; font-size: 12px; }
-</style>
-</head>
-<body>
-<div class="header">
-  <h1>%s</h1>
-  <div class="meta">%s | %s | %s | %d messages</div>
-</div>
-`, html.EscapeString(meta.Title), html.EscapeString(meta.Title), html.EscapeString(meta.Version), html.EscapeString(meta.Model), html.EscapeString(meta.Provider), meta.MessageCount)
+	fmt.Fprintf(w, "%s", html.EscapeString(text))
+	fmt.Fprintf(w, `</div></div>`)
 }
 
-func htmlFooter(meta SessionMeta) string {
-	return fmt.Sprintf(`
-<div class="stats">
-  Exported by %s on %s | %d messages
-</div>
-</body>
-</html>
-`, html.EscapeString(meta.Version), html.EscapeString(meta.Date), meta.MessageCount)
-}
+// extractTextContent extracts all text from a message.
+func extractTextContent(msg ai.Message) string {
+	var parts []string
 
-func renderUserMessage(msg ai.UserMessage) string {
-	var content strings.Builder
-	for _, c := range msg.Content {
-		switch v := c.(type) {
-		case ai.TextContent:
-			content.WriteString(html.EscapeString(v.Text))
-		case ai.ImageContent:
-			content.WriteString(fmt.Sprintf(`<img src="%s" alt="image" style="max-width:100%%;border-radius:4px;">`, html.EscapeString(v.Data)))
+	switch m := msg.(type) {
+	case ai.UserMessage:
+		for _, c := range m.Content {
+			if tc, ok := c.(ai.TextContent); ok {
+				parts = append(parts, tc.Text)
+			}
+		}
+	case ai.AssistantMessage:
+		for _, c := range m.Content {
+			if tc, ok := c.(ai.TextContent); ok {
+				parts = append(parts, tc.Text)
+			}
+		}
+	case ai.ToolResultMessage:
+		for _, c := range m.Content {
+			if tc, ok := c.(ai.TextContent); ok {
+				parts = append(parts, tc.Text)
+			}
 		}
 	}
 
-	return fmt.Sprintf(`
-<div class="message user">
-  <div class="role">User</div>
-  <div class="content">%s</div>
-</div>
-`, content.String())
+	return strings.Join(parts, "\n")
 }
 
-func renderAssistantMessage(msg ai.AssistantMessage) string {
-	var content strings.Builder
-
-	for _, c := range msg.Content {
-		switch v := c.(type) {
-		case ai.TextContent:
-			content.WriteString(html.EscapeString(v.Text))
-		case ai.ThinkingContent:
-			content.WriteString(fmt.Sprintf(`<span class="thinking">[Thinking] %s</span>`, html.EscapeString(v.Thinking)))
-		case ai.ToolCall:
-			argBytes, _ := json.Marshal(v.Arguments)
-			content.WriteString(fmt.Sprintf(`<span class="tool-name">[%s]</span>(%s)`, html.EscapeString(v.Name), html.EscapeString(string(argBytes))))
-		}
-	}
-
-	model := html.EscapeString(msg.Model)
-	if model == "" {
-		model = "assistant"
-	}
-
-	return fmt.Sprintf(`
-<div class="message assistant">
-  <div class="role">Assistant (%s)</div>
-  <div class="content">%s</div>
-</div>
-`, model, content.String())
-}
-
-func renderToolResult(msg ai.ToolResultMessage) string {
-	var content strings.Builder
-	for _, c := range msg.Content {
-		if txt, ok := c.(ai.TextContent); ok {
-			content.WriteString(html.EscapeString(txt.Text))
-		}
-	}
-
-	errorClass := ""
-	if msg.IsError {
-		errorClass = " error"
-	}
-
-	return fmt.Sprintf(`
-<div class="message tool%s">
-  <div class="role">Tool: %s</div>
-  <div class="content">%s</div>
-</div>
-`, errorClass, html.EscapeString(msg.ToolName), content.String())
-}
-
-// DetectExportFormat determines the export format from a file extension.
-func DetectExportFormat(path string) string {
-	ext := strings.ToLower(filepath.Ext(path))
-	switch ext {
-	case ".html", ".htm":
-		return "html"
-	case ".jsonl", ".json":
-		return "jsonl"
-	default:
-		return "html"
-	}
+// AnsiToHTML converts ANSI escape sequences to HTML spans.
+func AnsiToHTML(text string) string {
+	// Strip all ANSI sequences
+	re := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	return re.ReplaceAllString(text, "")
 }

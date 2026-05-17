@@ -2,9 +2,11 @@ package sourceinfo
 
 // SourceInfo describes where a resource was loaded from.
 type SourceInfo struct {
-	Path       string `json:"path"`
-	Source     string `json:"source"` // "global", "project", "extension"
-	Extension  string `json:"extension,omitempty"`
+	Path      string `json:"path"`
+	Source    string `json:"source"`              // "global", "project", "extension", "local"
+	Scope     string `json:"scope,omitempty"`     // "user", "project", "explicit"
+	Extension string `json:"extension,omitempty"`
+	BaseDir   string `json:"baseDir,omitempty"`
 }
 
 // CreateSourceInfo creates a SourceInfo for a given path and source.
