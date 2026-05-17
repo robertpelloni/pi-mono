@@ -57,7 +57,7 @@ func main() {
 	sessionID := flag.String("session", "", "Open a specific session by ID prefix")
 	noSession := flag.Bool("no-session", false, "Run without persisting the session to disk")
 	forkSession := flag.String("fork", "", "Fork from an existing session")
-	listModels := flag.String("list-models", "", "List available models (optional: search pattern)")
+	listModels := flag.String("list-models", "-", "List available models (optional: search pattern). Use --list-models to list all or --list-models=pattern to filter")
 	messageFlag := flag.String("message", "", "Send a single message and exit (non-interactive)")
 	noSkills := flag.Bool("no-skills", false, "Disable loading of skills from ~/.pi/skills and .pi/skills")
 	noGuard := flag.Bool("no-guard", false, "Disable output guard (secret redaction, safety checks)")
