@@ -57,7 +57,8 @@ func main() {
 	sessionID := flag.String("session", "", "Open a specific session by ID prefix")
 	noSession := flag.Bool("no-session", false, "Run without persisting the session to disk")
 	forkSession := flag.String("fork", "", "Fork from an existing session")
-	listModels := flag.String("list-models", "-", "List available models (optional: search pattern). Use --list-models to list all or --list-models=pattern to filter")
+	listModels := flag.Bool("list-models", false, "List available models")
+	listModelsPattern := flag.String("list-models-pattern", "", "Filter model list by pattern")
 	messageFlag := flag.String("message", "", "Send a single message and exit (non-interactive)")
 	noSkills := flag.Bool("no-skills", false, "Disable loading of skills from ~/.pi/skills and .pi/skills")
 	noGuard := flag.Bool("no-guard", false, "Disable output guard (secret redaction, safety checks)")
@@ -109,29 +110,26 @@ func main() {
 	modelRegistry := modelresolver.NewModelRegistryWithDefaults()
 
 	// ─── List Models ───
-	for _, arg := range os.Args[1:] {
-		if arg == "--list-models" || strings.HasPrefix(arg, "--list-models=") {
-			pattern := *listModels
-			if strings.HasPrefix(arg, "--list-models=") {
-				pattern = strings.TrimPrefix(arg, "--list-models=")
-			}
-			models := modelRegistry.AllModels()
-			if pattern != "" {
-				models = modelRegistry.Search(pattern)
-			}
-			fmt.Fprintf(os.Stderr, "Available models (%d):\n", len(models))
-			for _, m := range models {
-				reasoning := ""
-				if m.Reasoning {
-					reasoning = " [reasoning]"
-				}
-				fmt.Fprintf(os.Stderr, "  %-40s %-15s %s%s\n", m.ID, m.Provider, m.Name, reasoning)
-			}
-			os.Exit(0)
-		}
+if *listModels {
+	pattern := *listModelsPattern
+	models := modelRegistry.AllModels()
+	if pattern != "" {
+		models = modelRegistry.Search(pattern)
 	}
+	fmt.Fprintf(os.Stderr, "Available models (%d):
+", len(models))
+	for _, m := range models {
+		reasoning := ""
+		if m.Reasoning {
+			reasoning = " [reasoning]"
+		}
+		fmt.Fprintf(os.Stderr, " %-40s %-15s %s%s
+", m.ID, m.Provider, m.Name, reasoning)
+	}
+	os.Exit(0)
+}
 
-	// ─── Resolve Model & Provider ───
+// ─── Resolve Model & Provider ───
 	if *providerName == "" && *modelID != "" {
 		*providerName = detectProvider(*modelID)
 	}
