@@ -3,6 +3,7 @@ package messages
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/badlogic/pi-mono/pkg/ai"
 )
@@ -55,6 +56,24 @@ type CompactionSummaryMessage struct {
 	Summary     string `json:"summary"`
 	TokensBefore int   `json:"tokensBefore"`
 	Timestamp   int64  `json:"timestamp"`
+}
+
+// CreateBranchSummaryMessage creates a user message wrapping a branch summary.
+func CreateBranchSummaryMessage(summary, fromID string) ai.UserMessage {
+	text := BranchSummaryPrefix + summary + BranchSummarySuffix
+	return ai.UserMessage{
+		Content:   []ai.Content{ai.TextContent{Text: text}},
+		Timestamp: time.Now().UnixMilli(),
+	}
+}
+
+// CreateCompactionSummaryMessage creates a user message wrapping a compaction summary.
+func CreateCompactionSummaryMessage(summary string, tokensBefore int) ai.UserMessage {
+	text := CompactionSummaryPrefix + summary + CompactionSummarySuffix
+	return ai.UserMessage{
+		Content:   []ai.Content{ai.TextContent{Text: text}},
+		Timestamp: time.Now().UnixMilli(),
+	}
 }
 
 // BashExecutionToText converts a BashExecutionMessage to user message text for LLM context.

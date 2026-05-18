@@ -43,7 +43,7 @@ type CreateAgentSessionOptions struct {
 // CreateAgentSessionResult holds the result of creating a session.
 type CreateAgentSessionResult struct {
 	Agent              *agent.Agent
-	Session            *session.Session
+	Session            *session.SessionManager
 	SettingsManager    *settings.SettingsManager
 	ModelRegistry      *modelresolver.ModelRegistry
 	ResourceLoader     *resourceloader.ResourceLoader
@@ -64,12 +64,12 @@ type Diagnostic struct {
 func CreateAgentSession(ctx context.Context, opts CreateAgentSessionOptions) (*CreateAgentSessionResult, error) {
 	result := &CreateAgentSessionResult{}
 	var diagnostics []Diagnostic
+	var err error
 
 	// ─── Determine CWD ───
 	cwd := opts.CWD
 	if cwd == "" {
-		var err error
-		cwd, err = os.Getwd()
+			cwd, err = os.Getwd()
 		if err != nil {
 			return nil, fmt.Errorf("error getting cwd: %w", err)
 		}
@@ -84,8 +84,7 @@ func CreateAgentSession(ctx context.Context, opts CreateAgentSessionOptions) (*C
 	// ─── Initialize Settings ───
 	agentDir := opts.AgentDir
 	if agentDir == "" {
-		var err error
-		agentDir, err = settings.InitAgentDir()
+			agentDir, err = settings.InitAgentDir()
 		if err != nil {
 			diagnostics = append(diagnostics, Diagnostic{Type: "warning", Message: fmt.Sprintf("could not init agent dir: %v", err)})
 			agentDir = settings.AgentDir()
@@ -221,24 +220,17 @@ func CreateAgentSession(ctx context.Context, opts CreateAgentSessionOptions) (*C
 
 	// ─── Initialize Session ───
 	sessionDir := settingsManager.GetSessionDir()
-	var sess *session.Session
-	var err error
+	var sess *session.SessionManager
 
 	if opts.NoSession {
-		sess = session.InMemorySession()
+		sess = session.InMemorySession(cwd)
 	} else if opts.ForkSession != "" {
-		sess, err = session.ForkFrom(opts.ForkSession, cwd, sessionDir)
-		if err != nil {
-			return nil, fmt.Errorf("error forking session: %w", err)
-		}
+		sess = session.ForkFrom(opts.ForkSession, cwd, sessionDir)
 	} else if opts.SessionID != "" {
 		sessions, _ := session.ListSessions(cwd, sessionDir)
 		for _, si := range sessions {
 			if strings.HasPrefix(si.ID, opts.SessionID) {
-				sess, err = session.OpenSession(si.Path, cwd)
-				if err != nil {
-					return nil, fmt.Errorf("error opening session %s: %w", si.ID, err)
-				}
+				sess = session.OpenSession(si.Path, sessionDir, nil)
 				break
 			}
 		}
@@ -246,17 +238,17 @@ func CreateAgentSession(ctx context.Context, opts CreateAgentSessionOptions) (*C
 			return nil, fmt.Errorf("no session found matching '%s'", opts.SessionID)
 		}
 	} else if opts.Continue {
-		sess, err = session.ContinueRecent(cwd, sessionDir)
-		if err != nil {
-			sess = session.NewSession(cwd, sessionDir)
+		sess = session.ContinueRecent(cwd, sessionDir)
+		if sess == nil {
+			sess = session.CreateSession(cwd, sessionDir)
 		}
 	} else {
-		sess = session.NewSession(cwd, sessionDir)
+		sess = session.CreateSession(cwd, sessionDir)
 	}
 
 	// Restore session messages
-	if len(sess.Messages()) > 0 {
-		agentLoop.SetMessages(sess.Messages())
+	if ctx := sess.BuildSessionContext(); len(ctx.Messages) > 0 {
+		agentLoop.SetMessages(ctx.Messages)
 	}
 
 	// Persist messages to session

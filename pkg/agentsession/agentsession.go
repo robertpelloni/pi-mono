@@ -22,7 +22,7 @@ type AgentSessionConfig struct {
 	// Agent is the core agent loop.
 	Agent *agent.Agent
 	// Session is the persistent conversation history.
-	Session *session.Session
+	Session *session.SessionManager
 	// Settings is the settings manager.
 	Settings *settings.SettingsManager
 	// ModelRegistry is the model discovery service.
@@ -209,7 +209,7 @@ func (as *AgentSession) Compact(ctx context.Context) error {
 func (as *AgentSession) NewSession() {
 	as.config.Agent.SetMessages(nil)
 	if as.config.Session != nil {
-		as.config.Session = session.NewSession(as.config.CWD, as.config.Settings.GetSessionDir())
+		as.config.Session = session.CreateSession(as.config.CWD, as.config.Settings.GetSessionDir())
 	}
 	as.mu.Lock()
 	as.stats = SessionStats{}
@@ -285,7 +285,7 @@ func (as *AgentSession) Subscribe(listener AgentSessionEventListener) {
 }
 
 // Session returns the session object.
-func (as *AgentSession) Session() *session.Session {
+func (as *AgentSession) Session() *session.SessionManager {
 	return as.config.Session
 }
 

@@ -366,20 +366,16 @@ func main() {
 
 	// ─── Initialize Session ───
 	sessionDir := settingsManager.GetSessionDir()
-	var sess *session.Session
+	var sess *session.SessionManager
 	if *noSession {
-		sess = session.InMemorySession()
+		sess = session.InMemorySession(cwd)
 	} else if *forkSession != "" {
-		sess, err = session.ForkFrom(*forkSession, cwd, sessionDir)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error forking session: %v\n", err)
-			os.Exit(1)
-		}
+		sess = session.ForkFrom(*forkSession, cwd, sessionDir)
 	} else if *sessionID != "" {
 		sessions, _ := session.ListSessions(cwd, sessionDir)
 		for _, si := range sessions {
 			if strings.HasPrefix(si.ID, *sessionID) {
-				sess, err = session.OpenSession(si.Path, cwd)
+				sess = session.OpenSession(si.Path, sessionDir, nil)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error opening session %s: %v\n", si.ID, err)
 					os.Exit(1)
@@ -392,30 +388,30 @@ func main() {
 			os.Exit(1)
 		}
 	} else if *continueSession {
-		sess, err = session.ContinueRecent(cwd, sessionDir)
-		if err != nil {
-			sess = session.NewSession(cwd, sessionDir)
+		sess = session.ContinueRecent(cwd, sessionDir)
+		if sess == nil {
+			sess = session.CreateSession(cwd, sessionDir)
 		}
 	} else if *resumeSession {
 		sessions, _ := session.ListSessions(cwd, sessionDir)
 		if len(sessions) == 0 {
-			sess = session.NewSession(cwd, sessionDir)
+			sess = session.CreateSession(cwd, sessionDir)
 		} else {
 			fmt.Fprintf(os.Stderr, "Available sessions:\n")
 			for i, si := range sessions {
-				fmt.Fprintf(os.Stderr, " %d. %s (updated %s, %d messages)\n", i+1, si.ID, si.Updated.Format("2006-01-02 15:04"), si.MessageCount)
+				fmt.Fprintf(os.Stderr, " %d. %s (updated %s, %d messages)\n", i+1, si.ID, si.Modified.Format("2006-01-02 15:04"), si.MessageCount)
 			}
-			sess, err = session.OpenSession(sessions[0].Path, cwd)
+			sess = session.OpenSession(sessions[0].Path, sessionDir, nil)
 			if err != nil {
-				sess = session.NewSession(cwd, sessionDir)
+				sess = session.CreateSession(cwd, sessionDir)
 			}
 		}
 	} else {
-		sess = session.NewSession(cwd, sessionDir)
+		sess = session.CreateSession(cwd, sessionDir)
 	}
 
-	if len(sess.Messages()) > 0 {
-		agentLoop.SetMessages(sess.Messages())
+	if ctx := sess.BuildSessionContext(); len(ctx.Messages) > 0 {
+		agentLoop.SetMessages(ctx.Messages)
 	}
 
 	agentLoop.Subscribe(func(event agent.AgentEvent) {
@@ -426,7 +422,7 @@ func main() {
 
 	// ─── Startup Banner ───
 	fmt.Fprintf(os.Stderr, "pi-go v%s | model: %s | provider: %s | tools: %d | frontend: %s | session: %s\n",
-		Version, *modelID, *providerName, len(toolList), *frontendType, sess.ID)
+		Version, *modelID, *providerName, len(toolList), *frontendType, sess.GetSessionID())
 	if len(contextFiles) > 0 {
 		fmt.Fprintf(os.Stderr, " context: %s\n", contextFileNames(contextFiles))
 	}
