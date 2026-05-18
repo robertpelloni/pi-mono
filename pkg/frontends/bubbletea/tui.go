@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/badlogic/pi-mono/pkg/agent"
+	"github.com/badlogic/pi-mono/pkg/agentsession"
 	"github.com/badlogic/pi-mono/pkg/ai"
 	"github.com/badlogic/pi-mono/pkg/slashcommands"
+
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -25,25 +27,33 @@ var (
 	styleSlashInfo = lipgloss.NewStyle().Foreground(lipgloss.Color("120"))
 	styleSlashErr  = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
 	styleHeader    = lipgloss.NewStyle().Foreground(lipgloss.Color("86")).Bold(true)
+	styleCompaction = lipgloss.NewStyle().Foreground(lipgloss.Color("228"))
+	styleRetry     = lipgloss.NewStyle().Foreground(lipgloss.Color("213"))
 )
 
 // AgentUIModel represents the Bubbletea state for the interactive AI agent interface.
 type AgentUIModel struct {
 	eventsChan    chan agent.AgentEvent
+	sessionEvents chan agentsession.AgentSessionEvent
 	conversation  strings.Builder
 	viewport      viewport.Model
 	textarea      textarea.Model
 	agent         *agent.Agent
+	agentSession  *agentsession.AgentSession
 	slashRegistry *slashcommands.Registry
 	activeTool    string
 	isGenerating  bool
 	err           error
 	quitting      bool
 	statusLine    string
+	modelInfo     string
 }
 
 // EventMsg is a wrapper to send AgentEvent instances into the Bubbletea Update loop.
 type EventMsg agent.AgentEvent
+
+// SessionEventMsg wraps AgentSessionEvent for the tea loop.
+type SessionEventMsg agentsession.AgentSessionEvent
 
 // ExecutionDoneMsg signals that an agent generation loop has returned
 type ExecutionDoneMsg struct {
@@ -55,6 +65,7 @@ type SlashResultMsg struct {
 	Result slashcommands.SlashCommandResult
 }
 
+// InitialModel creates the initial Bubbletea model using the raw Agent.
 func InitialModel(ag *agent.Agent, eventsChan chan agent.AgentEvent, slashReg *slashcommands.Registry) *AgentUIModel {
 	ta := textarea.New()
 	ta.Placeholder = "Type a message... (Ctrl+S to send, / for commands)"
@@ -76,9 +87,24 @@ func InitialModel(ag *agent.Agent, eventsChan chan agent.AgentEvent, slashReg *s
 	}
 }
 
+// InitialModelWithSession creates the initial Bubbletea model using an AgentSession.
+func InitialModelWithSession(as *agentsession.AgentSession, eventsChan chan agent.AgentEvent, sessionEvents chan agentsession.AgentSessionEvent, slashReg *slashcommands.Registry) *AgentUIModel {
+	model := InitialModel(as.Agent(), eventsChan, slashReg)
+	model.agentSession = as
+	model.sessionEvents = sessionEvents
+	if m := as.Model(); m.ID != "" {
+		model.modelInfo = fmt.Sprintf("%s/%s", m.Provider, m.ID)
+	}
+	return model
+}
+
 // Init establishes the initial state and begins listening to the channel.
 func (m *AgentUIModel) Init() tea.Cmd {
-	return tea.Batch(textarea.Blink, m.listenForEvents())
+	cmds := []tea.Cmd{textarea.Blink, m.listenForEvents()}
+	if m.sessionEvents != nil {
+		cmds = append(cmds, m.listenForSessionEvents())
+	}
+	return tea.Batch(cmds...)
 }
 
 // listenForEvents reads from the channels and dispatches messages to the tea loop.
@@ -92,13 +118,23 @@ func (m *AgentUIModel) listenForEvents() tea.Cmd {
 	}
 }
 
+// listenForSessionEvents reads from the session event channel.
+func (m *AgentUIModel) listenForSessionEvents() tea.Cmd {
+	return func() tea.Msg {
+		event, ok := <-m.sessionEvents
+		if !ok {
+			return nil
+		}
+		return SessionEventMsg(event)
+	}
+}
+
 // Update processes incoming messages and updates the model state.
 func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		tiCmd tea.Cmd
 		vpCmd tea.Cmd
 	)
-
 	m.textarea, tiCmd = m.textarea.Update(msg)
 	m.viewport, vpCmd = m.viewport.Update(msg)
 
@@ -134,21 +170,30 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.viewport.SetContent(m.conversation.String())
 				m.viewport.GotoBottom()
 
-				// Launch agent prompt in background
-				return m, tea.Batch(
-					func() tea.Msg {
-						userMsg := ai.UserMessage{
-							Content:   []ai.Content{ai.TextContent{Text: userText}},
-							Timestamp: time.Now().UnixMilli(),
-						}
-						err := m.agent.Prompt(context.Background(), userMsg)
+				// Use AgentSession.Prompt if available, otherwise use Agent.Prompt
+				if m.agentSession != nil {
+					return m, tea.Batch(func() tea.Msg {
+						err := m.agentSession.Prompt(context.Background(), userText)
 						return ExecutionDoneMsg{Err: err}
-					},
-				)
+					})
+				}
+
+				return m, tea.Batch(func() tea.Msg {
+					userMsg := ai.UserMessage{
+						Content:   []ai.Content{ai.TextContent{Text: userText}},
+						Timestamp: time.Now().UnixMilli(),
+					}
+					err := m.agent.Prompt(context.Background(), userMsg)
+					return ExecutionDoneMsg{Err: err}
+				})
 			}
 		case tea.KeyEscape:
-			// Could cancel current generation in the future
+			// Abort current generation
+			if m.isGenerating && m.agentSession != nil {
+				m.agentSession.Abort()
+			}
 		}
+
 	case ExecutionDoneMsg:
 		m.isGenerating = false
 		if msg.Err != nil {
@@ -157,10 +202,51 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.conversation.WriteString("\n")
 		m.viewport.SetContent(m.conversation.String())
 		m.viewport.GotoBottom()
+
 	case SlashResultMsg:
 		m.handleSlashResult(msg.Result)
 		m.viewport.SetContent(m.conversation.String())
 		m.viewport.GotoBottom()
+
+	case SessionEventMsg:
+		event := agentsession.AgentSessionEvent(msg)
+		switch event.Type {
+		case "compaction_start":
+			m.conversation.WriteString(styleCompaction.Render("\n[Compaction] Starting...\n"))
+		case "compaction_end":
+			m.conversation.WriteString(styleCompaction.Render("[Compaction] Complete.\n"))
+		case "auto_retry_start":
+			if data, ok := event.Data.(map[string]interface{}); ok {
+				m.conversation.WriteString(styleRetry.Render(fmt.Sprintf(
+					"\n[Retry] Attempt %v/%v (delay: %vms)\n",
+					data["attempt"], data["maxAttempts"], data["delayMs"],
+				)))
+			}
+		case "auto_retry_end":
+			if data, ok := event.Data.(map[string]interface{}); ok {
+				success := data["success"]
+				m.conversation.WriteString(styleRetry.Render(fmt.Sprintf(
+					"[Retry] Done (success=%v, attempt=%v)\n",
+					success, data["attempt"],
+				)))
+			}
+		case "model_select":
+			if m.agentSession != nil {
+				model := m.agentSession.Model()
+				m.modelInfo = fmt.Sprintf("%s/%s", model.Provider, model.ID)
+			}
+		case "new_session":
+			m.conversation = strings.Builder{}
+			m.viewport.SetContent("New session started.")
+		case "reload":
+			m.conversation.WriteString(styleSystem.Render("\n[System] Reloaded.\n"))
+		case "queue_update":
+			// Could show queue count in status
+		}
+		m.viewport.SetContent(m.conversation.String())
+		m.viewport.GotoBottom()
+		return m, m.listenForSessionEvents()
+
 	case EventMsg:
 		event := agent.AgentEvent(msg)
 		switch event.Type {
@@ -195,8 +281,6 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			argsStr := formatArgs(event.Args)
 			m.conversation.WriteString(styleTool.Render(fmt.Sprintf("\n  [Running Tool] %s(%s)...", m.activeTool, argsStr)))
 			m.statusLine = fmt.Sprintf("Running: %s", m.activeTool)
-		case agent.EventToolExecutionUpdate:
-			// Stream partial tool results if available
 		case agent.EventToolExecutionEnd:
 			status := "✓"
 			if event.IsError {
@@ -208,7 +292,6 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				displayStr = displayStr[:197] + "..."
 			}
 			displayStr = strings.ReplaceAll(displayStr, "\n", "\n  ")
-
 			if event.IsError {
 				m.conversation.WriteString(styleError.Render(fmt.Sprintf(" %s\n  %s\n", status, displayStr)))
 			} else {
@@ -237,12 +320,12 @@ func (m *AgentUIModel) View() string {
 	if m.quitting {
 		return "Goodbye!\n"
 	}
-
 	header := ""
-	if m.statusLine != "" {
-		header = styleHeader.Render(fmt.Sprintf("  %s", m.statusLine))
+	if m.modelInfo != "" {
+		header = styleHeader.Render(fmt.Sprintf(" %s | %s", m.modelInfo, m.statusLine))
+	} else if m.statusLine != "" {
+		header = styleHeader.Render(fmt.Sprintf(" %s", m.statusLine))
 	}
-
 	return fmt.Sprintf(
 		"%s\n%s\n\n%s",
 		header,
@@ -260,15 +343,18 @@ func (m *AgentUIModel) handleSlashResult(result slashcommands.SlashCommandResult
 		m.conversation.WriteString(styleSlashInfo.Render(fmt.Sprintf("\n%s\n", result.Info)))
 	}
 	if result.Message != "" {
-		// The slash command wants to send a message as if the user typed it
 		m.isGenerating = true
 		m.conversation.WriteString(styleUser.Render(fmt.Sprintf("\n[User]: %s\n", result.Message)))
 		go func() {
-			userMsg := ai.UserMessage{
-				Content:   []ai.Content{ai.TextContent{Text: result.Message}},
-				Timestamp: time.Now().UnixMilli(),
+			if m.agentSession != nil {
+				m.agentSession.Prompt(context.Background(), result.Message)
+			} else {
+				userMsg := ai.UserMessage{
+					Content:   []ai.Content{ai.TextContent{Text: result.Message}},
+					Timestamp: time.Now().UnixMilli(),
+				}
+				m.agent.Prompt(context.Background(), userMsg)
 			}
-			m.agent.Prompt(context.Background(), userMsg)
 		}()
 	}
 	if result.Quit {
@@ -276,13 +362,21 @@ func (m *AgentUIModel) handleSlashResult(result slashcommands.SlashCommandResult
 	}
 	if result.SwitchModel != "" {
 		m.conversation.WriteString(styleSystem.Render(fmt.Sprintf("\n[System] Switching model to: %s\n", result.SwitchModel)))
-		// Model switching would be handled by the application layer
+		if m.agentSession != nil {
+			m.agentSession.SwitchModel(result.SwitchModel)
+		}
 	}
 	if result.SwitchProvider != "" {
 		m.conversation.WriteString(styleSystem.Render(fmt.Sprintf("\n[System] Switching provider to: %s\n", result.SwitchProvider)))
+		if m.agentSession != nil {
+			m.agentSession.SwitchProvider(result.SwitchProvider)
+		}
 	}
 	if result.Compact {
 		m.conversation.WriteString(styleSystem.Render("\n[System] Compaction requested\n"))
+		if m.agentSession != nil {
+			go m.agentSession.Compact(context.Background())
+		}
 	}
 }
 
@@ -325,10 +419,12 @@ func extractContent(result any) string {
 
 // BubbleteaRenderer adapts the Agent setup to the interactive UI model.
 type BubbleteaRenderer struct {
-	eventsChan chan agent.AgentEvent
-	program    *tea.Program
+	eventsChan    chan agent.AgentEvent
+	sessionEvents chan agentsession.AgentSessionEvent
+	program       *tea.Program
 }
 
+// NewInteractiveRenderer creates a renderer using the raw Agent.
 func NewInteractiveRenderer(ag *agent.Agent) *BubbleteaRenderer {
 	eventsChan := make(chan agent.AgentEvent, 100)
 	model := InitialModel(ag, eventsChan, nil)
@@ -336,6 +432,25 @@ func NewInteractiveRenderer(ag *agent.Agent) *BubbleteaRenderer {
 	return &BubbleteaRenderer{
 		eventsChan: eventsChan,
 		program:    p,
+	}
+}
+
+// NewInteractiveRendererWithSession creates a renderer using AgentSession.
+func NewInteractiveRendererWithSession(as *agentsession.AgentSession) *BubbleteaRenderer {
+	eventsChan := make(chan agent.AgentEvent, 100)
+	sessionEvents := make(chan agentsession.AgentSessionEvent, 100)
+
+	// Subscribe to agent session events
+	as.Subscribe(func(event agentsession.AgentSessionEvent) {
+		sessionEvents <- event
+	})
+
+	model := InitialModelWithSession(as, eventsChan, sessionEvents, nil)
+	p := tea.NewProgram(model, tea.WithAltScreen())
+	return &BubbleteaRenderer{
+		eventsChan:    eventsChan,
+		sessionEvents: sessionEvents,
+		program:       p,
 	}
 }
 

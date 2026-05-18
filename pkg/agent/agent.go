@@ -29,6 +29,9 @@ type Agent struct {
 	listeners []AgentEventListener
 	streamFn  ai.StreamFunction
 	config    AgentLoopConfig
+	steeringQueue     []ai.UserMessage
+	followUpQueue     []ai.UserMessage
+	cancelFn          context.CancelFunc
 }
 
 // NewAgent creates a new Agent instance with the given dependencies.
@@ -669,3 +672,104 @@ func (a *Agent) emitToolCallError(ctx context.Context, tc ai.ToolCall, errMsg st
 		Details: map[string]any{"error": errMsg},
 	}, true)
 }
+
+
+// Steer queues a steering message that interrupts the current turn.
+func (a *Agent) Steer(msg ai.UserMessage) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.steeringQueue = append(a.steeringQueue, msg)
+}
+
+// FollowUp queues a follow-up message to be processed after the agent finishes.
+func (a *Agent) FollowUp(msg ai.UserMessage) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.followUpQueue = append(a.followUpQueue, msg)
+}
+
+// Continue resumes the agent loop (used after retry or compaction recovery).
+func (a *Agent) Continue() {
+	a.mu.Lock()
+	if a.isStreaming {
+		a.mu.Unlock()
+		return
+	}
+	a.isStreaming = true
+	a.mu.Unlock()
+	go func() {
+		defer func() {
+			a.mu.Lock()
+			a.isStreaming = false
+			a.mu.Unlock()
+		}()
+		a.emit(AgentEvent{Type: EventAgentStart})
+		ctx := context.Background()
+		if err := a.runLoop(ctx); err != nil {
+			// Log error but do not crash
+		}
+		a.emit(AgentEvent{Type: EventAgentEnd, Messages: a.Messages()})
+	}()
+}
+
+// Abort cancels the current agent operation.
+func (a *Agent) Abort() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.cancelFn != nil {
+		a.cancelFn()
+		a.cancelFn = nil
+	}
+}
+
+// WaitForIdle blocks until the agent is not streaming.
+func (a *Agent) WaitForIdle() {
+	for {
+		a.mu.RLock()
+		streaming := a.isStreaming
+		a.mu.RUnlock()
+		if !streaming {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+// HasQueuedMessages returns whether there are steering or follow-up messages pending.
+func (a *Agent) HasQueuedMessages() bool {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return len(a.steeringQueue) > 0 || len(a.followUpQueue) > 0
+}
+
+// ClearAllQueues removes all queued steering and follow-up messages.
+func (a *Agent) ClearAllQueues() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.steeringQueue = nil
+	a.followUpQueue = nil
+}
+
+// ExecuteToolCall executes a single tool by name with the given arguments.
+func (a *Agent) ExecuteToolCall(ctx context.Context, toolName string, args map[string]interface{}) (*AgentToolResult, error) {
+	a.mu.RLock()
+	var tool *AgentTool
+	for i := range a.tools {
+		if a.tools[i].Name == toolName {
+			tool = &a.tools[i]
+			break
+		}
+	}
+	a.mu.RUnlock()
+	if tool == nil {
+		return nil, fmt.Errorf("tool %q not found", toolName)
+	}
+	result, err := tool.Execute(ctx, "", args, nil)
+	if err != nil {
+		return &AgentToolResult{
+			Content: []ai.Content{ai.TextContent{Text: err.Error()}},
+		}, err
+	}
+	return &result, nil
+}
+

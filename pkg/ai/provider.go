@@ -41,3 +41,20 @@ type AssistantMessageEventStream <-chan AssistantMessageEvent
 // TOptions would typically be an interface in Go, but we pass any and rely on the provider implementation
 // to assert the correct options type (e.g., OpenAIResponsesOptions).
 type StreamFunction func(ctx context.Context, model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream
+
+
+// DefaultStreamFunction is a placeholder stream function that returns an error.
+// It must be replaced with a real provider stream function before use.
+var DefaultStreamFunction StreamFunction = func(ctx context.Context, model ModelInfo, aiCtx Context, options any) AssistantMessageEventStream {
+	ch := make(chan AssistantMessageEvent)
+	go func() {
+		errMsg := "No stream function configured. Set a provider stream function before using the agent."
+		ch <- AssistantMessageEvent{
+			Type: EventError,
+			Error: &AssistantMessage{ErrorMessage: &errMsg},
+		}
+		close(ch)
+	}()
+	return ch
+}
+
