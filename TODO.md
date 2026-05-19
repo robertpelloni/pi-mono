@@ -50,3 +50,6 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Release `v0.69.0` marking full feature parity completion.
 ## Phase 14
 - [x] Evaluate deployment strategies natively compiling the Go application for target architectures.
+
+## Phase 15 (Community Plugin Features)
+- [x] Implement the `pi-plannotator` extension for interactive plan reviews natively in Go.

@@ -74,6 +74,7 @@ func main() {
 	noGuard := flag.Bool("no-guard", false, "Disable output guard")
 	compactThreshold := flag.Int("compact-threshold", 100000, "Token threshold for auto-compaction (0 to disable)")
 	noExtensions := flag.Bool("no-extensions", false, "Disable extension discovery")
+	enablePlannotator := flag.Bool("plannotator", false, "Enable the interactive pi-plannotator plan review tool")
 
 	flag.Parse()
 
@@ -252,6 +253,9 @@ func main() {
 	if !*noExtensions {
 		worktreePlugin := worktrees.NewWorktreePlugin()
 		plannotatorPlugin := plannotator.NewPlannotatorPlugin()
+		if *enablePlannotator {
+			plannotatorPlugin.Enabled = true
+		}
 		babysitterPlugin := babysitter.NewBabysitterPlugin()
 		acpAdapterPlugin := acp_adapter.NewACPAdapterPlugin()
 

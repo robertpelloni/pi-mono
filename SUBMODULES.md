@@ -17,6 +17,8 @@ The following external open-source AI agent tooling has been cloned to the local
 | `submodules/codebuff` | latest | https://github.com/CodebuffAI/codebuff | Experimental Codebuff components and UI configurations. |
 | `submodules/mistral-vibe` | latest | https://github.com/mistralai/mistral-vibe | Mistral's Vibe agent CLI containing internal tool definitions and schemas. |
 
+*(No new submodules added during the 0.70.0 audit cycle).*
+
 ## "Clean Room" Schemas Implementation Progress
 
 We map strictly specific tool schemas that external LLM providers expect (from the models listed above) back to our unified TypeScript/Go implementations using the `clean-room-tools` pattern.

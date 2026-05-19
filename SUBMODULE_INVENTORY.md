@@ -5,6 +5,8 @@
 - `Codebuff`: CodebuffAI/codebuff
 - `Mistral Vibe`: mistralai/mistral-vibe
 
+*(No new submodules added during the 0.70.0 audit cycle).*
+
 ## Closed Source / Unavailable CLIs (Not Added):
 - Adrenaline CLI
 - Amazon Q CLI

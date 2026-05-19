@@ -17,4 +17,6 @@ We aim to assimilate the best features, architectures, and functionalities from 
 5.  **100% Feature Parity:** The original TypeScript implementation will be maintained alongside the Go port, ensuring complete 1:1 feature parity as both evolve.
 6.  **Multiple Native Frontends:** Beyond web and terminal interfaces, the final architecture will support multiple native UI frontends.
 
+7.  **Community Plugins Integration:** Build an ecosystem of configurable options directly within the core via native Go bindings, such as the `pi-plannotator` extension for interactive planning.
+
 This project is a continuous, relentless drive toward creating the ultimate developer tool—"Insanely Great!"
