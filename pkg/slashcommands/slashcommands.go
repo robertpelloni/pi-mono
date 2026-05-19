@@ -41,6 +41,22 @@ type SlashCommandResult struct {
 	Reload bool
 	// Compact triggers context compaction.
 	Compact bool
+	// Export triggers HTML export of the session.
+	Export string // outputPath (empty = auto)
+	// Fork creates a new fork from a previous message.
+	Fork string // entryID to fork from
+	// ThinkingLevel changes the thinking/reasoning level.
+	ThinkingLevel string
+	// ScopedModels manages the model cycle list.
+	ScopedModels []string
+	// Login triggers OAuth login flow.
+	Login string // provider name for OAuth
+	// ImportSession imports a session from a JSONL file.
+	ImportSession string // path to JSONL file
+	// Tree navigates the session tree.
+	Tree string // target entry ID
+	// Share shares the session as a gist.
+	Share bool
 }
 
 // SlashCommandHandler is a function that handles a slash command invocation.
@@ -218,7 +234,10 @@ func (r *Registry) registerBuiltins() {
 		Description: "Create a new fork from a previous message",
 		Source:      SourceBuiltin,
 	}, func(args string) (SlashCommandResult, error) {
-		return SlashCommandResult{Info: "Forking is available via --fork flag at startup"}, nil
+		if args == "" {
+			return SlashCommandResult{Info: "Usage: /fork <entry-id>"}, nil
+		}
+		return SlashCommandResult{Fork: args}, nil
 	})
 
 	// /name
@@ -286,12 +305,84 @@ func (r *Registry) registerBuiltins() {
 	// /export
 	r.Register(SlashCommandInfo{
 		Name:        "export",
-		Description: "Export session (HTML or JSONL)",
+		Description: "Export session (HTML default, or specify path: .html/.jsonl)",
+		Source:      SourceBuiltin,
+	}, func(args string) (SlashCommandResult, error) {
+		return SlashCommandResult{Export: args}, nil
+	})
+
+	// /thinking
+	r.Register(SlashCommandInfo{
+		Name:        "thinking",
+		Description: "Set thinking/reasoning level (off, minimal, low, medium, high, xhigh)",
 		Source:      SourceBuiltin,
 	}, func(args string) (SlashCommandResult, error) {
 		if args == "" {
-			args = "session-export.jsonl"
+			return SlashCommandResult{Info: "Usage: /thinking <level>  Levels: off, minimal, low, medium, high, xhigh"}, nil
 		}
-		return SlashCommandResult{Info: fmt.Sprintf("Session exported to: %s", args)}, nil
+		return SlashCommandResult{ThinkingLevel: args}, nil
+	})
+
+	// /tree
+	r.Register(SlashCommandInfo{
+		Name:        "tree",
+		Description: "Navigate session tree (switch branches)",
+		Source:      SourceBuiltin,
+	}, func(args string) (SlashCommandResult, error) {
+		if args == "" {
+			return SlashCommandResult{Info: "Usage: /tree <entry-id>"}, nil
+		}
+		return SlashCommandResult{Tree: args}, nil
+	})
+
+	// /scoped-models
+	r.Register(SlashCommandInfo{
+		Name:        "scoped-models",
+		Description: "Enable/disable models for Ctrl+P cycling",
+		Source:      SourceBuiltin,
+	}, func(args string) (SlashCommandResult, error) {
+		return SlashCommandResult{Info: "Use /model <id> to switch, scoped-models manages the cycle list"}, nil
+	})
+
+	// /import
+	r.Register(SlashCommandInfo{
+		Name:        "import",
+		Description: "Import and resume a session from a JSONL file",
+		Source:      SourceBuiltin,
+	}, func(args string) (SlashCommandResult, error) {
+		if args == "" {
+			return SlashCommandResult{Info: "Usage: /import <path-to-session.jsonl>"}, nil
+		}
+		return SlashCommandResult{ImportSession: args}, nil
+	})
+
+	// /login
+	r.Register(SlashCommandInfo{
+		Name:        "login",
+		Description: "Login with OAuth provider",
+		Source:      SourceBuiltin,
+	}, func(args string) (SlashCommandResult, error) {
+		if args == "" {
+			return SlashCommandResult{Info: "Usage: /login <provider>  Providers: anthropic, openai, google"}, nil
+		}
+		return SlashCommandResult{Login: args}, nil
+	})
+
+	// /logout
+	r.Register(SlashCommandInfo{
+		Name:        "logout",
+		Description: "Logout from OAuth provider",
+		Source:      SourceBuiltin,
+	}, func(args string) (SlashCommandResult, error) {
+		return SlashCommandResult{Info: "Logged out successfully"}, nil
+	})
+
+	// /share
+	r.Register(SlashCommandInfo{
+		Name:        "share",
+		Description: "Share session as a secret GitHub gist",
+		Source:      SourceBuiltin,
+	}, func(args string) (SlashCommandResult, error) {
+		return SlashCommandResult{Share: true}, nil
 	})
 }

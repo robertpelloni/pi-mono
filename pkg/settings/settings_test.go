@@ -167,3 +167,94 @@ func TestInitAgentDir(t *testing.T) {
 		t.Error("agent dir should not be empty")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Extended Settings Tests
+// ---------------------------------------------------------------------------
+
+func TestGetSessionDir(t *testing.T) {
+	cwd := t.TempDir()
+	agentDir := t.TempDir()
+	sm := Create(cwd, agentDir)
+	sessionDir := sm.GetSessionDir()
+	// SessionDir may be empty if not explicitly configured
+	_ = sessionDir
+}
+
+func TestGetCompactionSettings(t *testing.T) {
+	cwd := t.TempDir()
+	agentDir := t.TempDir()
+	sm := Create(cwd, agentDir)
+	settings := sm.GetCompactionSettings()
+	if !settings.Enabled {
+		t.Error("Expected compaction enabled by default")
+	}
+}
+
+func TestGetRetryEnabled(t *testing.T) {
+	cwd := t.TempDir()
+	agentDir := t.TempDir()
+	sm := Create(cwd, agentDir)
+	if !sm.GetRetryEnabled() {
+		t.Error("Expected retry enabled by default")
+	}
+	sm.SetRetryEnabled(false)
+	if sm.GetRetryEnabled() {
+		t.Error("Expected retry disabled after SetRetryEnabled(false)")
+	}
+}
+
+func TestSetDefaultModel(t *testing.T) {
+	cwd := t.TempDir()
+	agentDir := t.TempDir()
+	sm := Create(cwd, agentDir)
+	sm.SetDefaultModel("gpt-4o")
+	if sm.GetDefaultModel() != "gpt-4o" {
+		t.Errorf("Expected 'gpt-4o', got '%s'", sm.GetDefaultModel())
+	}
+}
+
+func TestReload(t *testing.T) {
+	cwd := t.TempDir()
+	agentDir := t.TempDir()
+	sm := Create(cwd, agentDir)
+	// Write new settings after creation
+	settings := Settings{DefaultProvider: "google"}
+	data, _ := json.Marshal(settings)
+	os.WriteFile(filepath.Join(agentDir, "settings.json"), data, 0644)
+	// Reload
+	sm.Reload()
+	if sm.GetDefaultProvider() != "google" {
+		t.Errorf("Expected 'google' after reload, got '%s'", sm.GetDefaultProvider())
+	}
+}
+
+func TestCustomSettings_NotFound(t *testing.T) {
+	cwd := t.TempDir()
+	agentDir := t.TempDir()
+	sm := Create(cwd, agentDir)
+	_, ok := sm.GetCustom("nonexistent")
+	if ok {
+		t.Error("Expected custom setting to not exist")
+	}
+}
+
+func TestSettings_MultipleCustom(t *testing.T) {
+	cwd := t.TempDir()
+	agentDir := t.TempDir()
+	sm := Create(cwd, agentDir)
+	sm.SetCustom("key1", "val1")
+	sm.SetCustom("key2", "val2")
+	v1, _ := sm.GetCustom("key1")
+	v2, _ := sm.GetCustom("key2")
+	if v1 != "val1" || v2 != "val2" {
+		t.Error("Custom settings mismatch")
+	}
+}
+
+func TestAgentDir(t *testing.T) {
+	dir := AgentDir()
+	if dir == "" {
+		t.Error("AgentDir should not be empty")
+	}
+}

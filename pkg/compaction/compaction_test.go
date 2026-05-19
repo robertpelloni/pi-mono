@@ -879,3 +879,184 @@ func createTestMessages(n int) []ai.Message {
 	}
 	return messages
 }
+
+// ---------------------------------------------------------------------------
+// LLM Summarization Integration Tests
+// ---------------------------------------------------------------------------
+
+func TestCreateLLMSummarizeFn_NoStreamFunc(t *testing.T) {
+	fn := CreateLLMSummarizeFn(LLMSummarizationConfig{
+		StreamFunc: nil,
+	})
+
+	messages := []ai.Message{
+		ai.UserMessage{Content: []ai.Content{ai.TextContent{Text: "hello"}}, Timestamp: 1},
+	}
+
+	// Should fall back to default summary
+	summary, err := fn(context.Background(), messages)
+	if err != nil {
+		t.Fatalf("Expected no error (should fall back), got %v", err)
+	}
+	if summary == "" {
+		t.Error("Expected non-empty fallback summary")
+	}
+}
+
+func TestCreateLLMSummarizeFn_WithStreamFunc(t *testing.T) {
+	// Create a mock stream function that returns a summary
+	mockStream := func(ctx context.Context, model ai.ModelInfo, aiCtx ai.Context, options any) ai.AssistantMessageEventStream {
+		ch := make(chan ai.AssistantMessageEvent, 3)
+		go func() {
+			delta1 := "## Goal\nTest goal"
+			delta2 := "\n## Progress\nDone"
+			ch <- ai.AssistantMessageEvent{Type: ai.EventTextDelta, Delta: &delta1}
+			ch <- ai.AssistantMessageEvent{Type: ai.EventTextDelta, Delta: &delta2}
+			ch <- ai.AssistantMessageEvent{Type: ai.EventTextDelta, Delta: nil, Reason: func() *ai.StopReason { r := ai.StopReasonStop; return &r }()}
+			close(ch)
+		}()
+		return ch
+	}
+
+	fn := CreateLLMSummarizeFn(LLMSummarizationConfig{
+		StreamFunc: mockStream,
+		Model:      ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI},
+		APIKey:     "test-key",
+	})
+
+	messages := []ai.Message{
+		ai.UserMessage{Content: []ai.Content{ai.TextContent{Text: "hello"}}, Timestamp: 1},
+	}
+
+	summary, err := fn(context.Background(), messages)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if !strings.Contains(summary, "Goal") {
+		t.Errorf("Expected summary to contain 'Goal', got %q", summary)
+	}
+}
+
+func TestCreateLLMSummarizeFn_StreamError(t *testing.T) {
+	// Create a mock stream function that returns an error
+	errorMsg := "API rate limit exceeded"
+	mockStream := func(ctx context.Context, model ai.ModelInfo, aiCtx ai.Context, options any) ai.AssistantMessageEventStream {
+		ch := make(chan ai.AssistantMessageEvent, 1)
+		go func() {
+			ch <- ai.AssistantMessageEvent{
+				Type: ai.EventTextDelta,
+				Error: &ai.AssistantMessage{
+					ErrorMessage: &errorMsg,
+				},
+			}
+			close(ch)
+		}()
+		return ch
+	}
+
+	fn := CreateLLMSummarizeFn(LLMSummarizationConfig{
+		StreamFunc: mockStream,
+		Model:      ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI},
+	})
+
+	messages := []ai.Message{
+		ai.UserMessage{Content: []ai.Content{ai.TextContent{Text: "hello"}}, Timestamp: 1},
+	}
+
+	// Should fall back to default summary on error
+	summary, err := fn(context.Background(), messages)
+	if err != nil {
+		t.Fatalf("Expected no error (should fall back), got %v", err)
+	}
+	if summary == "" {
+		t.Error("Expected non-empty fallback summary")
+	}
+}
+
+func TestCreateLLMSummarizeFnWithPrevious(t *testing.T) {
+	mockStream := func(ctx context.Context, model ai.ModelInfo, aiCtx ai.Context, options any) ai.AssistantMessageEventStream {
+		ch := make(chan ai.AssistantMessageEvent, 2)
+		go func() {
+			delta := "Updated summary with new info"
+			ch <- ai.AssistantMessageEvent{Type: ai.EventTextDelta, Delta: &delta}
+			ch <- ai.AssistantMessageEvent{Type: ai.EventTextDelta, Delta: nil, Reason: func() *ai.StopReason { r := ai.StopReasonStop; return &r }()}
+			close(ch)
+		}()
+		return ch
+	}
+
+	fn := CreateLLMSummarizeFnWithPrevious(LLMSummarizationConfig{
+		StreamFunc: mockStream,
+		Model:      ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI},
+	})
+
+	messages := []ai.Message{
+		ai.UserMessage{Content: []ai.Content{ai.TextContent{Text: "Continue"}}, Timestamp: 1},
+	}
+	prevSummary := "Old summary"
+
+	summary, err := fn(context.Background(), messages, &prevSummary)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if !strings.Contains(summary, "Updated") {
+		t.Errorf("Expected updated summary, got %q", summary)
+	}
+}
+
+func TestLLMSummarizationConfig_Fields(t *testing.T) {
+	config := LLMSummarizationConfig{
+		Model:    ai.ModelInfo{ID: "gpt-4o", Provider: ai.ProviderOpenAI},
+		APIKey:   "test-key",
+		Headers:  map[string]string{"X-Custom": "value"},
+		MaxTokens: 4096,
+	}
+	if config.Model.ID != "gpt-4o" {
+		t.Error("Model.ID mismatch")
+	}
+	if config.APIKey != "test-key" {
+		t.Error("APIKey mismatch")
+	}
+	if config.MaxTokens != 4096 {
+		t.Error("MaxTokens mismatch")
+	}
+}
+
+func TestCompactor_WithLLMSummarizeFn(t *testing.T) {
+	called := false
+	mockStream := func(ctx context.Context, model ai.ModelInfo, aiCtx ai.Context, options any) ai.AssistantMessageEventStream {
+		called = true
+		ch := make(chan ai.AssistantMessageEvent, 2)
+		go func() {
+			delta := "## Goal\nTest goal from LLM"
+			ch <- ai.AssistantMessageEvent{Type: ai.EventTextDelta, Delta: &delta}
+			ch <- ai.AssistantMessageEvent{Type: ai.EventTextDelta, Delta: nil, Reason: func() *ai.StopReason { r := ai.StopReasonStop; return &r }()}
+			close(ch)
+		}()
+		return ch
+	}
+
+	fn := CreateLLMSummarizeFn(LLMSummarizationConfig{
+		StreamFunc: mockStream,
+		Model:      ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI},
+	})
+
+	compactor := NewCompactor(CompactionConfig{
+		MaxTokens:  100,
+		Strategy:   StrategySummarize,
+		KeepLastN:  2,
+		SummarizeFn: fn,
+	})
+
+	messages := createTestMessages(8)
+	result, err := compactor.Compact(context.Background(), messages)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !called {
+		t.Error("Expected LLM stream function to be called")
+	}
+	if len(result) == 0 {
+		t.Error("Expected compacted result")
+	}
+}

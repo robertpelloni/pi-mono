@@ -378,6 +378,34 @@ func (m *AgentUIModel) handleSlashResult(result slashcommands.SlashCommandResult
 			go m.agentSession.Compact(context.Background())
 		}
 	}
+	if result.Export != "" || result.Export == "" && len(result.Export) >= 0 {
+		// Export command triggered
+		if m.agentSession != nil {
+			go func() {
+				path, err := m.agentSession.ExportToHTML(result.Export)
+				if err != nil {
+					m.conversation.WriteString(styleSlashErr.Render(fmt.Sprintf("\n[Error] Export failed: %v\n", err)))
+				} else {
+					m.conversation.WriteString(styleSlashInfo.Render(fmt.Sprintf("\nSession exported to: %s\n", path)))
+				}
+			}()
+		}
+	}
+	if result.ThinkingLevel != "" {
+		m.conversation.WriteString(styleSystem.Render(fmt.Sprintf("\n[System] Setting thinking level: %s\n", result.ThinkingLevel)))
+		if m.agentSession != nil {
+			m.agentSession.SetThinkingLevel(result.ThinkingLevel)
+		}
+	}
+	if result.NewSession {
+		m.conversation = strings.Builder{}
+		m.viewport.SetContent("New session started.")
+	}
+	if result.Reload {
+		if m.agentSession != nil {
+			m.agentSession.Reload()
+		}
+	}
 }
 
 // formatArgs creates a short display string for tool arguments.

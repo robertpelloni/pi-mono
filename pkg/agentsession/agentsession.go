@@ -3,6 +3,7 @@ package agentsession
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/ai"
 	"github.com/badlogic/pi-mono/pkg/compaction"
+	"github.com/badlogic/pi-mono/pkg/export"
 	"github.com/badlogic/pi-mono/pkg/modelresolver"
 	"github.com/badlogic/pi-mono/pkg/session"
 	"github.com/badlogic/pi-mono/pkg/settings"
@@ -1521,6 +1523,39 @@ func (as *AgentSession) Abort() {
 }
 
 // Dispose removes all listeners and disconnects from agent.
+
+
+// ExportToHTML exports the current session as an HTML file.
+// If outputPath is empty, generates a timestamped file in the CWD.
+func (as *AgentSession) ExportToHTML(outputPath string) (string, error) {
+	if outputPath == "" {
+		timestamp := time.Now().Format("2006-01-02-15-04-05")
+		outputPath = filepath.Join(as.config.CWD, fmt.Sprintf("pi-session-%s.html", timestamp))
+	}
+
+	messages := as.config.Agent.Messages()
+	title := "Pi Session"
+	if id := as.SessionID(); id != "" {
+		title = fmt.Sprintf("Pi Session - %s", id)
+	}
+
+	theme := "dark"
+	if as.config.Settings != nil {
+		theme = as.config.Settings.GetTheme()
+	}
+
+	options := export.ExportHTMLOptions{
+		Title: title,
+		Theme: theme,
+	}
+
+	if err := export.ExportHTML(messages, outputPath, options); err != nil {
+		return "", fmt.Errorf("failed to export HTML: %w", err)
+	}
+
+	return outputPath, nil
+}
+
 func (as *AgentSession) Dispose() {
 	if as.unsubscribeAgent != nil {
 		as.unsubscribeAgent()
