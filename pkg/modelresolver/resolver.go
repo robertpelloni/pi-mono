@@ -72,6 +72,8 @@ func ResolveWithProvider(providerName string, modelPattern string, registry *Mod
 		provider = ai.ProviderGoogle
 	case "openai":
 		provider = ai.ProviderOpenAI
+	case "ollama", "ollama-cloud":
+		provider = ai.ProviderOllama
 	default:
 		provider = ai.Provider(providerName)
 	}
@@ -164,6 +166,8 @@ func providerToAPI(provider ai.Provider) ai.Api {
 		return ai.ApiGoogleGeminiCLI
 	case ai.ProviderVertex:
 		return ai.ApiGoogleVertex
+	case ai.ProviderOllama:
+		return ai.ApiOpenAICompletions
 	default:
 		return ai.ApiOpenAICompletions
 	}

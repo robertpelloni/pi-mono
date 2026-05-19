@@ -195,7 +195,9 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 			}()
 		}
 
-		req, err := http.NewRequestWithContext(reqCtx, "POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(reqBytes))
+		// Resolve base URL: use model's BaseURL if set, otherwise default to OpenAI
+	baseURL := resolveBaseURL(model)
+	req, err := http.NewRequestWithContext(reqCtx, "POST", baseURL+"/chat/completions", bytes.NewBuffer(reqBytes))
 		if err != nil {
 			errMsg := err.Error()
 			reason := StopReasonError
