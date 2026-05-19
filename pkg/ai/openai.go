@@ -7,8 +7,61 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 )
+
+// resolveBaseURL returns the API base URL for the given model.
+// If the model has a custom BaseURL set, that is used. Otherwise,
+// the default URL is based on the provider.
+func resolveBaseURL(model ModelInfo) string {
+	if model.BaseURL != "" {
+		return model.BaseURL
+	}
+	switch model.Provider {
+	case ProviderOllama:
+		return "https://ollama.com/v1"
+	case ProviderOpenRouter:
+		return "https://openrouter.ai/api/v1"
+	case ProviderGroq:
+		return "https://api.groq.com/openai/v1"
+	case ProviderCerebras:
+		return "https://api.cerebras.ai/v1"
+	case ProviderXAI:
+		return "https://api.x.ai/v1"
+	case ProviderMistral:
+		return "https://api.mistral.ai/v1"
+	case ProviderHuggingFace:
+		return "https://api-inference.huggingface.co/v1"
+	case ProviderMinimax:
+		return "https://api.minimax.chat/v1"
+	case ProviderMinimaxCN:
+		return "https://api.minimax.chat/v1"
+	default:
+		return "https://api.openai.com/v1"
+	}
+}
+
+// resolveAPIKey resolves the API key for a model by checking
+// environment variables in order of specificity.
+func resolveAPIKey(model ModelInfo) string {
+	// 1. Check model-specific env var: <PROVIDER>_API_KEY
+	providerKey := GetEnvAPIKey(model.Provider)
+	if providerKey != "" {
+		return providerKey
+	}
+	// 2. Check for Ollama-specific key
+	if model.Provider == ProviderOllama {
+		if key := os.Getenv("OLLAMA_API_KEY"); key != "" {
+			return key
+		}
+	}
+	// 3. Fallback to OpenAI key for OpenAI-compatible providers
+	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
+		return key
+	}
+	return ""
+}
 
 type openAIFunctionCall struct {
 	Name      string `json:"name"`
@@ -81,9 +134,9 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 			}
 		}
 
-		apiKey := GetEnvAPIKey(ProviderOpenAI)
+		apiKey := resolveAPIKey(model)
 		if apiKey == "" {
-			errMsg := "missing OPENAI_API_KEY"
+			errMsg := fmt.Sprintf("missing API key for provider %s", model.Provider)
 			reason := StopReasonError
 			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
 				return
@@ -195,8 +248,7 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 			}()
 		}
 
-		// Resolve base URL: use model's BaseURL if set, otherwise default to OpenAI
-	baseURL := resolveBaseURL(model)
+		baseURL := resolveBaseURL(model)
 	req, err := http.NewRequestWithContext(reqCtx, "POST", baseURL+"/chat/completions", bytes.NewBuffer(reqBytes))
 		if err != nil {
 			errMsg := err.Error()

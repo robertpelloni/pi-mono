@@ -1,6 +1,7 @@
 package modelregistry
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -222,4 +223,158 @@ func (r *ModelRegistry) FormatProviderStatus() string {
 		lines = append(lines, fmt.Sprintf("  %-12s %s (%s)", info.Label, status, strings.Join(info.EnvVars, ", ")))
 	}
 	return strings.Join(lines, "\n")
+}
+
+// LoadFromProviderCache loads models from a provider-cache.json file.
+// This is the format used by the TypeScript version to store dynamically
+// discovered models (e.g., from Ollama Cloud extension).
+func (r *ModelRegistry) LoadFromProviderCache(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("reading provider cache: %w", err)
+	}
+
+	var cache struct {
+		Providers map[string]struct {
+			Provider string `json:"provider"`
+			Models   []struct {
+				ID            string            `json:"id"`
+				Name          string            `json:"name"`
+				Reasoning     bool              `json:"reasoning"`
+				Input         []string          `json:"input"`
+				ContextWindow int               `json:"contextWindow"`
+				MaxTokens     int               `json:"maxTokens"`
+				ThinkingMap   map[string]string `json:"thinkingLevelMap"`
+				Compat        struct {
+					SupportsDeveloperRole     bool `json:"supportsDeveloperRole"`
+					SupportsReasoningEffort   bool `json:"supportsReasoningEffort"`
+				} `json:"compat"`
+			} `json:"models"`
+		} `json:"providers"`
+	}
+
+	if err := json.Unmarshal(data, &cache); err != nil {
+		return fmt.Errorf("parsing provider cache: %w", err)
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for provName, provData := range cache.Providers {
+		providerName := provData.Provider
+		if providerName == "" {
+			providerName = provName
+		}
+
+		// Register provider if not already known
+		if _, exists := r.providers[providerName]; !exists {
+			envVars := []string{}
+			switch providerName {
+			case "ollama-cloud":
+				envVars = []string{"OLLAMA_API_KEY"}
+			default:
+				envVars = []string{strings.ToUpper(strings.ReplaceAll(providerName, "-", "_")) + "_API_KEY"}
+			}
+			r.providers[providerName] = ProviderInfo{
+				Name:   providerName,
+				EnvVars: envVars,
+				Label:  providerName,
+			}
+		}
+
+		// Add models
+		for _, m := range provData.Models {
+			// Check if model already exists
+			exists := false
+			for _, existing := range r.models {
+				if existing.ID == m.ID && string(existing.Provider) == providerName {
+					exists = true
+					break
+				}
+			}
+			if exists {
+				continue
+			}
+
+			model := ai.ModelInfo{
+				ID:            m.ID,
+				Name:          m.Name,
+				Provider:      ai.Provider(providerName),
+				ContextWindow: m.ContextWindow,
+				MaxTokens:     m.MaxTokens,
+				Reasoning:     m.Reasoning,
+				Input:         m.Input,
+			}
+
+			// Set API type based on provider
+			switch ai.Provider(providerName) {
+			case ai.ProviderOllama:
+				model.API = ai.ApiOpenAICompletions
+				model.BaseURL = "https://ollama.com/v1"
+			default:
+				model.API = ai.ApiOpenAICompletions
+			}
+
+			r.models = append(r.models, model)
+		}
+	}
+
+	return nil
+}
+
+
+// LoadProviderCacheModels reads a provider-cache.json file and returns
+// the models as a flat slice of ai.ModelInfo. This is used by cmd/pi
+// to merge extension-discovered models into the main model registry.
+func LoadProviderCacheModels(path string) ([]ai.ModelInfo, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading provider cache: %w", err)
+	}
+
+	var cache struct {
+		Providers map[string]struct {
+			Provider string `json:"provider"`
+			Models   []struct {
+				ID            string   `json:"id"`
+				Name          string   `json:"name"`
+				Reasoning     bool     `json:"reasoning"`
+				Input         []string `json:"input"`
+				ContextWindow int      `json:"contextWindow"`
+				MaxTokens     int      `json:"maxTokens"`
+			} `json:"models"`
+		} `json:"providers"`
+	}
+
+	if err := json.Unmarshal(data, &cache); err != nil {
+		return nil, fmt.Errorf("parsing provider cache: %w", err)
+	}
+
+	var models []ai.ModelInfo
+	for provName, provData := range cache.Providers {
+		providerName := provData.Provider
+		if providerName == "" {
+			providerName = provName
+		}
+		for _, m := range provData.Models {
+			model := ai.ModelInfo{
+				ID:            m.ID,
+				Name:          m.Name,
+				Provider:      ai.Provider(providerName),
+				ContextWindow: m.ContextWindow,
+				MaxTokens:     m.MaxTokens,
+				Reasoning:     m.Reasoning,
+				Input:         m.Input,
+			}
+			switch ai.Provider(providerName) {
+			case ai.ProviderOllama:
+				model.API = ai.ApiOpenAICompletions
+				model.BaseURL = "https://ollama.com/v1"
+			default:
+				model.API = ai.ApiOpenAICompletions
+			}
+			models = append(models, model)
+		}
+	}
+	return models, nil
 }

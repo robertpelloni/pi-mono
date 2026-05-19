@@ -21,6 +21,9 @@ import (
 	"github.com/badlogic/pi-mono/pkg/frontends/bubbletea"
 	"github.com/badlogic/pi-mono/pkg/frontends/cli"
 	cliflags "github.com/badlogic/pi-mono/pkg/listmodels"
+	"path/filepath"
+
+	"github.com/badlogic/pi-mono/pkg/modelregistry"
 	"github.com/badlogic/pi-mono/pkg/modelresolver"
 	"github.com/badlogic/pi-mono/pkg/outputguard"
 	"github.com/badlogic/pi-mono/pkg/server"
@@ -139,6 +142,16 @@ func main() {
 	modelsJSONPath := modelresolver.GetModelsJSONPath(agentDir)
 	if err := modelRegistry.LoadFromModelsJSON(modelsJSONPath, authStorage); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: models.json error: %v\n", err)
+	}
+
+	// Load provider-cache.json if it exists (adds dynamic models like ollama-cloud)
+	providerCachePath := filepath.Join(agentDir, "provider-cache.json")
+	if _, err := os.Stat(providerCachePath); err == nil {
+		if cacheModels, err := modelregistry.LoadProviderCacheModels(providerCachePath); err == nil {
+			for _, m := range cacheModels {
+				modelRegistry.Register(m)
+			}
+		}
 	}
 
 	// ─── List Models ───

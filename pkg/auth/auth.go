@@ -286,6 +286,8 @@ func getEnvAPIKey(provider string) string {
 		return os.Getenv("OPENROUTER_API_KEY")
 	case "mistral":
 		return os.Getenv("MISTRAL_API_KEY")
+	case "ollama-cloud", "ollama":
+		return os.Getenv("OLLAMA_API_KEY")
 	case "azure-openai", "azure-openai-responses":
 		key := os.Getenv("AZURE_OPENAI_API_KEY")
 		if key == "" {

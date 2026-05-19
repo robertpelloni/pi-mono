@@ -43,6 +43,7 @@ const (
 	ProviderGeminiCLI     Provider = "google-gemini-cli"
 	ProviderAntigravity   Provider = "google-antigravity"
 	ProviderVertex        Provider = "google-vertex"
+	ProviderOllama           Provider = "ollama-cloud"
 )
 
 // ThinkingLevel specifies the amount of reasoning effort for supported models.
