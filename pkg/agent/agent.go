@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"os"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -326,8 +325,6 @@ func (a *Agent) streamAssistantResponse(ctx context.Context) (ai.AssistantMessag
 	a.mu.RUnlock()
 
 	// Call the AI StreamFunction
-	os.Stderr.WriteString("DBG-AGENT model=" + a.model.ID + " provider=" + string(a.model.Provider) + " api=" + string(a.model.API) + " base=" + a.model.BaseURL + "
-")
 	stream := a.streamFn(ctx, a.model, contextPayload, a.config.SimpleStreamOptions)
 
 	finalMsg := &ai.AssistantMessage{

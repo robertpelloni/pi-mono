@@ -106,6 +106,7 @@ func GetEnvAPIKey(provider Provider) string {
 		ProviderOpenCode:      "OPENCODE_API_KEY",
 		ProviderOpenCodeGo:    "OPENCODE_API_KEY",
 		ProviderKimiCoding:    "KIMI_API_KEY",
+		ProviderOllama:      "OLLAMA_API_KEY",
 	}
 
 	if envVar, ok := envMap[provider]; ok {
