@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 )
 
 type openAIFunctionCall struct {
@@ -23,14 +22,14 @@ type openAIToolCall struct {
 }
 
 type openAIMessage struct {
-	Role       string           `json:"role"`
-	Content    string           `json:"content"`
+	Role       string          `json:"role"`
+	Content    string          `json:"content"`
 	ToolCalls  []openAIToolCall `json:"tool_calls,omitempty"`
-	ToolCallID string           `json:"tool_call_id,omitempty"`
+	ToolCallID string          `json:"tool_call_id,omitempty"`
 }
 
 type openAITool struct {
-	Type     string `json:"type"`
+	Type string `json:"type"`
 	Function struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
@@ -110,17 +109,15 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 					}
 				}
 				reqMessages = append(reqMessages, openAIMessage{Role: "user", Content: content})
+
 			case AssistantMessage:
 				content := ""
 				var toolCalls []openAIToolCall
-
 				for _, pt := range msg.Content {
 					if txt, ok := pt.(TextContent); ok {
 						content += txt.Text
 					} else if tc, ok := pt.(ToolCall); ok {
-						// OpenAI needs stringified JSON for arguments
 						argBytes, _ := json.Marshal(tc.Arguments)
-
 						toolCalls = append(toolCalls, openAIToolCall{
 							ID:   tc.ID,
 							Type: "function",
@@ -131,14 +128,12 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 						})
 					}
 				}
-
-				// OpenAI API strictness: if we have tool calls, content should ideally not be omitted, but can be empty string.
-				// However, if we use omitempty on string, it disappears.
 				reqMessages = append(reqMessages, openAIMessage{
 					Role:      "assistant",
 					Content:   content,
 					ToolCalls: toolCalls,
 				})
+
 			case ToolResultMessage:
 				content := ""
 				for _, pt := range msg.Content {
@@ -184,14 +179,12 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 		}
 
 		// Implement Cancel Context
-
 		var opt StreamOptions
 		if o, ok := options.(StreamOptions); ok {
 			opt = o
 		} else if o, ok := options.(SimpleStreamOptions); ok {
 			opt = o.StreamOptions
 		}
-
 		if opt.AbortSignal != nil {
 			go func() {
 				select {
@@ -211,46 +204,21 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 			}
 			return
 		}
-
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 
 		client := &http.Client{}
-
-		// Basic Retry Logic
-		var resp *http.Response
-		maxRetries := 3
-
-		for i := 0; i < maxRetries; i++ {
-			// Recreate request inside loop to avoid consumed body errors
-			req, err = http.NewRequestWithContext(reqCtx, "POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(reqBytes))
-			if err == nil {
-				req.Header.Set("Content-Type", "application/json")
-				req.Header.Set("Authorization", "Bearer "+apiKey)
-			}
-
-			resp, err = client.Do(req)
-			if err != nil {
-				if reqCtx.Err() == context.Canceled {
-					reason := StopReasonAborted
-					if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
-						return
-					}
-					// stream <- AssistantMessageEvent{Type: EventDone, Reason: &reason} // Replaced by below block
+		resp, err := client.Do(req)
+		if err != nil {
+			// Check if cancelled
+			if reqCtx.Err() == context.Canceled {
+				reason := StopReasonAborted
+				if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
 					return
 				}
-				break
+				return
 			}
-			if resp.StatusCode == 429 || resp.StatusCode >= 500 {
-				resp.Body.Close()
-				time.Sleep(time.Duration(2<<i) * time.Second)
-				continue
-			}
-			break
-		}
-
-		if err != nil {
-			errMsg := err.Error()
+			errMsg := fmt.Sprintf("OpenAI API request failed: %v", err)
 			reason := StopReasonError
 			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
 				return
@@ -259,8 +227,10 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 		}
 		defer resp.Body.Close()
 
+		// Handle non-200 responses — report error with parsed body.
+		// Retry logic is handled at the AgentSession layer, not here.
 		if resp.StatusCode != 200 {
-			errMsg := fmt.Sprintf("OpenAI API error: status %d: %s", resp.StatusCode, readErrorBody(resp.Body))
+			errMsg := formatProviderError("OpenAI", resp)
 			reason := StopReasonError
 			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
 				return
@@ -278,7 +248,6 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 			if !strings.HasPrefix(line, "data: ") {
 				continue
 			}
-
 			data := strings.TrimPrefix(line, "data: ")
 			if data == "[DONE]" {
 				break
@@ -289,6 +258,7 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 				if len(chunk.Choices) > 0 {
 					delta := chunk.Choices[0].Delta.Content
 					role := chunk.Choices[0].Delta.Role
+
 					if role != "" {
 						if !sendEvent(AssistantMessageEvent{
 							Type: EventStart,
@@ -334,9 +304,6 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 								return
 							}
 						}
-
-						// OpenAI specifies that when index increments or finish reason drops, the tool call is done,
-						// but practically we usually just wait for finish_reason == "tool_calls"
 					}
 
 					if chunk.Choices[0].FinishReason != nil {
@@ -349,7 +316,6 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 						} else if *chunk.Choices[0].FinishReason == "length" {
 							reason = StopReasonLength
 						}
-
 						if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
 							return
 						}

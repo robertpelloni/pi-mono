@@ -454,6 +454,30 @@ func NewInteractiveRendererWithSession(as *agentsession.AgentSession) *Bubbletea
 	}
 }
 
+// NewInteractiveRendererWithAgentSession creates a renderer using AgentSession with slash command support.
+func NewInteractiveRendererWithAgentSession(as *agentsession.AgentSession, slashReg *slashcommands.Registry) *BubbleteaRenderer {
+	eventsChan := make(chan agent.AgentEvent, 100)
+	sessionEvents := make(chan agentsession.AgentSessionEvent, 100)
+
+	// Subscribe to agent session events
+	as.Subscribe(func(event agentsession.AgentSessionEvent) {
+		select {
+		case sessionEvents <- event:
+		default:
+			// Drop event if channel is full
+		}
+	})
+
+	model := InitialModelWithSession(as, eventsChan, sessionEvents, slashReg)
+	p := tea.NewProgram(model, tea.WithAltScreen())
+
+	return &BubbleteaRenderer{
+		eventsChan:    eventsChan,
+		sessionEvents: sessionEvents,
+		program:       p,
+	}
+}
+
 // NewInteractiveRendererWithSlashCommands creates a renderer with slash command support.
 func NewInteractiveRendererWithSlashCommands(ag *agent.Agent, slashReg *slashcommands.Registry) *BubbleteaRenderer {
 	eventsChan := make(chan agent.AgentEvent, 100)

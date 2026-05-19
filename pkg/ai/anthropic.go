@@ -6,10 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
-	"time"
 )
 
 type anthropicContent struct {
@@ -23,7 +21,7 @@ type anthropicContent struct {
 }
 
 type anthropicMessage struct {
-	Role    string             `json:"role"`
+	Role    string            `json:"role"`
 	Content []anthropicContent `json:"content"`
 }
 
@@ -43,8 +41,8 @@ type anthropicRequest struct {
 }
 
 type anthropicStreamChunk struct {
-	Type    string `json:"type"`
-	Message *struct {
+	Type         string `json:"type"`
+	Message      *struct {
 		StopReason string `json:"stop_reason,omitempty"`
 	} `json:"message,omitempty"`
 	Delta struct {
@@ -91,7 +89,6 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 
 		var reqMessages []anthropicMessage
 		var systemPrompt string
-
 		if aiCtx.SystemPrompt != nil {
 			systemPrompt = *aiCtx.SystemPrompt
 		}
@@ -124,20 +121,17 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 				reqMessages = append(reqMessages, anthropicMessage{Role: "assistant", Content: blocks})
 
 			case ToolResultMessage:
-				// Anthropic sends tool results wrapped inside "user" messages
 				content := ""
 				for _, pt := range msg.Content {
 					if txt, ok := pt.(TextContent); ok {
 						content += txt.Text
 					}
 				}
-
 				blocks = append(blocks, anthropicContent{
 					Type:      "tool_result",
 					ToolUseID: msg.ToolCallID,
 					Content:   content,
 				})
-
 				reqMessages = append(reqMessages, anthropicMessage{Role: "user", Content: blocks})
 			}
 		}
@@ -174,7 +168,6 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 		if o, ok := options.(StreamOptions); ok {
 			opt = o
 		}
-
 		if opt.AbortSignal != nil {
 			go func() {
 				select {
@@ -194,46 +187,21 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 			}
 			return
 		}
-
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("x-api-key", apiKey)
 		req.Header.Set("anthropic-version", "2023-06-01")
 
 		client := &http.Client{}
-
-		var resp *http.Response
-		maxRetries := 3
-
-		for i := 0; i < maxRetries; i++ {
-			// Recreate request inside loop to avoid consumed body errors
-			req, err = http.NewRequestWithContext(reqCtx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewBuffer(reqBytes))
-			if err == nil {
-				req.Header.Set("Content-Type", "application/json")
-				req.Header.Set("x-api-key", apiKey)
-				req.Header.Set("anthropic-version", "2023-06-01")
-			}
-
-			resp, err = client.Do(req)
-			if err != nil {
-				if reqCtx.Err() == context.Canceled {
-					reason := StopReasonAborted
-					if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
-						return
-					}
+		resp, err := client.Do(req)
+		if err != nil {
+			if reqCtx.Err() == context.Canceled {
+				reason := StopReasonAborted
+				if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
 					return
 				}
-				break
+				return
 			}
-			if resp.StatusCode == 429 || resp.StatusCode >= 500 {
-				resp.Body.Close()
-				time.Sleep(time.Duration(2<<i) * time.Second)
-				continue
-			}
-			break
-		}
-
-		if err != nil {
-			errMsg := err.Error()
+			errMsg := fmt.Sprintf("Anthropic API request failed: %v", err)
 			reason := StopReasonError
 			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
 				return
@@ -242,8 +210,10 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 		}
 		defer resp.Body.Close()
 
+		// Handle non-200 responses — report error with parsed body.
+		// Retry logic is handled at the AgentSession layer, not here.
 		if resp.StatusCode != 200 {
-			errMsg := fmt.Sprintf("Anthropic API error: status %d: %s", resp.StatusCode, readErrorBody(resp.Body))
+			errMsg := formatProviderError("Anthropic", resp)
 			reason := StopReasonError
 			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
 				return
@@ -261,7 +231,6 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 			if !strings.HasPrefix(line, "data: ") {
 				continue
 			}
-
 			data := strings.TrimPrefix(line, "data: ")
 
 			var chunk anthropicStreamChunk
@@ -312,8 +281,6 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 					}
 					return
 				} else if chunk.Type == "message_stop" {
-					// Done event already emitted by message_delta if stop_reason was there
-					// But we fall back here just in case
 					reason := StopReasonStop
 					if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
 						return
@@ -330,13 +297,4 @@ func StreamAnthropic(ctx context.Context, model ModelInfo, aiCtx Context, option
 	}()
 
 	return stream
-}
-
-// readErrorBody reads up to 1KB of an error response body for debugging.
-func readErrorBody(body io.Reader) string {
-	data, err := io.ReadAll(io.LimitReader(body, 1024))
-	if err != nil {
-		return "(could not read body)"
-	}
-	return string(data)
 }

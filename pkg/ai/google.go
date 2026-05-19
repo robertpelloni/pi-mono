@@ -8,11 +8,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 )
 
 type googleMessagePart struct {
-	Text         string `json:"text,omitempty"`
+	Text string `json:"text,omitempty"`
 	FunctionCall *struct {
 		Name string         `json:"name"`
 		Args map[string]any `json:"args"`
@@ -24,7 +23,7 @@ type googleMessagePart struct {
 }
 
 type googleMessage struct {
-	Role  string              `json:"role"`
+	Role  string            `json:"role"`
 	Parts []googleMessagePart `json:"parts"`
 }
 
@@ -44,15 +43,15 @@ type googleTool struct {
 
 type googleRequest struct {
 	SystemInstruction *googleSystemInstruction `json:"systemInstruction,omitempty"`
-	Contents          []googleMessage          `json:"contents"`
-	Tools             []googleTool             `json:"tools,omitempty"`
+	Contents          []googleMessage           `json:"contents"`
+	Tools             []googleTool              `json:"tools,omitempty"`
 }
 
 type googleStreamChunk struct {
 	Candidates []struct {
 		Content struct {
 			Parts []struct {
-				Text         string `json:"text,omitempty"`
+				Text string `json:"text,omitempty"`
 				FunctionCall *struct {
 					Name string         `json:"name"`
 					Args map[string]any `json:"args"`
@@ -93,7 +92,6 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 
 		var reqMessages []googleMessage
 		var sysInst *googleSystemInstruction
-
 		if aiCtx.SystemPrompt != nil && *aiCtx.SystemPrompt != "" {
 			sysInst = &googleSystemInstruction{
 				Parts: []googleMessagePart{{Text: *aiCtx.SystemPrompt}},
@@ -128,20 +126,17 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 				reqMessages = append(reqMessages, googleMessage{Role: "model", Parts: parts})
 
 			case ToolResultMessage:
-				// Map text content payload over into the function response map
 				content := ""
 				for _, pt := range msg.Content {
 					if txt, ok := pt.(TextContent); ok {
 						content += txt.Text
 					}
 				}
-
 				respMap := map[string]any{
 					"content": content,
 				}
-
 				reqMessages = append(reqMessages, googleMessage{
-					Role: "function", // Google uses 'function' role occasionally, or 'user' with FunctionResponse. The latter is standard for V1beta.
+					Role: "function",
 					Parts: []googleMessagePart{{
 						FunctionResponse: &struct {
 							Name     string         `json:"name"`
@@ -160,6 +155,7 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 				Parameters:  t.Parameters,
 			})
 		}
+
 		var reqTools []googleTool
 		if len(reqFuncs) > 0 {
 			reqTools = append(reqTools, googleTool{FunctionDeclarations: reqFuncs})
@@ -187,7 +183,6 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 		} else if o, ok := options.(GoogleOptions); ok {
 			opt = o.StreamOptions
 		}
-
 		if opt.AbortSignal != nil {
 			go func() {
 				select {
@@ -199,6 +194,7 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 		}
 
 		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s", model.ID, apiKey)
+
 		req, err := http.NewRequestWithContext(reqCtx, "POST", url, bytes.NewBuffer(reqBytes))
 		if err != nil {
 			errMsg := err.Error()
@@ -208,42 +204,19 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 			}
 			return
 		}
-
 		req.Header.Set("Content-Type", "application/json")
 
 		client := &http.Client{}
-
-		var resp *http.Response
-		maxRetries := 3
-
-		for i := 0; i < maxRetries; i++ {
-			// Recreate request inside loop to avoid consumed body errors
-			req, err = http.NewRequestWithContext(reqCtx, "POST", url, bytes.NewBuffer(reqBytes))
-			if err == nil {
-				req.Header.Set("Content-Type", "application/json")
-			}
-
-			resp, err = client.Do(req)
-			if err != nil {
-				if reqCtx.Err() == context.Canceled {
-					reason := StopReasonAborted
-					if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
-						return
-					}
+		resp, err := client.Do(req)
+		if err != nil {
+			if reqCtx.Err() == context.Canceled {
+				reason := StopReasonAborted
+				if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
 					return
 				}
-				break
+				return
 			}
-			if resp.StatusCode == 429 || resp.StatusCode >= 500 {
-				resp.Body.Close()
-				time.Sleep(time.Duration(2<<i) * time.Second)
-				continue
-			}
-			break
-		}
-
-		if err != nil {
-			errMsg := err.Error()
+			errMsg := fmt.Sprintf("Google API request failed: %v", err)
 			reason := StopReasonError
 			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
 				return
@@ -252,8 +225,10 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 		}
 		defer resp.Body.Close()
 
+		// Handle non-200 responses — report error with parsed body.
+		// Retry logic is handled at the AgentSession layer, not here.
 		if resp.StatusCode != 200 {
-			errMsg := fmt.Sprintf("Google API error: status %d: %s", resp.StatusCode, readErrorBody(resp.Body))
+			errMsg := formatProviderError("Google", resp)
 			reason := StopReasonError
 			if !sendEvent(AssistantMessageEvent{Type: EventError, Reason: &reason, Error: &AssistantMessage{ErrorMessage: &errMsg}}) {
 				return
@@ -271,7 +246,6 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 			if !strings.HasPrefix(line, "data: ") {
 				continue
 			}
-
 			data := strings.TrimPrefix(line, "data: ")
 
 			var chunk googleStreamChunk
@@ -279,19 +253,18 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 				if len(chunk.Candidates) > 0 {
 					if len(chunk.Candidates[0].Content.Parts) > 0 {
 						delta := chunk.Candidates[0].Content.Parts[0].Text
+
 						if chunk.Candidates[0].Content.Parts[0].FunctionCall != nil {
 							fc := chunk.Candidates[0].Content.Parts[0].FunctionCall
-							// Google returns whole blobs in stream usually, so we trigger start and delta together
 							if !sendEvent(AssistantMessageEvent{
 								Type: EventToolCallStart,
 								ToolCall: &ToolCall{
-									ID:   "call_google_generated", // Google doesn't use Call IDs consistently natively
+									ID:   "call_google_generated",
 									Name: fc.Name,
 								},
 							}) {
 								return
 							}
-
 							if argBytes, err := json.Marshal(fc.Args); err == nil {
 								argStr := string(argBytes)
 								if !sendEvent(AssistantMessageEvent{
@@ -300,7 +273,6 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 								}) {
 									return
 								}
-
 								if !sendEvent(AssistantMessageEvent{Type: EventToolCallEnd}) {
 									return
 								}
@@ -322,7 +294,6 @@ func StreamGoogle(ctx context.Context, model ModelInfo, aiCtx Context, options a
 						if chunk.Candidates[0].FinishReason == "MAX_TOKENS" {
 							reason = StopReasonLength
 						}
-						// Google doesn't have an explicit tool_calls finish reason, it usually emits STOP
 						if !sendEvent(AssistantMessageEvent{Type: EventDone, Reason: &reason}) {
 							return
 						}

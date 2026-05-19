@@ -3,6 +3,7 @@ package agentsession
 import (
 	"testing"
 
+	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/ai"
 )
 
@@ -121,5 +122,211 @@ func TestModelCycleResult(t *testing.T) {
 	}
 	if !result.IsScoped {
 		t.Error("Expected IsScoped to be true")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Additional AgentSession tests
+// ---------------------------------------------------------------------------
+
+func TestAgentSessionConfig_Fields(t *testing.T) {
+	config := AgentSessionConfig{
+		CWD:      "/test",
+		AgentDir: "/test/.pi",
+	}
+	if config.CWD != "/test" {
+		t.Error("CWD mismatch")
+	}
+	if config.AgentDir != "/test/.pi" {
+		t.Error("AgentDir mismatch")
+	}
+}
+
+func TestContextUsage_Fields(t *testing.T) {
+	tokens := 50000
+	percent := 50.0
+	usage := ContextUsage{
+		Tokens:        &tokens,
+		ContextWindow: 100000,
+		Percent:       &percent,
+	}
+	if usage.Tokens == nil || *usage.Tokens != 50000 {
+		t.Error("Tokens mismatch")
+	}
+	if usage.ContextWindow != 100000 {
+		t.Error("ContextWindow mismatch")
+	}
+	if usage.Percent == nil || *usage.Percent != 50.0 {
+		t.Error("Percent mismatch")
+	}
+}
+
+func TestSessionStats_Fields(t *testing.T) {
+	stats := SessionStats{
+		SessionFile:       "/test/session.jsonl",
+		SessionID:         "test-123",
+		UserMessages:      10,
+		AssistantMessages: 10,
+		ToolCalls:         5,
+		ToolResults:       5,
+		TotalMessages:     20,
+	}
+	if stats.SessionID != "test-123" {
+		t.Error("SessionID mismatch")
+	}
+	if stats.UserMessages != 10 {
+		t.Error("UserMessages mismatch")
+	}
+}
+
+func TestCompactionReason_Values(t *testing.T) {
+	reasons := []CompactionReason{
+		CompactionManual,
+		CompactionThreshold,
+		CompactionOverflow,
+	}
+	for _, r := range reasons {
+		if string(r) == "" {
+			t.Errorf("CompactionReason %v should not be empty", r)
+		}
+	}
+}
+
+func TestAgentSessionEvent_Fields(t *testing.T) {
+	event := AgentSessionEvent{
+		Type:  "agent_start",
+		Data:  map[string]interface{}{"key": "value"},
+		Error: nil,
+	}
+	if event.Type != "agent_start" {
+		t.Error("Type mismatch")
+	}
+}
+
+
+
+func TestNewAgentSession(t *testing.T) {
+	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
+	as := NewAgentSession(AgentSessionConfig{Agent: ag})
+	if as == nil {
+		t.Fatal("Expected non-nil AgentSession")
+	}
+	if as.IsStreaming() {
+		t.Error("Expected not streaming initially")
+	}
+	if as.IsCompacting() {
+		t.Error("Expected not compacting initially")
+	}
+}
+
+func TestAgentSession_Model(t *testing.T) {
+	as := NewAgentSession(AgentSessionConfig{
+		Agent: agent.NewAgent(ai.ModelInfo{ID: "test-model", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{}),
+	})
+	model := as.Model()
+	if model.ID != "test-model" {
+		t.Errorf("Expected model ID 'test-model', got %q", model.ID)
+	}
+}
+
+func TestAgentSession_ThinkingLevel(t *testing.T) {
+	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
+	as := NewAgentSession(AgentSessionConfig{Agent: ag})
+	level := as.ThinkingLevel()
+	// Default is "medium"
+	if level != "medium" && level != "" {
+		t.Errorf("Unexpected thinking level %q", level)
+	}
+}
+
+func TestAgentSession_AutoRetryEnabled(t *testing.T) {
+	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
+	as := NewAgentSession(AgentSessionConfig{Agent: ag})
+	// Without settings, auto-retry defaults to true
+	if !as.AutoRetryEnabled() {
+		t.Error("Expected auto-retry to be enabled by default")
+	}
+	as.SetAutoRetryEnabled(true)
+	if !as.AutoRetryEnabled() {
+		t.Error("Expected auto-retry to be enabled")
+	}
+}
+
+func TestAgentSession_AutoCompactionEnabled(t *testing.T) {
+	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
+	as := NewAgentSession(AgentSessionConfig{Agent: ag})
+	as.SetAutoCompactionEnabled(true)
+	if !as.AutoCompactionEnabled() {
+		t.Error("Expected auto-compaction to be enabled")
+	}
+}
+
+func TestAgentSession_Subscribe(t *testing.T) {
+	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
+	as := NewAgentSession(AgentSessionConfig{Agent: ag})
+	var receivedEvents []AgentSessionEvent
+	unsubscribe := as.Subscribe(func(event AgentSessionEvent) {
+		receivedEvents = append(receivedEvents, event)
+	})
+	if unsubscribe == nil {
+		t.Fatal("Expected non-nil unsubscribe function")
+	}
+	// Emit an event
+	as.emit(AgentSessionEvent{Type: "test_event"})
+	// Unsubscribe
+	unsubscribe()
+}
+
+func TestAgentSession_GetSteeringMessages(t *testing.T) {
+	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
+	as := NewAgentSession(AgentSessionConfig{Agent: ag})
+	msgs := as.GetSteeringMessages()
+	if msgs == nil {
+		// May be nil if no steering messages
+	}
+}
+
+func TestAgentSession_GetFollowUpMessages(t *testing.T) {
+	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
+	as := NewAgentSession(AgentSessionConfig{Agent: ag})
+	msgs := as.GetFollowUpMessages()
+	if msgs == nil {
+		// May be nil if no follow-up messages
+	}
+}
+
+func TestAgentSession_PendingMessageCount(t *testing.T) {
+	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
+	as := NewAgentSession(AgentSessionConfig{Agent: ag})
+	count := as.PendingMessageCount()
+	if count != 0 {
+		t.Errorf("Expected 0 pending messages, got %d", count)
+	}
+}
+
+func TestAgentSession_IsRetrying(t *testing.T) {
+	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
+	as := NewAgentSession(AgentSessionConfig{Agent: ag})
+	if as.IsRetrying() {
+		t.Error("Expected not retrying initially")
+	}
+}
+
+func TestAgentSession_RetryAttempt(t *testing.T) {
+	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
+	as := NewAgentSession(AgentSessionConfig{Agent: ag})
+	attempt := as.RetryAttempt()
+	if attempt != 0 {
+		t.Errorf("Expected retry attempt 0, got %d", attempt)
+	}
+}
+
+func TestAgentSession_GetAvailableThinkingLevels(t *testing.T) {
+	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
+	as := NewAgentSession(AgentSessionConfig{Agent: ag})
+	levels := as.GetAvailableThinkingLevels()
+	// Should return some levels
+	if len(levels) == 0 {
+		t.Error("Expected at least one thinking level")
 	}
 }

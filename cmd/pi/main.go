@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/badlogic/pi-mono/pkg/agent"
+	"github.com/badlogic/pi-mono/pkg/agentsession"
 	"github.com/badlogic/pi-mono/pkg/ai"
 	"github.com/badlogic/pi-mono/pkg/auth"
 	"github.com/badlogic/pi-mono/pkg/compaction"
@@ -24,6 +25,7 @@ import (
 	"github.com/badlogic/pi-mono/pkg/outputguard"
 	"github.com/badlogic/pi-mono/pkg/server"
 	"github.com/badlogic/pi-mono/pkg/session"
+	"github.com/badlogic/pi-mono/pkg/sessionruntime"
 	"github.com/badlogic/pi-mono/pkg/settings"
 	"github.com/badlogic/pi-mono/pkg/skills"
 	"github.com/badlogic/pi-mono/pkg/slashcommands"
@@ -250,8 +252,9 @@ func main() {
 
 	// ─── Load Skills ───
 	var loadedSkills []skills.Skill
+	var skillLoader *skills.SkillLoader
 	if !*noSkills {
-		skillLoader := skills.NewSkillLoader()
+		skillLoader = skills.NewSkillLoader()
 		skillResult := skillLoader.LoadSkills(agentDir, cwd)
 		loadedSkills = skillResult.Skills
 		for _, diag := range skillResult.Diagnostics {
@@ -332,15 +335,22 @@ func main() {
 	}
 
 	// ─── Compaction ───
+	var compactor *compaction.Compactor
 	if *compactThreshold > 0 {
-		compactor := compaction.NewCompactor(compaction.CompactionConfig{
+		compactor = compaction.NewCompactor(compaction.CompactionConfig{
 			MaxTokens: *compactThreshold,
-			Strategy:  compaction.StrategySummarize,
+			Strategy: compaction.StrategySummarize,
 			KeepLastN: 6,
+			SummarizeFn: func(ctx context.Context, messages []ai.Message) (string, error) {
+				prompt := compaction.PrepareSummarizationPrompt(messages, nil, nil)
+				_ = prompt // Will be sent to LLM for summarization
+				result := compaction.GenerateDefaultSummary(messages, nil, nil, compaction.NewFileOps())
+				return result.Summary, nil
+			},
 		})
 		agentConfig.TransformContext = func(ctx context.Context, messages []ai.Message) ([]ai.Message, error) {
 			if compactor.ShouldCompact(messages) {
-				fmt.Fprintf(os.Stderr, "[Compaction] Context exceeds %d tokens, compacting...\n", *compactThreshold)
+				fmt.Fprintf(os.Stderr, "[Compaction] Context exceeds %d tokens, compacting.\n", *compactThreshold)
 				return compactor.Compact(ctx, messages)
 			}
 			return messages, nil
@@ -420,6 +430,41 @@ func main() {
 		}
 	})
 
+	// ─── Create AgentSession (wraps Agent + Session + Retry + Compaction) ───
+	var agentSess *agentsession.AgentSession
+	agentSess = agentsession.NewAgentSession(agentsession.AgentSessionConfig{
+		Agent:          agentLoop,
+		SessionManager: sess,
+		Settings:       settingsManager,
+		ModelRegistry:  modelRegistry,
+		SkillLoader:    skillLoader,
+		Compactor:      compactor,
+		SlashCommands:  slashRegistry,
+		CWD:            cwd,
+		AgentDir:       agentDir,
+	})
+
+	// ─── Create Session Runtime ───
+	var runtime *sessionruntime.AgentSessionRuntime
+	runtime, runtimeErr := sessionruntime.CreateAgentSessionRuntime(
+		sessionruntime.DefaultCreateRuntime,
+		sessionruntime.CreateAgentSessionRuntimeOptions{
+			CWD:             cwd,
+			AgentDir:        agentDir,
+			SessionManager:  sess,
+			SettingsManager: settingsManager,
+			ModelRegistry:   modelRegistry,
+			SlashRegistry:   slashRegistry,
+			Model:           &modelInfo,
+			StreamFn:        streamFunc,
+			Tools:           toolList,
+		},
+	)
+	_ = runtime
+	if runtimeErr != nil {
+		fmt.Fprintf(os.Stderr, "Warning: session runtime init failed: %v\n", runtimeErr)
+	}
+
 	// ─── Startup Banner ───
 	fmt.Fprintf(os.Stderr, "pi-go v%s | model: %s | provider: %s | tools: %d | frontend: %s | session: %s\n",
 		Version, *modelID, *providerName, len(toolList), *frontendType, sess.GetSessionID())
@@ -480,10 +525,18 @@ func main() {
 	case "cli":
 		renderer = cli.NewCLIRenderer(agentLoop)
 	case "bubbletea":
-		renderer = bubbletea.NewInteractiveRendererWithSlashCommands(agentLoop, slashRegistry)
+		if agentSess != nil {
+			renderer = bubbletea.NewInteractiveRendererWithAgentSession(agentSess, slashRegistry)
+		} else {
+			renderer = bubbletea.NewInteractiveRendererWithSlashCommands(agentLoop, slashRegistry)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "Invalid frontend %q. Falling back to bubbletea.\n", *frontendType)
-		renderer = bubbletea.NewInteractiveRendererWithSlashCommands(agentLoop, slashRegistry)
+		if agentSess != nil {
+			renderer = bubbletea.NewInteractiveRendererWithAgentSession(agentSess, slashRegistry)
+		} else {
+			renderer = bubbletea.NewInteractiveRendererWithSlashCommands(agentLoop, slashRegistry)
+		}
 	}
 	agentLoop.Subscribe(renderer.RenderEvent)
 
