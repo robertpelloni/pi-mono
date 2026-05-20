@@ -38,3 +38,6 @@ plans/
 .pi/hf-sessions/
 .pi/hf-sessions-backup/
 collect.sh
+
+# Jules AI session logs (auto-generated, not needed in repo)
+.jules/sessions/
