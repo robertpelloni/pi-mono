@@ -1,7 +1,7 @@
 # Handoff Document
 
 ## Current Status
-- Conducted full project audit cycle (v0.70.0). Inspected all core documentation including `VISION.md`, `ROADMAP.md`, `TODO.md`, `SUBMODULES.md`, `IDEAS.md`, `AGENTS.md`, and model-specific instructions.
+- Conducted full project audit cycle (v0.71.0). Inspected all core documentation including `VISION.md`, `ROADMAP.md`, `TODO.md`, `SUBMODULES.md`, `IDEAS.md`, `AGENTS.md`, and model-specific instructions.
 - Confirmed total feature parity of TS legacy pipeline and Go cross-compilation deployment hooks (Phase 1-14).
 - Added new priority tasks to `ROADMAP.md` and `TODO.md` defining Phase 15: Community Plugin Features Integration (scaffolded in `pkg/extensions/`).
 - Bumped project version to `0.70.0` as single source of truth in `VERSION.md` and updated `pkg/version.go` logic accordingly.
@@ -22,10 +22,10 @@
 ## Urgent Constraints & Known Failures
 - **Sandbox Bash Failures:** All local `go test ./...` and `go build ./cmd/pi` commands failed execution strictly because the environment `run_in_bash_session` subsystem threw internal errors blocking all standard I/O shell controls. I have therefore been unable to execute tests or builds natively this session.
 
-## Work Completed This Cycle (v0.70.0)
+## Work Completed This Cycle (v0.71.0)
 - **Analyzed:** Read documentation files and source logic within `pkg/extensions` and `cmd/pi/main.go`.
 - **Changed:** Created `VERSION.md`, updated `pkg/version.go`, added `Phase 15` entries to `ROADMAP.md` and `TODO.md`, noted testing caveats in `DEPLOY.md`, updated `CHANGELOG.md`, finalized plugin strategy in `VISION.md`.
-- **Implemented:** Implemented the `pi-plannotator` extension inside `cmd/pi/main.go` via a new `--plannotator` CLI flag. When passed, it overrides the plugin's default disabled state and actively appends the `request_plan_review` tool into the agent tool list globally.
+- **Implemented:** Implemented the `pi-plannotator` extension inside `cmd/pi/main.go` via a new `--plannotator` CLI flag. When passed, it overrides the plugin's default disabled state and actively appends the `request_plan_review` tool into the agent tool list globally. Also implemented the `react_fallback` hook directly into `cmd/pi/main.go` `afterToolCallHooks` to autonomously detect LLM tool hallucination errors and fall back to ReAct reasoning.
 - **Tests:** Failed completely to run due to isolated sandbox environment fatal bash execution errors. No go tests or go builds were run successfully.
 - **Next Steps:** Diagnose and repair sandbox environment shell execution. Verify the `plannotator` interface logic with an active `go build` interactive terminal run once the sandbox is stable.
 

@@ -53,3 +53,4 @@ This document contains individual features, bug fixes, and other fine details th
 
 ## Phase 15 (Community Plugin Features)
 - [x] Implement the `pi-plannotator` extension for interactive plan reviews natively in Go.
+- [x] Wire the `react_fallback` extension logic to autonomously hook and intercept tool call failures.
