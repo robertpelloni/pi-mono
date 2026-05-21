@@ -89,7 +89,7 @@ export async function handleAiderRunCommand(args: { cmd: string }): Promise<stri
 	}
 }
 
-export async function handleAiderReplaceLines(args: {
+export async function handleAiderReplaceLines(_args: {
 	file_path: string;
 	start_line: number;
 	end_line: number;

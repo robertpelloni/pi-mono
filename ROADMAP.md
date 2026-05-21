@@ -31,3 +31,4 @@ This document contains major long-term structural plans for the project.
 - [x] Phase 12: Wire the legacy React Web UI frontends to natively consume the new Go endpoints.
 - [x] Phase 13: Deprecate Legacy Pipelines.
 - [x] Phase 14: Automated Cross-Platform Deployment Hooks.
+- [ ] Phase 15: Community Plugin Features Integration (e.g. pi-plannotator, pi-diag).

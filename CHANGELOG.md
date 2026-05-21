@@ -10,8 +10,14 @@
 - Mapped GitHub Actions CI/CD workflows for both TS and Go tests.
 
 ## [Unreleased]
+
+## [0.71.0] - 2026-05-19
+
 ### Added
 - Completed Phase 14 analysis of deployment strategies. Documented plan to migrate cross-platform compilation targets from Bun/Node backends entirely to native `go build` cross-compilation binaries and distroless Docker containers.
+- Implemented the `pi-plannotator` extension for interactive plan reviews natively in Go.
+- Wired the `react_fallback` extension logic to autonomously intercept tool call failures and prompt ReAct reasoning.
+
 ### Fixed
 - Fixed missing tool registration for clean-room tools in `packages/coding-agent/src/core/tools/index.ts`.
 - Implemented and registered clean-room tools natively in Go `pkg/tools` and `cmd/pi/main.go` to maintain parity.

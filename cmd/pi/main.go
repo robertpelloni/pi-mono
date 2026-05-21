@@ -16,6 +16,7 @@ import (
 	"github.com/badlogic/pi-mono/pkg/extensions/acp_adapter"
 	"github.com/badlogic/pi-mono/pkg/extensions/babysitter"
 	"github.com/badlogic/pi-mono/pkg/extensions/plannotator"
+	"github.com/badlogic/pi-mono/pkg/extensions/react_fallback"
 	"github.com/badlogic/pi-mono/pkg/extensions/worktrees"
 	"github.com/badlogic/pi-mono/pkg/fileprocessor"
 	"github.com/badlogic/pi-mono/pkg/frontends/bubbletea"
@@ -23,6 +24,7 @@ import (
 	cliflags "github.com/badlogic/pi-mono/pkg/listmodels"
 	"path/filepath"
 
+	pkgversion "github.com/badlogic/pi-mono/pkg"
 	"github.com/badlogic/pi-mono/pkg/modelregistry"
 	"github.com/badlogic/pi-mono/pkg/modelresolver"
 	"github.com/badlogic/pi-mono/pkg/outputguard"
@@ -34,7 +36,6 @@ import (
 	"github.com/badlogic/pi-mono/pkg/slashcommands"
 	"github.com/badlogic/pi-mono/pkg/systemprompt"
 	"github.com/badlogic/pi-mono/pkg/tools"
-	pkgversion "github.com/badlogic/pi-mono/pkg"
 )
 
 // Version is set at build time via -ldflags
@@ -74,6 +75,7 @@ func main() {
 	noGuard := flag.Bool("no-guard", false, "Disable output guard")
 	compactThreshold := flag.Int("compact-threshold", 100000, "Token threshold for auto-compaction (0 to disable)")
 	noExtensions := flag.Bool("no-extensions", false, "Disable extension discovery")
+	enablePlannotator := flag.Bool("plannotator", false, "Enable the interactive pi-plannotator plan review tool")
 
 	flag.Parse()
 
@@ -244,6 +246,8 @@ func main() {
 
 	// ─── Initialize Tools ───
 	var toolList []agent.AgentTool
+
+	var reactFallbackPlugin *react_fallback.ReActFallbackPlugin
 	if !*noTools {
 		toolList = tools.CreateAllTools(cwd)
 	}
@@ -252,6 +256,11 @@ func main() {
 	if !*noExtensions {
 		worktreePlugin := worktrees.NewWorktreePlugin()
 		plannotatorPlugin := plannotator.NewPlannotatorPlugin()
+		if *enablePlannotator {
+			plannotatorPlugin.Enabled = true
+		}
+
+		reactFallbackPlugin = react_fallback.NewReActFallbackPlugin()
 		babysitterPlugin := babysitter.NewBabysitterPlugin()
 		acpAdapterPlugin := acp_adapter.NewACPAdapterPlugin()
 
@@ -260,6 +269,8 @@ func main() {
 			toolList = plannotatorPlugin.AddTools(toolList)
 			toolList = babysitterPlugin.AddTools(toolList)
 			toolList = acpAdapterPlugin.AddTools(toolList)
+			// ReAct fallback uses hook, not tool
+			reactFallbackPlugin.Enabled = true
 		}
 	}
 
@@ -291,21 +302,25 @@ func main() {
 	contextFiles := systemprompt.LoadProjectContextFiles(cwd)
 	skillRefs := skills.ToSkillRefs(loadedSkills)
 	effectiveSystemPrompt := systemprompt.BuildSystemPrompt(systemprompt.BuildSystemPromptOptions{
-		CustomPrompt:        *systemPromptFlag,
-		AppendSystemPrompt:  *appendSystemPromptFlag,
-		SelectedTools:       selectedToolNames,
-		ToolSnippets:        toolSnippets,
-		ContextFiles:        contextFiles,
-		Skills:              skillRefs,
-		CWD:                 cwd,
+		CustomPrompt:       *systemPromptFlag,
+		AppendSystemPrompt: *appendSystemPromptFlag,
+		SelectedTools:      selectedToolNames,
+		ToolSnippets:       toolSnippets,
+		ContextFiles:       contextFiles,
+		Skills:             skillRefs,
+		CWD:                cwd,
 	})
 
 	// ─── Output Guard ───
+
 	var beforeToolCallHooks []func(ctx context.Context, callCtx agent.BeforeToolCallContext) (*agent.BeforeToolCallResult, error)
 	var afterToolCallHooks []func(ctx context.Context, callCtx agent.AfterToolCallContext) (*agent.AfterToolCallResult, error)
 	if !*noGuard {
 		beforeToolCallHooks = append(beforeToolCallHooks, outputguard.InitBeforeHook(cwd))
 		afterToolCallHooks = append(afterToolCallHooks, outputguard.InitAfterHook(cwd))
+		if reactFallbackPlugin != nil {
+			afterToolCallHooks = append(afterToolCallHooks, reactFallbackPlugin.InterceptAfterToolCall)
+		}
 	}
 
 	composedBeforeToolCall := func(ctx context.Context, callCtx agent.BeforeToolCallContext) (*agent.BeforeToolCallResult, error) {
@@ -342,9 +357,9 @@ func main() {
 
 	// ─── Initialize Agent ───
 	agentConfig := agent.AgentLoopConfig{
-		ToolExecution:   toolExecution,
-		BeforeToolCall:  composedBeforeToolCall,
-		AfterToolCall:   composedAfterToolCall,
+		ToolExecution:  toolExecution,
+		BeforeToolCall: composedBeforeToolCall,
+		AfterToolCall:  composedAfterToolCall,
 	}
 
 	// ─── Compaction ───
@@ -352,7 +367,7 @@ func main() {
 	if *compactThreshold > 0 {
 		compactor = compaction.NewCompactor(compaction.CompactionConfig{
 			MaxTokens: *compactThreshold,
-			Strategy: compaction.StrategySummarize,
+			Strategy:  compaction.StrategySummarize,
 			KeepLastN: 6,
 			SummarizeFn: func(ctx context.Context, messages []ai.Message) (string, error) {
 				prompt := compaction.PrepareSummarizationPrompt(messages, nil, nil)

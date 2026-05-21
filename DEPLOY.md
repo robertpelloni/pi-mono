@@ -33,6 +33,8 @@ go build -o pi-agent ./cmd/pi
 
 *(This file will be updated with containerization, orchestration, and CI/CD specifics as the Go port develops).*
 
+**Note:** Testing in the sandbox environment may fail due to internal bash errors. Locally, ensure you have Go 1.24+ to compile correctly across target platforms.
+
 ### Cross-Platform Compilation
 A standard `Makefile` is now included. To build binaries for all target architectures (Linux, Darwin, Windows) simultaneously into the `bin/` directory, run:
 ```bash

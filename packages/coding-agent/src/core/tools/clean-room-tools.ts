@@ -1,8 +1,6 @@
 import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { Text } from "@mariozechner/pi-tui";
 import {
-	handleAiderReplaceLines,
-	handleAiderRunCommand,
 	handleClineAskFollowup,
 	handleClineBrowserAction,
 	handleClineExecuteCommand,
@@ -12,8 +10,6 @@ import {
 	handleOpenInterpreterComputerUse,
 } from "./clean-room-handlers.js";
 import {
-	aiderReplaceLinesSchema,
-	aiderRunCommandSchema,
 	clineAskFollowupSchema,
 	clineBrowserActionSchema,
 	clineExecuteCommandSchema,
@@ -32,7 +28,7 @@ export function createOpenInterpreterComputerUseTool(): AgentTool<typeof openInt
 		promptSnippet: "Use computer",
 		promptGuidelines: [],
 		parameters: openInterpreterComputerUseSchema,
-		async execute(toolCallId, args, signal, onUpdate, ctx) {
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
 			const output = await handleOpenInterpreterComputerUse(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
@@ -41,7 +37,7 @@ export function createOpenInterpreterComputerUseTool(): AgentTool<typeof openInt
 			text.setText(`${theme.fg("toolTitle", theme.bold("computer"))} (${args.action})`);
 			return text;
 		},
-		renderResult(result, options, theme, context) {
+		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("Computer action executed.");
 			return text;
@@ -57,7 +53,7 @@ export function createHermesMemoryTool(): AgentTool<typeof hermesMemorySchema> {
 		promptSnippet: "Use memory",
 		promptGuidelines: [],
 		parameters: hermesMemorySchema,
-		async execute(toolCallId, args, signal, onUpdate, ctx) {
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
 			const output = await handleHermesMemory(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
@@ -66,7 +62,7 @@ export function createHermesMemoryTool(): AgentTool<typeof hermesMemorySchema> {
 			text.setText(`${theme.fg("toolTitle", theme.bold("memory"))} (${args.key})`);
 			return text;
 		},
-		renderResult(result, options, theme, context) {
+		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("Memory saved.");
 			return text;
@@ -82,7 +78,7 @@ export function createClineExecuteCommandTool(): AgentTool<typeof clineExecuteCo
 		promptSnippet: "Use execute_command",
 		promptGuidelines: [],
 		parameters: clineExecuteCommandSchema,
-		async execute(toolCallId, args, signal, onUpdate, ctx) {
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
 			const output = await handleClineExecuteCommand(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
@@ -91,7 +87,7 @@ export function createClineExecuteCommandTool(): AgentTool<typeof clineExecuteCo
 			text.setText(`${theme.fg("toolTitle", theme.bold("execute_command"))} (${args.command})`);
 			return text;
 		},
-		renderResult(result, options, theme, context) {
+		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("Command executed.");
 			return text;
@@ -107,7 +103,7 @@ export function createClineWriteToFileTool(): AgentTool<typeof clineWriteToFileS
 		promptSnippet: "Use write_to_file",
 		promptGuidelines: [],
 		parameters: clineWriteToFileSchema,
-		async execute(toolCallId, args, signal, onUpdate, ctx) {
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
 			const output = await handleClineWriteToFile(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
@@ -116,7 +112,7 @@ export function createClineWriteToFileTool(): AgentTool<typeof clineWriteToFileS
 			text.setText(`${theme.fg("toolTitle", theme.bold("write_to_file"))} (${args.path})`);
 			return text;
 		},
-		renderResult(result, options, theme, context) {
+		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("File written.");
 			return text;
@@ -132,16 +128,16 @@ export function createClineAskFollowupTool(): AgentTool<typeof clineAskFollowupS
 		promptSnippet: "Use ask_followup_question",
 		promptGuidelines: [],
 		parameters: clineAskFollowupSchema,
-		async execute(toolCallId, args, signal, onUpdate, ctx) {
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
 			const output = await handleClineAskFollowup(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(args, theme, context) {
+		renderCall(_args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("ask_followup_question"))}`);
 			return text;
 		},
-		renderResult(result, options, theme, context) {
+		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("Question asked.");
 			return text;
@@ -157,7 +153,7 @@ export function createClineListCodeDefinitionNamesTool(): AgentTool<typeof cline
 		promptSnippet: "Use list_code_definition_names",
 		promptGuidelines: [],
 		parameters: clineListCodeDefinitionNamesSchema,
-		async execute(toolCallId, args, signal, onUpdate, ctx) {
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
 			const output = await handleClineListCodeDefinitionNames(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
@@ -166,7 +162,7 @@ export function createClineListCodeDefinitionNamesTool(): AgentTool<typeof cline
 			text.setText(`${theme.fg("toolTitle", theme.bold("list_code_definition_names"))} (${args.path})`);
 			return text;
 		},
-		renderResult(result, options, theme, context) {
+		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("Listed definitions.");
 			return text;
@@ -182,7 +178,7 @@ export function createClineBrowserActionTool(): AgentTool<typeof clineBrowserAct
 		promptSnippet: "Use browser_action",
 		promptGuidelines: [],
 		parameters: clineBrowserActionSchema,
-		async execute(toolCallId, args, signal, onUpdate, ctx) {
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
 			const output = await handleClineBrowserAction(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
@@ -191,7 +187,7 @@ export function createClineBrowserActionTool(): AgentTool<typeof clineBrowserAct
 			text.setText(`${theme.fg("toolTitle", theme.bold("browser_action"))} (${args.action})`);
 			return text;
 		},
-		renderResult(result, options, theme, context) {
+		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("Browser action complete.");
 			return text;

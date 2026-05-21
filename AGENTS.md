@@ -64,6 +64,9 @@ When closing issues via commit:
 - Include `fixes #<number>` or `closes #<number>` in the commit message
 - This automatically closes the issue when the commit is merged
 
+## Plannotator Workflow (Phase 15)
+- During interactive task plans, rely on the natively hooked `pi-plannotator` tools if requested by the user, adhering to the `ROADMAP.md`.
+
 ## PR Workflow
 - Analyze PRs without pulling locally first
 - If the user approves: create a feature branch, pull PR, rebase on main, apply adjustments, commit, merge into main, push, close PR, and leave a comment in the user's tone
