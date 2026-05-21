@@ -261,7 +261,7 @@ describe("totalTokens field", () => {
 				timeout: 60000,
 			},
 			async () => {
-				const llm = getModel("xai", "grok-2-latest");
+				const llm = getModel("xai", "grok-code-fast-1");
 
 				console.log(`\nxAI / ${llm.id}:`);
 				const { first, second } = await testTotalTokensWithCache(llm, { apiKey: process.env.XAI_API_KEY });
