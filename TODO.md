@@ -2,55 +2,23 @@
 
 This document contains individual features, bug fixes, and other fine details that need to be solved/implemented in the short term.
 
-## Short-term Action Items
-- [x] Integrate optional extension architecture from shittycodingagent.ai
+## Immediate Action Items
+- [ ] Optimize Go `HandleUnifiedRead` for very large files (streaming support).
+- [ ] Implement robust terminal detection in Go for OSC 8 hyperlink support (parity with TS `tui`).
+- [ ] Refactor `pkg/server` to handle concurrent agent sessions more efficiently.
+- [ ] Add integration tests for `browser_action` tool parity.
 
-- [x] Add all specified submodules (`aider`, `goose`, `open-interpreter`, `hermes-agent`, etc).
-- [x] Port `packages/ai/src/types.ts` to Go interfaces and structs.
-- [x] Port basic OpenAI stream provider to Go.
-- [x] Port basic Anthropic stream provider to Go.
-- [x] Port basic Google Gemini stream provider to Go.
-- [x] Port global models JSON registry logic to Go.
-- [x] Port internal tool structures for generic providers.
-- [x] Port context execution loops (`pkg/agent`).
-- [x] Create testing harness in Go similar to the TypeScript suite.
-- [x] Set up CI/CD workflows for the new Go project.
+## Submodule Assimilation Verification (Phase 16)
+- [x] Verify all 11 submodules' features are implemented or redundant.
+- [x] Document assimilation in `SUBMODULE_INVENTORY.md`.
+- [x] Remove all submodules from the repository.
 
-## Submodule Tool Assimilation (Phase 6)
-- [x] Goose (`developer__shell`, `recipe__final_output`)
-- [x] Aider (`replace_lines`, `run_command`)
-- [x] Copilot (`vscode_read`)
-- [x] Claude Code (`read_file`, `bash`)
-- [x] Open Interpreter (Extract specific OS control modules natively into Go)
-- [x] Hermes Agent (Extract browser controls, home assistant, MOA, memory natively)
+## Documentation & Maintenance
+- [ ] Synchronize `VISION.md` with the finalized Go architecture.
+- [ ] Update `DEPLOY.md` with cross-platform binary instructions.
+- [ ] Audit `IDEAS.md` for post-assimilation pivot opportunities.
 
-# Crucial Code Review Fixes (Next Session)
-1. ~~**Fix Missing Tool Registration**: The TypeScript `clean-room-tools.ts` and `clean-room-schemas.ts` were built, but they need to be actively exported from `packages/coding-agent/src/core/tools/index.ts` in order to be functionally available to the user, not just exist as dead code. Ensure they are mapped to `allToolDefinitions` and `allTools`.~~
-2. ~~**Remove Node Scripts**~~: If any leftover `.cjs` scripts exist from previous automation (e.g. `patch_agent_hooks.cjs`), remove them explicitly. Do not commit scratchpad scripts into the repo.
-
-# Next Session Tasks
-1. ~~Analyze 'pkg/tui' and refactor into dedicated cross-platform multi-frontend interfaces.~~
-2. ~~Deep review of newly assimilated OpenInterpreter capabilities.~~
-3. ~~Explore new submodules to add to Phase 9.~~
-## Submodule Tool Assimilation (Phase 9)
-- [x] Analyze `cline` submodule schemas and assimilate unique capabilities.
-- [x] Add Codebuff and Mistral Vibe as submodules for analysis.
-- [x] Catalog unavailable/closed-source CLIs in SUBMODULE_INVENTORY.md.
-
-## Phase 10 (Web UI Integration)
-- [x] Port the static asset hosting pipeline for the web frontend into the Go `pkg/server` component.
-
-## Phase 11 (API & Websocket Integration)
-- [x] Expose an HTTP/SSE API in `pkg/server` to allow external GUI clients to connect and stream agent `Prompt` cycles.
-- [x] Integrate React Web UI frontend build hooks directly into the Go module execution.
-
-
-## Final Pipeline Tasks
-- [x] Clean up redundant Node.js testing dependencies now that Go actions are verified.
-- [x] Release `v0.69.0` marking full feature parity completion.
-## Phase 14
-- [x] Evaluate deployment strategies natively compiling the Go application for target architectures.
-
-## Phase 15 (Community Plugin Features)
-- [x] Implement the `pi-plannotator` extension for interactive plan reviews natively in Go.
-- [x] Wire the `react_fallback` extension logic to autonomously hook and intercept tool call failures.
+# Crucial Code Review Fixes (Completed)
+- [x] Fix Missing Tool Registration (Clean Room tools now active).
+- [x] Remove Node Scripts (Legacy automation cleaned).
+- [x] Release v0.69.0-v0.82.0 marking assimilation progress.
