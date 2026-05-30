@@ -257,7 +257,24 @@ func handleHermesClarify(args map[string]interface{}) string {
 }
 
 func handleHermesExecuteCode(args map[string]interface{}) string {
-	return "Python code execution simulated successfully."
+	code, ok := args["code"].(string)
+	if !ok {
+		return "Error: missing 'code' parameter"
+	}
+
+	// Attempt to run with python3
+	cmd := exec.Command("python3", "-c", code)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		// Fallback to python if python3 is missing
+		cmd = exec.Command("python", "-c", code)
+		out, err = cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Sprintf("Error executing Python code: %v\nOutput: %s", err, string(out))
+		}
+	}
+
+	return string(out)
 }
 
 func handleHermesCronjob(args map[string]interface{}) string {
