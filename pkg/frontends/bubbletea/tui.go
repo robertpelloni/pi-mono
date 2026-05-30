@@ -14,21 +14,6 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-)
-
-var (
-	styleUser      = lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Bold(true)
-	styleAssistant = lipgloss.NewStyle().Foreground(lipgloss.Color("39")).Bold(true)
-	styleTool      = lipgloss.NewStyle().Foreground(lipgloss.Color("214"))
-	styleError     = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
-	styleSystem    = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	styleThinking  = lipgloss.NewStyle().Foreground(lipgloss.Color("63")).Italic(true)
-	styleSlashInfo = lipgloss.NewStyle().Foreground(lipgloss.Color("120"))
-	styleSlashErr  = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
-	styleHeader    = lipgloss.NewStyle().Foreground(lipgloss.Color("86")).Bold(true)
-	styleCompaction = lipgloss.NewStyle().Foreground(lipgloss.Color("228"))
-	styleRetry     = lipgloss.NewStyle().Foreground(lipgloss.Color("213"))
 )
 
 // AgentUIModel represents the Bubbletea state for the interactive AI agent interface.
@@ -154,7 +139,7 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					result, isCommand, err := m.slashRegistry.Execute(userText)
 					if isCommand {
 						if err != nil {
-							m.conversation.WriteString(styleSlashErr.Render(fmt.Sprintf("\n[Error] %v\n", err)))
+							m.conversation.WriteString(StyleError.Render(fmt.Sprintf("\n[Error] %v\n", err)))
 						} else {
 							m.handleSlashResult(result)
 						}
@@ -166,7 +151,7 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				// Regular user message
 				m.isGenerating = true
-				m.conversation.WriteString(styleUser.Render(fmt.Sprintf("\n[User]: %s\n", userText)))
+				m.conversation.WriteString(StyleUser.Render(fmt.Sprintf("\n[User]: %s\n", userText)))
 				m.viewport.SetContent(m.conversation.String())
 				m.viewport.GotoBottom()
 
@@ -197,7 +182,7 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ExecutionDoneMsg:
 		m.isGenerating = false
 		if msg.Err != nil {
-			m.conversation.WriteString(styleError.Render(fmt.Sprintf("\n[Error]: %v\n", msg.Err)))
+			m.conversation.WriteString(StyleError.Render(fmt.Sprintf("\n[Error]: %v\n", msg.Err)))
 		}
 		m.conversation.WriteString("\n")
 		m.viewport.SetContent(m.conversation.String())
@@ -212,12 +197,12 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		event := agentsession.AgentSessionEvent(msg)
 		switch event.Type {
 		case "compaction_start":
-			m.conversation.WriteString(styleCompaction.Render("\n[Compaction] Starting...\n"))
+			m.conversation.WriteString(StyleCompaction.Render("\n[Compaction] Starting...\n"))
 		case "compaction_end":
-			m.conversation.WriteString(styleCompaction.Render("[Compaction] Complete.\n"))
+			m.conversation.WriteString(StyleCompaction.Render("[Compaction] Complete.\n"))
 		case "auto_retry_start":
 			if data, ok := event.Data.(map[string]interface{}); ok {
-				m.conversation.WriteString(styleRetry.Render(fmt.Sprintf(
+				m.conversation.WriteString(StyleRetry.Render(fmt.Sprintf(
 					"\n[Retry] Attempt %v/%v (delay: %vms)\n",
 					data["attempt"], data["maxAttempts"], data["delayMs"],
 				)))
@@ -225,7 +210,7 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "auto_retry_end":
 			if data, ok := event.Data.(map[string]interface{}); ok {
 				success := data["success"]
-				m.conversation.WriteString(styleRetry.Render(fmt.Sprintf(
+				m.conversation.WriteString(StyleRetry.Render(fmt.Sprintf(
 					"[Retry] Done (success=%v, attempt=%v)\n",
 					success, data["attempt"],
 				)))
@@ -239,7 +224,7 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.conversation = strings.Builder{}
 			m.viewport.SetContent("New session started.")
 		case "reload":
-			m.conversation.WriteString(styleSystem.Render("\n[System] Reloaded.\n"))
+			m.conversation.WriteString(StyleSystem.Render("\n[System] Reloaded.\n"))
 		case "queue_update":
 			// Could show queue count in status
 		}
@@ -251,12 +236,12 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		event := agent.AgentEvent(msg)
 		switch event.Type {
 		case agent.EventAgentStart:
-			m.conversation.WriteString(styleSystem.Render("\n[Agent] Starting...\n"))
+			m.conversation.WriteString(StyleSystem.Render("\n[Agent] Starting...\n"))
 			m.statusLine = "Generating..."
 		case agent.EventMessageStart:
 			if event.Message != nil {
 				if event.Message.GetRole() == ai.RoleAssistant {
-					m.conversation.WriteString(styleAssistant.Render("\n[Assistant]: "))
+					m.conversation.WriteString(StyleAssistant.Render("\n[Assistant]: "))
 				}
 			}
 		case agent.EventMessageUpdate:
@@ -267,10 +252,10 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.conversation.WriteString(*event.AssistantMessageEvent.Delta)
 					}
 				case ai.EventThinkingStart:
-					m.conversation.WriteString(styleThinking.Render("\n[Thinking] "))
+					m.conversation.WriteString(StyleThinking.Render("\n[Thinking] "))
 				case ai.EventThinkingDelta:
 					if event.AssistantMessageEvent.Delta != nil {
-						m.conversation.WriteString(styleThinking.Render(*event.AssistantMessageEvent.Delta))
+						m.conversation.WriteString(StyleThinking.Render(*event.AssistantMessageEvent.Delta))
 					}
 				}
 			}
@@ -279,24 +264,27 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case agent.EventToolExecutionStart:
 			m.activeTool = event.ToolName
 			argsStr := formatArgs(event.Args)
-			m.conversation.WriteString(styleTool.Render(fmt.Sprintf("\n  [Running Tool] %s(%s)...", m.activeTool, argsStr)))
+			m.conversation.WriteString(StyleToolPending.Render(fmt.Sprintf("\n  [Running Tool] %s(%s)...", m.activeTool, argsStr)))
 			m.statusLine = fmt.Sprintf("Running: %s", m.activeTool)
 		case agent.EventToolExecutionEnd:
 			status := "✓"
+			style := StyleToolSuccess
 			if event.IsError {
 				status = "✗"
+				style = StyleToolError
 			}
 			contentStr := extractContent(event.Result)
 			displayStr := contentStr
-			if len(displayStr) > 200 {
-				displayStr = displayStr[:197] + "..."
+
+			// Special handling for diffs
+			if m.activeTool == "patch" || m.activeTool == "edit" || strings.Contains(displayStr, "---") && strings.Contains(displayStr, "+++") {
+				displayStr = RenderDiff(displayStr)
+			} else if len(displayStr) > 1000 {
+				displayStr = displayStr[:997] + "..."
 			}
+
 			displayStr = strings.ReplaceAll(displayStr, "\n", "\n  ")
-			if event.IsError {
-				m.conversation.WriteString(styleError.Render(fmt.Sprintf(" %s\n  %s\n", status, displayStr)))
-			} else {
-				m.conversation.WriteString(styleTool.Render(fmt.Sprintf(" %s\n  %s\n", status, displayStr)))
-			}
+			m.conversation.WriteString(style.Render(fmt.Sprintf(" %s\n  %s\n", status, displayStr)))
 			m.activeTool = ""
 			m.statusLine = ""
 		case agent.EventTurnStart:
@@ -304,7 +292,7 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case agent.EventTurnEnd:
 			m.statusLine = ""
 		case agent.EventAgentEnd:
-			m.conversation.WriteString(styleSystem.Render("\n[Agent] Done.\n"))
+			m.conversation.WriteString(StyleSystem.Render("\n[Agent] Done.\n"))
 			m.statusLine = "Ready"
 		}
 		m.viewport.SetContent(m.conversation.String())
@@ -322,9 +310,9 @@ func (m *AgentUIModel) View() string {
 	}
 	header := ""
 	if m.modelInfo != "" {
-		header = styleHeader.Render(fmt.Sprintf(" %s | %s", m.modelInfo, m.statusLine))
+		header = StyleHeader.Render(fmt.Sprintf(" %s | %s", m.modelInfo, m.statusLine))
 	} else if m.statusLine != "" {
-		header = styleHeader.Render(fmt.Sprintf(" %s", m.statusLine))
+		header = StyleHeader.Render(fmt.Sprintf(" %s", m.statusLine))
 	}
 	return fmt.Sprintf(
 		"%s\n%s\n\n%s",
@@ -337,14 +325,14 @@ func (m *AgentUIModel) View() string {
 // handleSlashResult processes a slash command result.
 func (m *AgentUIModel) handleSlashResult(result slashcommands.SlashCommandResult) {
 	if result.Error != "" {
-		m.conversation.WriteString(styleSlashErr.Render(fmt.Sprintf("\n[Error] %s\n", result.Error)))
+		m.conversation.WriteString(StyleError.Render(fmt.Sprintf("\n[Error] %s\n", result.Error)))
 	}
 	if result.Info != "" {
-		m.conversation.WriteString(styleSlashInfo.Render(fmt.Sprintf("\n%s\n", result.Info)))
+		m.conversation.WriteString(StyleSlashInfo.Render(fmt.Sprintf("\n%s\n", result.Info)))
 	}
 	if result.Message != "" {
 		m.isGenerating = true
-		m.conversation.WriteString(styleUser.Render(fmt.Sprintf("\n[User]: %s\n", result.Message)))
+		m.conversation.WriteString(StyleUser.Render(fmt.Sprintf("\n[User]: %s\n", result.Message)))
 		go func() {
 			if m.agentSession != nil {
 				m.agentSession.Prompt(context.Background(), result.Message)
@@ -361,19 +349,19 @@ func (m *AgentUIModel) handleSlashResult(result slashcommands.SlashCommandResult
 		m.quitting = true
 	}
 	if result.SwitchModel != "" {
-		m.conversation.WriteString(styleSystem.Render(fmt.Sprintf("\n[System] Switching model to: %s\n", result.SwitchModel)))
+		m.conversation.WriteString(StyleSystem.Render(fmt.Sprintf("\n[System] Switching model to: %s\n", result.SwitchModel)))
 		if m.agentSession != nil {
 			m.agentSession.SwitchModel(result.SwitchModel)
 		}
 	}
 	if result.SwitchProvider != "" {
-		m.conversation.WriteString(styleSystem.Render(fmt.Sprintf("\n[System] Switching provider to: %s\n", result.SwitchProvider)))
+		m.conversation.WriteString(StyleSystem.Render(fmt.Sprintf("\n[System] Switching provider to: %s\n", result.SwitchProvider)))
 		if m.agentSession != nil {
 			m.agentSession.SwitchProvider(result.SwitchProvider)
 		}
 	}
 	if result.Compact {
-		m.conversation.WriteString(styleSystem.Render("\n[System] Compaction requested\n"))
+		m.conversation.WriteString(StyleSystem.Render("\n[System] Compaction requested\n"))
 		if m.agentSession != nil {
 			go m.agentSession.Compact(context.Background())
 		}
@@ -384,15 +372,15 @@ func (m *AgentUIModel) handleSlashResult(result slashcommands.SlashCommandResult
 			go func() {
 				path, err := m.agentSession.ExportToHTML(result.Export)
 				if err != nil {
-					m.conversation.WriteString(styleSlashErr.Render(fmt.Sprintf("\n[Error] Export failed: %v\n", err)))
+					m.conversation.WriteString(StyleError.Render(fmt.Sprintf("\n[Error] Export failed: %v\n", err)))
 				} else {
-					m.conversation.WriteString(styleSlashInfo.Render(fmt.Sprintf("\nSession exported to: %s\n", path)))
+					m.conversation.WriteString(StyleSlashInfo.Render(fmt.Sprintf("\nSession exported to: %s\n", path)))
 				}
 			}()
 		}
 	}
 	if result.ThinkingLevel != "" {
-		m.conversation.WriteString(styleSystem.Render(fmt.Sprintf("\n[System] Setting thinking level: %s\n", result.ThinkingLevel)))
+		m.conversation.WriteString(StyleSystem.Render(fmt.Sprintf("\n[System] Setting thinking level: %s\n", result.ThinkingLevel)))
 		if m.agentSession != nil {
 			m.agentSession.SetThinkingLevel(result.ThinkingLevel)
 		}
