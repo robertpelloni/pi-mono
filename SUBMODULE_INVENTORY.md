@@ -19,10 +19,14 @@ This document tracks the features, functionality, and assimilation status of ext
 ## Detailed Assimilation Progress
 
 ### Aider (`submodules/aider`)
+- **Git Integration:** Pi natively supports git-aware workflows. Aider's auto-commit behavior is mirrored in Pi's session management and optional extension-based git hooks.
 - **Edit Blocks:** Aider's surgical line-replacement is implemented via `replace_lines` in `pkg/ai/clean_room_handlers.go`.
+- **RepoMap:** Pi uses a combination of `find`, `grep`, and fuzzy-search `@` file references to provide codebase context, achieving similar outcomes to Aider's RepoMap.
 
 ### Cline (`submodules/cline`)
 - **Plan/Act Modes:** Pi implements these via the `pi-plannotator` extension and explicit session branching (`/tree`, `/fork`).
+- **Tool Loops:** Pi's `AgentSession` manages the execution loop natively.
+- **MCP:** Supported via the `mcp-connector` extension in Pi.
 - **Browser Interaction:** `browser_action` parity tool implemented in `pkg/ai/clean_room_handlers.go`.
 
 ### Codebuff (`submodules/codebuff`)
