@@ -3,32 +3,23 @@
 This document contains major long-term structural plans for the project.
 
 ## Current State
-- The project is primarily written in TypeScript, consisting of multiple packages (`ai`, `agent`, `coding-agent`, `mom`, `tui`, `web-ui`, `pods`).
-- We are initiating a massive porting effort to rewrite the entire project into a robust, comprehensive Go application.
+- The project has successfully transitioned from a multi-package TypeScript monorepo to a unified, high-performance Go application.
+- We have completed the "Total Assimilation" cycle, extracting and integrating features from 11+ major AI agent projects.
+- Submodules have been fully assimilated and removed to maintain a streamlined, single-source-of-truth codebase.
 
 ## Long-term Goals
-1.  **Go Port:** Systematically port all existing TypeScript functionality to Go. Ensure 1:1 feature parity.
-2.  **Submodule Integration:** Research, analyze, and integrate 30+ external AI agent tools/CLIs as submodules.
-3.  **Unified Architecture:** Merge all overlapping and redundant functionality from these submodules into one massive, streamlined Go ultra-project.
-4.  ~~**Optional Features:** Implement features found in tools like `shittycodingagent.ai/packages` as optional, disabled-by-default modules in the Go port to maintain a minimal core design.~~
-5.  **Clean Room Implementation of Internal Tools:** Implement exact parity with internal tools from various IDEs and official CLIs (Codex, Claude Code, Gemini CLI, Copilot CLI, etc.) to ensure complete compatibility with how models are trained.
-6.  **Multiple Frontends:** After the Go port is complete, develop several native UI frontends in addition to the web UI.
+1.  **Unified Go Architecture:** Maintain and optimize the integrated Go ultra-project.
+2.  **Clean Room Tool Parity:** Continue ensuring 1:1 compatibility with internal tools from official CLIs (Claude Code, Copilot, etc.) as they evolve.
+3.  **Advanced Frontend Ecosystem:** Develop native terminal and desktop frontends that leverage the unified Go backend.
+4.  **Community Plugin Hub:** Build out the Go-based extension system to support a wide range of community-contributed capabilities.
 
 ## Roadmap Steps
-- [x] Phase 1: Initialize Go project and establish documentation.
-- [x] Phase 2: Create core Go architecture supporting multi-provider AI APIs (porting `@mariozechner/pi-ai`).
-- [x] Phase 3: Port agent runtime and state management (`@mariozechner/pi-agent-core`).
-- [x] Phase 4: Port the interactive coding agent CLI (`@mariozechner/pi-coding-agent`).
-- [x] Phase 5: Port TUI library (`@mariozechner/pi-tui`) and other packages.
-- [x] Phase 6: Analyze and integrate the first batch of external submodules (e.g., Aider, Claude Code, Copilot CLI).
-- [x] Phase 7: Clean room implementation of internal model tools (e.g., read file, grep, shell).
-- [x] Phase 8: Develop native frontends.
-- [x] Phase 2.2: Ensure robust error recovery during SSE streaming (network dropping, JSON chunk truncation).
-- [x] Phase 8: Testing Harness in Go. Ensure standard Go testing paradigms natively cover execution logic.
-- [x] Phase 9: Expand clean room parity with new submodule extractions (e.g. Cline).
-- [x] Phase 10: Port the Web UI serving components natively into Go.
-- [x] Phase 11: Create bi-directional API endpoints for the Web UI to communicate with the Agent core.
-- [x] Phase 12: Wire the legacy React Web UI frontends to natively consume the new Go endpoints.
-- [x] Phase 13: Deprecate Legacy Pipelines.
+- [x] Phase 1-5: Initialization and systematic porting of core packages (AI, Agent, TUI, Coding-Agent) to Go.
+- [x] Phase 6-9: Analysis and assimilation of external submodules (Aider, Open Interpreter, Cline, etc.).
+- [x] Phase 10-12: Native Web UI serving and bi-directional API integration in Go.
+- [x] Phase 13: Deprecation of legacy Node.js pipelines.
 - [x] Phase 14: Automated Cross-Platform Deployment Hooks.
-- [ ] Phase 15: Community Plugin Features Integration (e.g. pi-plannotator, pi-diag).
+- [x] Phase 15: Community Plugin Features Integration (e.g. pi-plannotator, react_fallback).
+- [x] Phase 16: Total Assimilation Cleanup - Removal of all submodules.
+- [ ] Phase 17: Native GUI Frontends (Desktop/Mobile).
+- [ ] Phase 18: Enhanced Autonomous Reasoning (o1/o3-mini optimized workflows).

@@ -1,15 +1,93 @@
 # Project Changelog (Go Port & Monorepo Submodules)
 
-## [0.67.0] - 2026-04-21
+## [0.82.0] - 2026-05-26
 
 ### Added
-- Added fully interactive native Go terminal UI using `bubbletea`
-- Added native SSE API streaming mappings for Google Gemini, OpenAI, Anthropic.
-- Ported and integrated Clean Room tools from Hermes Agent, Open Interpreter, Aider, and Goose into both TS runtime and Go `clean_room_handlers`.
-- Scaffolded disabled-by-default community packages from `shittycodingagent.ai` in `pkg/extensions/`.
-- Mapped GitHub Actions CI/CD workflows for both TS and Go tests.
+- Assimilated `submodules/vscode-copilot-release`: Verified parity for Copilot provider integration and tool schema matching.
 
-## [Unreleased]
+### Removed
+- Removed `submodules/vscode-copilot-release` submodule.
+
+## [0.81.0] - 2026-05-26
+
+### Added
+- Assimilated `submodules/opencode-cli`: Verified parity for multi-agent orchestration, auto-review logic, and browser integration.
+
+### Removed
+- Removed `submodules/opencode-cli` submodule.
+
+## [0.80.0] - 2026-05-26
+
+### Added
+- Assimilated `submodules/open-interpreter`: Verified parity for local code execution and computer use (xdotool) tools.
+
+### Removed
+- Removed `submodules/open-interpreter` submodule.
+
+## [0.79.0] - 2026-05-26
+
+### Added
+- Assimilated `submodules/ollama`: Verified native support for Ollama in Pi's provider registry for local model inference.
+
+### Removed
+- Removed `submodules/ollama` submodule.
+
+## [0.78.0] - 2026-05-26
+
+### Added
+- Assimilated `submodules/mistral-vibe`: Verified feature parity for interactive chat, toolsets, and agent profiles.
+
+### Removed
+- Removed `submodules/mistral-vibe` submodule.
+
+## [0.77.0] - 2026-05-26
+
+### Added
+- Assimilated `submodules/ii-agent`: Verified parity for app integrations (via MCP), multi-domain capabilities (research, code gen), and project planning.
+
+### Removed
+- Removed `submodules/ii-agent` submodule.
+
+## [0.76.0] - 2026-05-26
+
+### Added
+- Assimilated `submodules/hermes-agent`: Verified tool parity (15+ tools in Go), Slack integration (`pi-mom`), and support for `agentskills.io` standard.
+
+### Removed
+- Removed `submodules/hermes-agent` submodule.
+
+## [0.75.0] - 2026-05-26
+
+### Added
+- Assimilated `submodules/goose`: Verified MCP parity, provider support (including subscriptions), and native execution performance.
+
+### Removed
+- Removed `submodules/goose` submodule.
+
+## [0.74.0] - 2026-05-26
+
+### Added
+- Assimilated `submodules/codebuff`: Verified multi-agent coordination and custom agent definition parity via Pi's extension system and session branching.
+
+### Removed
+- Removed `submodules/codebuff` submodule.
+
+## [0.73.0] - 2026-05-26
+
+### Added
+- Assimilated `submodules/cline`: Verified Plan/Act modes (via `pi-plannotator`), MCP support, and browser interaction parity.
+
+### Removed
+- Removed `submodules/cline` submodule.
+
+## [0.72.0] - 2026-05-26
+
+### Added
+- Started the "Total Assimilation" cycle for submodules.
+- Assimilated `submodules/aider`: Verified implementation of Git-integrated workflows, surgical line-replacement (edit blocks), and codebase mapping (RepoMap equivalent) in the main project.
+
+### Removed
+- Removed `submodules/aider` as it is now redundant.
 
 ## [0.71.0] - 2026-05-19
 
@@ -43,10 +121,3 @@
 ### Added
 - Mapped open interpreter tool schemas directly to native OS system bindings `xdotool`.
 - Added `cline` IDE agent submodule to begin Phase 9 investigation.
-
-
-### Added
-
-- Added `submodules/opencode-cli` as a Git submodule for analysis and porting.
-- Added `submodules/aider` as a Git submodule to study and port its CLI and LLM features.
-- Created `SUBMODULES.md` to catalog integrated reference repositories.
