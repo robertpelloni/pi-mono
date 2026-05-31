@@ -118,17 +118,17 @@ func TestAgentUIModel_View_Quitting(t *testing.T) {
 
 func TestAgentUIModel_Styles(t *testing.T) {
 	// Test that styles are defined
-	_ = styleUser.String()
-	_ = styleAssistant.String()
-	_ = styleTool.String()
-	_ = styleError.String()
-	_ = styleSystem.String()
-	_ = styleThinking.String()
-	_ = styleSlashInfo.String()
-	_ = styleSlashErr.String()
-	_ = styleHeader.String()
-	_ = styleCompaction.String()
-	_ = styleRetry.String()
+	_ = StyleUser.String()
+	_ = StyleAssistant.String()
+	_ = StyleToolTitle.String()
+	_ = StyleError.String()
+	_ = StyleSystem.String()
+	_ = StyleThinking.String()
+	_ = StyleSlashInfo.String()
+	_ = StyleError.String()
+	_ = StyleHeader.String()
+	_ = StyleCompaction.String()
+	_ = StyleRetry.String()
 }
 
 func TestNewInteractiveRenderer(t *testing.T) {

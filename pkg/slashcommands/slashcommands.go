@@ -104,6 +104,15 @@ func (r *Registry) List() []SlashCommandInfo {
 	return infos
 }
 
+// ListCommands returns the names of all registered slash commands.
+func (r *Registry) ListCommands() []string {
+	names := make([]string, 0, len(r.commands))
+	for name := range r.commands {
+		names = append(names, name)
+	}
+	return names
+}
+
 // Execute parses and executes a slash command from user input.
 // Returns a SlashCommandResult and whether the input was a slash command.
 func (r *Registry) Execute(input string) (SlashCommandResult, bool, error) {
