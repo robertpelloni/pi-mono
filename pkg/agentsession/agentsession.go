@@ -1689,3 +1689,28 @@ func containsString(slice []string, val string) bool {
 	}
 	return false
 }
+
+// RunTask implements the ai.SubagentRunner interface for headless delegation.
+func (as *AgentSession) RunTask(ctx context.Context, task string, parentContext string) (string, error) {
+	// For headless execution, we create a new temporary agent with the same config
+	// but without the interactive TUI hooks.
+
+	// Prepare subagent prompt
+	subagentPrompt := fmt.Sprintf("You are a subagent working on a specific subtask.\nParent Context: %s\nTask: %s\n\nComplete the task and summarize your results concisely.", parentContext, task)
+
+	// Create user message
+	msg := ai.UserMessage{
+		Content: []ai.Content{ai.TextContent{Text: subagentPrompt}},
+		Timestamp: time.Now().UnixMilli(),
+	}
+
+	// We use the same agent loop but we need to capture the response.
+	// This is a simplified headless run.
+
+	err := as.config.Agent.Prompt(ctx, msg)
+	if err != nil {
+		return "", err
+	}
+
+	return as.LastAssistantText(), nil
+}

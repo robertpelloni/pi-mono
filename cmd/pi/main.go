@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/badlogic/pi-mono/pkg/agentregistry"
 	"context"
 	"flag"
 	"fmt"
@@ -419,6 +420,7 @@ func main() {
 					os.Exit(1)
 				}
 				break
+	agentregistry.GlobalScheduler = agent.NewTaskScheduler(agentLoop)
 			}
 		}
 		if sess == nil {
@@ -471,6 +473,7 @@ func main() {
 		CWD:            cwd,
 		AgentDir:       agentDir,
 	})
+	agentregistry.GlobalSubagentRunner = agentSess
 
 	// ─── Create Session Runtime ───
 	var runtime *sessionruntime.AgentSessionRuntime

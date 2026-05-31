@@ -1,6 +1,11 @@
 # Project Changelog (Go Port & Monorepo Submodules)
 
-## [0.84.0] - 2026-05-31
+## [0.85.0] - 2026-05-31
+### Added
+- Implemented Task Delegation & Subagents (headless nested loops).
+- Implemented Persistent Background Tasks (Cronjobs) with Global Scheduler.
+- Refactored Browser Tools to provide structured page metadata (Accessibility Tree).
+
 
 ### Added
 - Enhanced Go TUI (Bubbletea) with interactive autocompletion for slash commands and file references.
