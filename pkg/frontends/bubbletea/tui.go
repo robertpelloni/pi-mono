@@ -10,7 +10,9 @@ import (
 	"github.com/badlogic/pi-mono/pkg/agentsession"
 	"github.com/badlogic/pi-mono/pkg/ai"
 	"github.com/badlogic/pi-mono/pkg/slashcommands"
+	"github.com/badlogic/pi-mono/pkg/util"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -32,6 +34,13 @@ type AgentUIModel struct {
 	quitting      bool
 	statusLine    string
 	modelInfo     string
+	spinner       spinner.Model
+
+	// Autocompletion state
+	showCompletions bool
+	completions     []string
+	completionIndex int
+	completionPrefix string // text before the cursor that triggered completion
 }
 
 // EventMsg is a wrapper to send AgentEvent instances into the Bubbletea Update loop.
@@ -52,6 +61,10 @@ type SlashResultMsg struct {
 
 // InitialModel creates the initial Bubbletea model using the raw Agent.
 func InitialModel(ag *agent.Agent, eventsChan chan agent.AgentEvent, slashReg *slashcommands.Registry) *AgentUIModel {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = StyleAssistant
+
 	ta := textarea.New()
 	ta.Placeholder = "Type a message... (Ctrl+S to send, / for commands)"
 	ta.Focus()
@@ -69,6 +82,7 @@ func InitialModel(ag *agent.Agent, eventsChan chan agent.AgentEvent, slashReg *s
 		textarea:      ta,
 		agent:         ag,
 		slashRegistry: slashReg,
+		spinner:       s,
 	}
 }
 
@@ -85,7 +99,7 @@ func InitialModelWithSession(as *agentsession.AgentSession, eventsChan chan agen
 
 // Init establishes the initial state and begins listening to the channel.
 func (m *AgentUIModel) Init() tea.Cmd {
-	cmds := []tea.Cmd{textarea.Blink, m.listenForEvents()}
+	cmds := []tea.Cmd{textarea.Blink, m.listenForEvents(), m.spinner.Tick}
 	if m.sessionEvents != nil {
 		cmds = append(cmds, m.listenForSessionEvents())
 	}
@@ -119,13 +133,64 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		tiCmd tea.Cmd
 		vpCmd tea.Cmd
+		spCmd tea.Cmd
 	)
+
+	if m.isGenerating {
+		m.spinner, spCmd = m.spinner.Update(msg)
+	}
+
+	if m.showCompletions {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.Type {
+			case tea.KeyUp, tea.KeyTab:
+				m.completionIndex--
+				if m.completionIndex < 0 {
+					m.completionIndex = len(m.completions) - 1
+				}
+				return m, nil
+			case tea.KeyDown:
+				m.completionIndex++
+				if m.completionIndex >= len(m.completions) {
+					m.completionIndex = 0
+				}
+				return m, nil
+			case tea.KeyEnter:
+				m.applyCompletion()
+				return m, nil
+			case tea.KeyEsc:
+				m.showCompletions = false
+				return m, nil
+			}
+		}
+	}
+
 	m.textarea, tiCmd = m.textarea.Update(msg)
 	m.viewport, vpCmd = m.viewport.Update(msg)
 
 	switch msg := msg.(type) {
+	case spinner.TickMsg:
+		return m, spCmd
 	case tea.KeyMsg:
+		// Trigger completion
+		m.updateCompletions()
+
 		switch msg.Type {
+		case tea.KeyCtrlP:
+			if m.agentSession != nil {
+				res := m.agentSession.CycleModel("forward")
+				if res != nil {
+					m.conversation.WriteString(StyleSystem.Render(fmt.Sprintf("\n[System] Cycled model to: %s/%s\n", res.Model.Provider, res.Model.ID)))
+					m.modelInfo = fmt.Sprintf("%s/%s", res.Model.Provider, res.Model.ID)
+					m.viewport.SetContent(m.conversation.String())
+					m.viewport.GotoBottom()
+				}
+			}
+		case tea.KeyCtrlN:
+			if m.agentSession != nil {
+				m.agentSession.NewSession()
+			}
 		case tea.KeyCtrlC:
 			m.quitting = true
 			return m, tea.Quit
@@ -300,7 +365,97 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.listenForEvents()
 	}
 
-	return m, tea.Batch(tiCmd, vpCmd)
+	return m, tea.Batch(tiCmd, vpCmd, spCmd)
+}
+
+func (m *AgentUIModel) updateCompletions() {
+	val := m.textarea.Value()
+	cursorPos := m.getCursorIndex()
+	if cursorPos == 0 {
+		m.showCompletions = false
+		return
+	}
+
+	// Simple trigger: '/' at start
+	if strings.HasPrefix(val, "/") && !strings.Contains(val[:cursorPos], " ") {
+		m.showCompletions = true
+		prefix := val[1:cursorPos]
+		m.completionPrefix = "/"
+		m.completions = []string{}
+		if m.slashRegistry != nil {
+			for _, cmd := range m.slashRegistry.ListCommands() {
+				if strings.HasPrefix(cmd, prefix) {
+					m.completions = append(m.completions, "/"+cmd)
+				}
+			}
+		}
+		if len(m.completions) == 0 {
+			m.showCompletions = false
+		} else if m.completionIndex >= len(m.completions) {
+			m.completionIndex = 0
+		}
+		return
+	}
+
+	// Trigger: '@' for files
+	lastAt := strings.LastIndex(val[:cursorPos], "@")
+	if lastAt != -1 && (lastAt == 0 || val[lastAt-1] == ' ') {
+		prefix := val[lastAt+1 : cursorPos]
+		m.showCompletions = true
+		m.completionPrefix = "@"
+		// In a real app we'd debounce this or use a cache
+		files := util.ListFilesRecursively(".", 100) // limit to 100
+		m.completions = []string{}
+		for _, f := range files {
+			if strings.Contains(strings.ToLower(f), strings.ToLower(prefix)) {
+				m.completions = append(m.completions, "@"+f)
+			}
+		}
+		if len(m.completions) == 0 {
+			m.showCompletions = false
+		} else if m.completionIndex >= len(m.completions) {
+			m.completionIndex = 0
+		}
+		return
+	}
+
+	m.showCompletions = false
+}
+
+func (m *AgentUIModel) getCursorIndex() int {
+	val := m.textarea.Value()
+	lines := strings.Split(val, "\n")
+	line := m.textarea.Line()
+	col := m.textarea.LineInfo().ColumnOffset
+
+	count := 0
+	for i := 0; i < line && i < len(lines); i++ {
+		count += len(lines[i]) + 1
+	}
+	count += col
+	return count
+}
+
+func (m *AgentUIModel) applyCompletion() {
+	if !m.showCompletions || m.completionIndex < 0 || m.completionIndex >= len(m.completions) {
+		return
+	}
+
+	val := m.textarea.Value()
+	cursorPos := m.getCursorIndex()
+	completion := m.completions[m.completionIndex]
+
+	var newVal string
+	if m.completionPrefix == "/" {
+		newVal = completion + " " + val[cursorPos:]
+	} else if m.completionPrefix == "@" {
+		lastAt := strings.LastIndex(val[:cursorPos], "@")
+		newVal = val[:lastAt] + completion + " " + val[cursorPos:]
+	}
+
+	m.textarea.SetValue(newVal)
+	m.textarea.SetCursor(len(newVal))
+	m.showCompletions = false
 }
 
 // View renders the current state of the model.
@@ -308,18 +463,63 @@ func (m *AgentUIModel) View() string {
 	if m.quitting {
 		return "Goodbye!\n"
 	}
+
 	header := ""
 	if m.modelInfo != "" {
 		header = StyleHeader.Render(fmt.Sprintf(" %s | %s", m.modelInfo, m.statusLine))
 	} else if m.statusLine != "" {
 		header = StyleHeader.Render(fmt.Sprintf(" %s", m.statusLine))
 	}
-	return fmt.Sprintf(
-		"%s\n%s\n\n%s",
+
+	if m.modelInfo != "" {
+		header = StyleHeader.Render(fmt.Sprintf(" %s │ %s ", m.modelInfo, status))
+	} else if status != "" {
+		header = StyleHeader.Render(fmt.Sprintf(" %s ", status))
+	}
+
+	footer := ""
+	if m.agentSession != nil {
+		stats := m.agentSession.GetSessionStats()
+		footer = StyleSystem.Render(fmt.Sprintf(
+			" IN: %d │ OUT: %d │ TOTAL: %d │ COST: $%.4f │ CTX: %s ",
+			stats.TokensInput, stats.TokensOutput, stats.TokensTotal, stats.Cost,
+			formatContextUsage(stats.ContextUsage),
+		))
+	}
+
+	content := fmt.Sprintf(
+		"%s\n%s\n%s\n\n%s",
 		header,
 		m.viewport.View(),
+		footer,
 		m.textarea.View(),
 	)
+
+	if m.showCompletions {
+		var b strings.Builder
+		b.WriteString("\n" + StyleCompletionHeader.Render(" Completions: ") + "\n")
+		for i, c := range m.completions {
+			if i == m.completionIndex {
+				b.WriteString(StyleCompletionSelected.Render("> " + c) + "\n")
+			} else {
+				b.WriteString(StyleCompletionItem.Render("  " + c) + "\n")
+			}
+			if i > 10 {
+				b.WriteString(StyleSystem.Render("  ...") + "\n")
+				break
+			}
+		}
+		content += b.String()
+	}
+
+	return content
+}
+
+func formatContextUsage(u *agentsession.ContextUsage) string {
+	if u == nil || u.Tokens == nil || u.Percent == nil {
+		return "N/A"
+	}
+	return fmt.Sprintf("%d/%d (%.1f%%)", *u.Tokens, u.ContextWindow, *u.Percent)
 }
 
 // handleSlashResult processes a slash command result.

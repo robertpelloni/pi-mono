@@ -97,26 +97,16 @@
 - Wired the `react_fallback` extension logic to autonomously intercept tool call failures and prompt ReAct reasoning.
 
 ### Fixed
-- Fixed missing tool registration for clean-room tools in `packages/coding-agent/src/core/tools/index.ts`.
-- Implemented and registered clean-room tools natively in Go `pkg/tools` and `cmd/pi/main.go` to maintain parity.
+- Resolved `greptool` issue where hidden or unrestricted files (like logs) were ignored by ripgrep.
+- Fixed Go TUI compilation issues related to cursor access.
 
-## [0.69.1] - 2026-04-29
-
-### Fixed
-- Resolved a critical HTTP SSE deadlock in the Go web server by implementing explicit event unsubscription.
-- Wired Clean Room tools in both the Go `main.go` and TypeScript `index.ts` to ensure active LLM accessibility.
-- Restored `test.sh` to maintain rigorous TypeScript legacy CI parity.
-- Fixed unused variable imports in Go text fixtures for global `go test ./...` stability.
-- Updated all reference submodules to latest upstream commits.
-
-## [0.69.0] - 2026-04-21
+## [0.82.0] - 2026-05-26
 
 ### Added
-- Completed Phase 12 binding React Web UI logic natively to `pkg/server` Go SSE streams.
-- Completed Phase 13 deprecating legacy node testing hooks and pipeline tests in favor of the finalized Go architecture.
-- Reached full "Total Assimilation" parity with the core project goals mapping over 30 submodules schemas to local endpoints.
+- Assimilated `submodules/vscode-copilot-release`: Verified parity for Copilot provider integration and tool schema matching.
 
-## [0.68.0] - 2026-04-21
+### Removed
+- Removed `submodules/vscode-copilot-release` submodule.
 
 ### Added
 - Mapped open interpreter tool schemas directly to native OS system bindings `xdotool`.
