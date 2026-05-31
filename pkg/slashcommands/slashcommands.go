@@ -33,6 +33,8 @@ type SlashCommandResult struct {
 	SwitchModel string
 	// SwitchProvider changes the active provider.
 	SwitchProvider string
+	// SwitchSession changes the active session.
+	SwitchSession string
 	// Quit exits the application.
 	Quit bool
 	// NewSession starts a new session.
@@ -78,6 +80,7 @@ func NewRegistry() *Registry {
 		commands: make(map[string]slashCommandEntry),
 	}
 	r.registerBuiltins()
+	r.registerSessionCommands()
 	return r
 }
 
@@ -393,5 +396,18 @@ func (r *Registry) registerBuiltins() {
 		Source:      SourceBuiltin,
 	}, func(args string) (SlashCommandResult, error) {
 		return SlashCommandResult{Share: true}, nil
+	})
+}
+
+func (r *Registry) registerSessionCommands() {
+	r.Register(SlashCommandInfo{
+		Name:        "sessions",
+		Description: "List or switch active sessions (e.g., /sessions sess_123)",
+		Source:      SourceBuiltin,
+	}, func(args string) (SlashCommandResult, error) {
+		if args == "" {
+			return SlashCommandResult{Info: "Usage: /sessions <session-id> to switch, or see status bar for current ID"}, nil
+		}
+		return SlashCommandResult{SwitchSession: args}, nil
 	})
 }

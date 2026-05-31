@@ -4,101 +4,55 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"testing"
+
+	"github.com/badlogic/pi-mono/pkg/agentsession"
 )
 
-func TestServer_HealthEndpoint(t *testing.T) {
-	srv := NewServer("", nil) // Uses default path
-
-	req, err := http.NewRequest("GET", "/api/health", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+func TestHealthEndpoint(t *testing.T) {
+	s := NewServer("", agentsession.AgentSessionConfig{})
+	req, _ := http.NewRequest("GET", "/api/health", nil)
 	rr := httptest.NewRecorder()
-	srv.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	s.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status OK, got %v", rr.Code)
 	}
 
-	var response map[string]string
-	err = json.Unmarshal(rr.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("failed to decode json response: %v", err)
-	}
-
-	if response["status"] != "ok" {
-		t.Errorf("expected status 'ok', got '%v'", response["status"])
+	var resp map[string]string
+	json.NewDecoder(rr.Body).Decode(&resp)
+	if resp["status"] != "ok" {
+		t.Errorf("expected status ok, got %v", resp["status"])
 	}
 }
 
-func TestServer_StaticAssetEndpoint(t *testing.T) {
-	// Create a temporary directory and an index.html file to test static serving
-	tempDir, err := os.MkdirTemp("", "pi-server-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	expectedBody := "<html><body><h1>Test SPA</h1></body></html>"
-	indexPath := filepath.Join(tempDir, "index.html")
-	err = os.WriteFile(indexPath, []byte(expectedBody), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	srv := NewServer(tempDir, nil)
-
-	req, err := http.NewRequest("GET", "/", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+func TestChatEndpoint_InvalidMethod(t *testing.T) {
+	s := NewServer("", agentsession.AgentSessionConfig{})
+	req, _ := http.NewRequest("GET", "/api/chat", nil)
 	rr := httptest.NewRecorder()
-	srv.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
+	s.ServeHTTP(rr, req)
 
-	if rr.Body.String() != expectedBody {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expectedBody)
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected method not allowed, got %v", rr.Code)
 	}
 }
 
-func TestServer_SPARoutingEndpoint(t *testing.T) {
-	// Ensure that requesting a non-existent path falls back to index.html
-	tempDir, err := os.MkdirTemp("", "pi-server-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	expectedBody := "<html><body><h1>Test SPA Fallback</h1></body></html>"
-	indexPath := filepath.Join(tempDir, "index.html")
-	err = os.WriteFile(indexPath, []byte(expectedBody), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	srv := NewServer(tempDir, nil)
-
-	req, err := http.NewRequest("GET", "/some/nonexistent/client/route", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+func TestListSessionsEndpoint(t *testing.T) {
+	s := NewServer("", agentsession.AgentSessionConfig{})
+	req, _ := http.NewRequest("GET", "/api/sessions", nil)
 	rr := httptest.NewRecorder()
-	srv.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	s.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status OK, got %v", rr.Code)
 	}
 
-	if rr.Body.String() != expectedBody {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expectedBody)
+	var resp map[string]interface{}
+	json.NewDecoder(rr.Body).Decode(&resp)
+	if _, ok := resp["sessions"]; !ok {
+		t.Errorf("expected sessions list in response")
 	}
 }

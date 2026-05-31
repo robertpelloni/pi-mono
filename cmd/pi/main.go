@@ -17,6 +17,7 @@ import (
 	"github.com/badlogic/pi-mono/pkg/extensions/babysitter"
 	"github.com/badlogic/pi-mono/pkg/extensions/plannotator"
 	"github.com/badlogic/pi-mono/pkg/extensions/react_fallback"
+	"github.com/badlogic/pi-mono/pkg/extensions/mcp"
 	"github.com/badlogic/pi-mono/pkg/extensions/worktrees"
 	"github.com/badlogic/pi-mono/pkg/fileprocessor"
 	"github.com/badlogic/pi-mono/pkg/frontends/bubbletea"
@@ -248,6 +249,7 @@ func main() {
 	var toolList []agent.AgentTool
 
 	var reactFallbackPlugin *react_fallback.ReActFallbackPlugin
+	var mcpPlugin *mcp.MCPPlugin
 	if !*noTools {
 		toolList = tools.CreateAllTools(cwd)
 	}
@@ -261,12 +263,14 @@ func main() {
 		}
 
 		reactFallbackPlugin = react_fallback.NewReActFallbackPlugin()
+	mcpPlugin = mcp.NewMCPPlugin()
 		babysitterPlugin := babysitter.NewBabysitterPlugin()
 		acpAdapterPlugin := acp_adapter.NewACPAdapterPlugin()
 
 		if !*noTools {
 			toolList = worktreePlugin.AddTools(toolList)
 			toolList = plannotatorPlugin.AddTools(toolList)
+	toolList = mcpPlugin.AddTools(toolList)
 			toolList = babysitterPlugin.AddTools(toolList)
 			toolList = acpAdapterPlugin.AddTools(toolList)
 			// ReAct fallback uses hook, not tool
@@ -538,7 +542,17 @@ func main() {
 
 	// ─── Web Frontend ───
 	if *frontendType == "web" {
-		srv := server.NewServer("", agentLoop)
+		srv := server.NewServer("", agentsession.AgentSessionConfig{
+			Agent:          agentLoop,
+			SessionManager: sess,
+			Settings:       settingsManager,
+			ModelRegistry:  modelRegistry,
+			SkillLoader:    skillLoader,
+			Compactor:      compactor,
+			SlashCommands:  slashRegistry,
+			CWD:            cwd,
+			AgentDir:       agentDir,
+		})
 		fmt.Fprintf(os.Stderr, "Starting web UI on :%d\n", *webPort)
 		if err := http.ListenAndServe(fmt.Sprintf(":%d", *webPort), srv); err != nil {
 			fmt.Fprintf(os.Stderr, "Web server failed: %v\n", err)
