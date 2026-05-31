@@ -9,6 +9,7 @@ import (
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/agentsession"
 	"github.com/badlogic/pi-mono/pkg/ai"
+	"github.com/badlogic/pi-mono/pkg/agentregistry"
 	"github.com/badlogic/pi-mono/pkg/slashcommands"
 	"github.com/badlogic/pi-mono/pkg/util"
 
@@ -35,6 +36,8 @@ type AgentUIModel struct {
 	statusLine    string
 	modelInfo     string
 	spinner       spinner.Model
+	subagentActive bool
+	cronjobCount   int
 
 	// Autocompletion state
 	showCompletions bool
@@ -299,6 +302,11 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case EventMsg:
 		event := agent.AgentEvent(msg)
+		// Update background state
+		if agentregistry.GlobalScheduler != nil {
+			m.cronjobCount = len(agentregistry.GlobalScheduler.ListTasks())
+		}
+
 		switch event.Type {
 		case agent.EventAgentStart:
 			m.conversation.WriteString(StyleSystem.Render("\n[Agent] Starting...\n"))
@@ -314,7 +322,11 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch event.AssistantMessageEvent.Type {
 				case ai.EventTextDelta:
 					if event.AssistantMessageEvent.Delta != nil {
-						m.conversation.WriteString(*event.AssistantMessageEvent.Delta)
+						text := *event.AssistantMessageEvent.Delta
+						if strings.HasPrefix(text, "Thought:") || strings.Contains(m.conversation.String(), "Thought:") {
+							m.statusLine = "Reasoning (ReAct)..."
+						}
+						m.conversation.WriteString(text)
 					}
 				case ai.EventThinkingStart:
 					m.conversation.WriteString(StyleThinking.Render("\n[Thinking] "))
@@ -328,6 +340,9 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.conversation.WriteString("\n")
 		case agent.EventToolExecutionStart:
 			m.activeTool = event.ToolName
+			if m.activeTool == "delegate_task" {
+				m.subagentActive = true
+			}
 			argsStr := formatArgs(event.Args)
 			m.conversation.WriteString(StyleToolPending.Render(fmt.Sprintf("\n  [Running Tool] %s(%s)...", m.activeTool, argsStr)))
 			m.statusLine = fmt.Sprintf("Running: %s", m.activeTool)
@@ -338,11 +353,14 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				status = "✗"
 				style = StyleToolError
 			}
+			if m.activeTool == "delegate_task" {
+				m.subagentActive = false
+			}
 			contentStr := extractContent(event.Result)
 			displayStr := contentStr
 
 			// Special handling for diffs
-			if m.activeTool == "patch" || m.activeTool == "edit" || strings.Contains(displayStr, "---") && strings.Contains(displayStr, "+++") {
+			if m.activeTool == "patch" || m.activeTool == "edit" || (strings.Contains(displayStr, "---") && strings.Contains(displayStr, "+++")) {
 				displayStr = RenderDiff(displayStr)
 			} else if len(displayStr) > 1000 {
 				displayStr = displayStr[:997] + "..."
@@ -469,6 +487,9 @@ func (m *AgentUIModel) View() string {
 	if m.isGenerating {
 		status = m.spinner.View() + " " + status
 	}
+	if m.subagentActive {
+		status = "SUBAGENT ACTIVE │ " + status
+	}
 
 	if m.modelInfo != "" {
 		header = StyleHeader.Render(fmt.Sprintf(" %s │ %s ", m.modelInfo, status))
@@ -480,9 +501,9 @@ func (m *AgentUIModel) View() string {
 	if m.agentSession != nil {
 		stats := m.agentSession.GetSessionStats()
 		footer = StyleSystem.Render(fmt.Sprintf(
-			" IN: %d │ OUT: %d │ TOTAL: %d │ COST: $%.4f │ CTX: %s ",
-			stats.TokensInput, stats.TokensOutput, stats.TokensTotal, stats.Cost,
-			formatContextUsage(stats.ContextUsage),
+			" IN: %d │ OUT: %d │ COST: $%.4f │ CTX: %s │ CRON: %d ",
+			stats.TokensInput, stats.TokensOutput, stats.Cost,
+			formatContextUsage(stats.ContextUsage), m.cronjobCount,
 		))
 	}
 
@@ -557,6 +578,15 @@ func (m *AgentUIModel) handleSlashResult(result slashcommands.SlashCommandResult
 		m.conversation.WriteString(StyleSystem.Render(fmt.Sprintf("\n[System] Switching provider to: %s\n", result.SwitchProvider)))
 		if m.agentSession != nil {
 			m.agentSession.SwitchProvider(result.SwitchProvider)
+		}
+	}
+	if result.SwitchSession != "" {
+		m.conversation.WriteString(StyleSystem.Render(fmt.Sprintf("\n[System] Switching to session: %s\n", result.SwitchSession)))
+		if m.agentSession != nil {
+			// In a real app we would load the session here
+			m.conversation.WriteString(StyleSlashInfo.Render(" (Session data loading not implemented in TUI yet, starting fresh history for ID)\n"))
+			m.conversation = strings.Builder{}
+			m.viewport.SetContent("Switched to session " + result.SwitchSession)
 		}
 	}
 	if result.Compact {

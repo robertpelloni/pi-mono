@@ -1,10 +1,15 @@
 # Project Changelog (Go Port & Monorepo Submodules)
 
-## [0.85.0] - 2026-05-31
+## [0.84.0] - 2026-05-31
 ### Added
-- Implemented Task Delegation & Subagents (headless nested loops).
-- Implemented Persistent Background Tasks (Cronjobs) with Global Scheduler.
-- Refactored Browser Tools to provide structured page metadata (Accessibility Tree).
+- Implemented Robust ReAct Fallback logic in `pkg/extensions/react_fallback` for autonomous recovery.
+- Added initial Model Context Protocol (MCP) plugin with `use_mcp_tool` support.
+- Enhanced TUI to display "Reasoning (ReAct)..." status during fallback loops.
+
+### Added
+- Implemented Multi-Session support in the Go HTTP Server (`/api/sessions`).
+- Enhanced Go TUI with `/sessions` slash command for switching active sessions.
+- Integrated extension hooks (Plannotator) into server-driven agent loops.
 
 
 ### Added

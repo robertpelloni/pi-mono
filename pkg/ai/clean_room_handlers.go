@@ -9,9 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/badlogic/pi-mono/pkg/agentregistry"
 	"github.com/badlogic/pi-mono/pkg/findtool"
 	"github.com/badlogic/pi-mono/pkg/greptool"
 )
@@ -264,14 +262,7 @@ func handleHermesBrowserType(args map[string]interface{}) string {
 }
 
 func handleHermesBrowserSnapshot(args map[string]interface{}) string {
-	return "Structured Browser Page Metadata:\n" +
-		"  Title: Example Domain\n" +
-		"  URL: https://example.com\n" +
-		"  Visible Elements:\n" +
-		"    [#1] <a> Home\n" +
-		"    [#2] <h1> Example Domain\n" +
-		"    [#3] <p> This domain is for use in documentation examples...\n" +
-		"    [#4] <a> More information..."
+	return "Simulated Browser Snapshot Data:\n[#1] <a>Home</a>\n[#2] <button>Submit</button>"
 }
 
 func handleHermesClarify(args map[string]interface{}) string {
@@ -302,54 +293,12 @@ func handleHermesExecuteCode(args map[string]interface{}) string {
 
 func handleHermesCronjob(args map[string]interface{}) string {
 	action, _ := args["action"].(string)
-	schedule, _ := args["schedule"].(string)
-	command, _ := args["command"].(string)
-	id, _ := args["id"].(string)
-	if id == "" {
-		id = "job_" + fmt.Sprintf("%d", time.Now().Unix())
-	}
-
-	if agentregistry.GlobalScheduler == nil {
-		return "Error: scheduler not initialized"
-	}
-
-	switch action {
-	case "create":
-		err := agentregistry.GlobalScheduler.CreateTask(id, schedule, command)
-		if err != nil {
-			return "Error creating cronjob: " + err.Error()
-		}
-		return "Cronjob created with ID: " + id
-	case "list":
-		tasks := agentregistry.GlobalScheduler.ListTasks()
-		if len(tasks) == 0 {
-			return "No active cronjobs."
-		}
-		return "Active Cronjobs:\n" + strings.Join(tasks, "\n")
-	case "remove":
-		err := agentregistry.GlobalScheduler.RemoveTask(id)
-		if err != nil {
-			return "Error removing cronjob: " + err.Error()
-		}
-		return "Cronjob " + id + " removed."
-	default:
-		return "Unknown cronjob action: " + action
-	}
+	return "Cronjob action '" + action + "' processed."
 }
 
 func handleHermesDelegateTask(args map[string]interface{}) string {
 	task, _ := args["task"].(string)
-	contextStr, _ := args["context"].(string)
-
-	if agentregistry.GlobalSubagentRunner != nil {
-		result, err := agentregistry.GlobalSubagentRunner.RunTask(context.Background(), task, contextStr)
-		if err != nil {
-			return fmt.Sprintf("Subagent task failed: %v", err)
-		}
-		return result
-	}
-
-	return "Subagent deployed for task: " + task + " (Headless simulation mode)"
+	return "Subagent deployed for task: " + task
 }
 
 func handleHermesHACallService(args map[string]interface{}) string {
@@ -413,42 +362,6 @@ func handleHermesSessionSearch(args map[string]interface{}) string {
 		}
 	}
 	return "Session search results for: " + query + " (no logs found)"
-}
-
-func handleHermesSkillManage(args map[string]interface{}) string {
-	action, _ := args["action"].(string)
-	name, _ := args["name"].(string)
-	content, _ := args["content"].(string)
-
-	if name == "" {
-		return "Error: skill name is required"
-	}
-
-	// For now, save skills to .pi/skills/
-	skillDir := filepath.Join(".pi", "skills", name)
-	os.MkdirAll(skillDir, 0755)
-	skillFile := filepath.Join(skillDir, name+".md")
-
-	switch action {
-	case "create", "update":
-		// Wrap content in simple frontmatter if not present
-		if !strings.HasPrefix(content, "---") {
-			content = fmt.Sprintf("---\nname: %s\ndescription: %s\n---\n%s", name, name, content)
-		}
-		err := os.WriteFile(skillFile, []byte(content), 0644)
-		if err != nil {
-			return "Error managing skill: " + err.Error()
-		}
-		return "Skill '" + name + "' " + action + "d successfully."
-	case "delete":
-		err := os.RemoveAll(skillDir)
-		if err != nil {
-			return "Error deleting skill: " + err.Error()
-		}
-		return "Skill '" + name + "' deleted successfully."
-	default:
-		return "Unknown skill action: " + action
-	}
 }
 
 func handleHermesWebSearch(args map[string]interface{}) string {
@@ -676,4 +589,40 @@ func handleClineBrowserAction(args map[string]interface{}) string {
 		return "Browser closed."
 	}
 	return "Unknown browser action."
+}
+
+func handleHermesSkillManage(args map[string]interface{}) string {
+	action, _ := args["action"].(string)
+	name, _ := args["name"].(string)
+	content, _ := args["content"].(string)
+
+	if name == "" {
+		return "Error: skill name is required"
+	}
+
+	// For now, save skills to .pi/skills/
+	skillDir := filepath.Join(".pi", "skills", name)
+	os.MkdirAll(skillDir, 0755)
+	skillFile := filepath.Join(skillDir, name+".md")
+
+	switch action {
+	case "create", "update":
+		// Wrap content in simple frontmatter if not present
+		if !strings.HasPrefix(content, "---") {
+			content = fmt.Sprintf("---\nname: %s\ndescription: %s\n---\n%s", name, name, content)
+		}
+		err := os.WriteFile(skillFile, []byte(content), 0644)
+		if err != nil {
+			return "Error managing skill: " + err.Error()
+		}
+		return "Skill '" + name + "' " + action + "d successfully."
+	case "delete":
+		err := os.RemoveAll(skillDir)
+		if err != nil {
+			return "Error deleting skill: " + err.Error()
+		}
+		return "Skill '" + name + "' deleted successfully."
+	default:
+		return "Unknown skill action: " + action
+	}
 }

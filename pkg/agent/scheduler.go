@@ -7,25 +7,20 @@ import (
 	"time"
 )
 
-// ScheduledTask represents a background task.
 type ScheduledTask struct {
 	ID        string
-	Schedule  string // e.g. "1m", "1h"
+	Schedule  string
 	Command   string
 	Context   context.Context
 	Cancel    context.CancelFunc
 }
 
-// TaskScheduler manages persistent background tasks.
 type TaskScheduler struct {
 	mu    sync.Mutex
 	tasks map[string]*ScheduledTask
 	agent *Agent
 }
 
-// GlobalScheduler is the shared scheduler instance.
-
-// NewTaskScheduler creates a new scheduler.
 func NewTaskScheduler(ag *Agent) *TaskScheduler {
 	return &TaskScheduler{
 		tasks: make(map[string]*ScheduledTask),
@@ -33,7 +28,6 @@ func NewTaskScheduler(ag *Agent) *TaskScheduler {
 	}
 }
 
-// CreateTask adds a new periodic task.
 func (s *TaskScheduler) CreateTask(id, schedule, command string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -70,7 +64,6 @@ func (s *TaskScheduler) runTaskLoop(task *ScheduledTask, duration time.Duration)
 		case <-task.Context.Done():
 			return
 		case <-ticker.C:
-			// Execute command via agent's bash tool
 			s.agent.ExecuteToolCall(task.Context, "bash", map[string]interface{}{
 				"command": task.Command,
 			})
@@ -78,7 +71,6 @@ func (s *TaskScheduler) runTaskLoop(task *ScheduledTask, duration time.Duration)
 	}
 }
 
-// ListTasks returns all active tasks.
 func (s *TaskScheduler) ListTasks() []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -89,7 +81,6 @@ func (s *TaskScheduler) ListTasks() []string {
 	return list
 }
 
-// RemoveTask stops and removes a task.
 func (s *TaskScheduler) RemoveTask(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

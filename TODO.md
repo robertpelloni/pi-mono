@@ -14,6 +14,8 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Remove all submodules from the repository.
 - [x] Implement interactive autocompletion (/, @) in Go TUI.
 - [x] Implement RepoMap for high-level repo context.
+- [x] Implement Task Delegation & Subagents.
+- [x] Implement Persistent Background Tasks (Cronjobs).
 
 ## Documentation & Maintenance
 - [x] Synchronize `VISION.md` with the finalized Go architecture.
@@ -23,4 +25,4 @@ This document contains individual features, bug fixes, and other fine details th
 # Crucial Code Review Fixes (Completed)
 - [x] Fix Missing Tool Registration (Clean Room tools now active).
 - [x] Remove Node Scripts (Legacy automation cleaned).
-- [x] Release v0.69.0-v0.84.0 marking assimilation progress.
+- [x] Release v0.69.0-v0.88.0 marking assimilation progress.

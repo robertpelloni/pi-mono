@@ -303,12 +303,8 @@ var HermesCronjob = CleanRoomToolSchema{
 			},
 			"schedule": map[string]interface{}{
 				"type": "string",
-				"description": "Duration string like '1m', '1h'.",
 			},
 			"command": map[string]interface{}{
-				"type": "string",
-			},
-			"id": map[string]interface{}{
 				"type": "string",
 			},
 		},
