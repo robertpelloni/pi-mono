@@ -14,7 +14,7 @@
 - **Autocompletion**: Use the `getCursorIndex()` helper in Bubbletea `textarea` for accurate character offset tracking.
 - **Greptool Logic**: Always use ripgrep with `-u` flag to ensure log files and other potential hidden files are included in `session_search`.
 
-## Submodule Assimilation (v0.83.0 Update)
+## Submodule Assimilation (v0.84.0 Update)
 The project successfully completed Phase 16. The following agents have been internalized:
 1. **Aider**: RepoMap and replace_lines algorithms ported to Go.
 2. **Cline**: BrowserAction and IDE-specific tool schemas implemented.

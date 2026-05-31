@@ -177,6 +177,20 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.updateCompletions()
 
 		switch msg.Type {
+		case tea.KeyCtrlP:
+			if m.agentSession != nil {
+				res := m.agentSession.CycleModel("forward")
+				if res != nil {
+					m.conversation.WriteString(StyleSystem.Render(fmt.Sprintf("\n[System] Cycled model to: %s/%s\n", res.Model.Provider, res.Model.ID)))
+					m.modelInfo = fmt.Sprintf("%s/%s", res.Model.Provider, res.Model.ID)
+					m.viewport.SetContent(m.conversation.String())
+					m.viewport.GotoBottom()
+				}
+			}
+		case tea.KeyCtrlN:
+			if m.agentSession != nil {
+				m.agentSession.NewSession()
+			}
 		case tea.KeyCtrlC:
 			m.quitting = true
 			return m, tea.Quit

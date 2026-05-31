@@ -1,4 +1,4 @@
-# Project Handoff - Total Assimilation v0.83.0
+# Project Handoff - Total Assimilation v0.84.0
 
 The "Total Assimilation" cycle is now complete. All 11 external submodules have been fully internalized into the native Go architecture and removed from the repository. The project is now a self-contained, high-performance Go application with feature parity (or better) compared to the original reference agents.
 
@@ -21,7 +21,7 @@ The "Total Assimilation" cycle is now complete. All 11 external submodules have 
 
 ### 3. Build & Deployment
 - **Unified Build**: Added `scripts/build-go.sh` for automated cross-compilation.
-- **Version**: Advanced to v0.83.0.
+- **Version**: Advanced to v0.84.0.
 
 ## Verified Healthy State
 - All tests in `pkg/ai`, `pkg/agent`, `pkg/agentsession`, `pkg/findtool`, `pkg/greptool`, `pkg/slashcommands`, and `pkg/nativetools` pass.

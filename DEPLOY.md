@@ -1,46 +1,33 @@
-# Deployment Instructions
+# Deployment & Environment Setup
 
-This document always contains the latest detailed deployment instructions.
+## Prerequisites
+- Go 1.24.3 or higher
+- Ripgrep (`rg`) for advanced search tools
+- Lynx (`lynx`) for text-based browser navigation
+- Xdotool (`xdotool`) for Linux computer-use tools
 
-## Legacy State (TypeScript) - DEPRECATED
-
-The current TypeScript monorepo relies on npm.
-
-To build and run locally:
-```bash
-npm install
-npm run build
-npm run check
-./test.sh
-```
-
-## Go Port Deployment Strategy (Active)
-
-The future Go project will compile to a single, statically linked binary, significantly simplifying deployment compared to the Node.js ecosystem.
-
-### Prerequisites
-- Go 1.24+
-
-### Building
+## Building from Source
+To build the native Go binary for your current platform:
 ```bash
 go build -o pi-agent ./cmd/pi
 ```
 
-### Running
+## Cross-Platform Compilation
+To generate binaries for all supported platforms (Darwin, Linux, Windows), run the provided build script:
 ```bash
-./pi-agent
+./scripts/build-go.sh
 ```
+Binaries will be available in the `dist/binaries/` directory.
 
-*(This file will be updated with containerization, orchestration, and CI/CD specifics as the Go port develops).*
+## Configuration
+The agent stores persistent state (skills, sessions, settings) in `~/.pi/`.
+- **Skills**: `~/.pi/skills/`
+- **Sessions**: `~/.pi/sessions/`
+- **Settings**: `~/.pi/settings.json`
 
-**Note:** Testing in the sandbox environment may fail due to internal bash errors. Locally, ensure you have Go 1.24+ to compile correctly across target platforms.
-
-### Cross-Platform Compilation
-A standard `Makefile` is now included. To build binaries for all target architectures (Linux, Darwin, Windows) simultaneously into the `bin/` directory, run:
-```bash
-make build
-```
-To test the Go pipeline:
-```bash
-make test
-```
+## Environment Variables
+Set the following variables in your `.env` or shell:
+- `OPENAI_API_KEY`: For OpenAI models.
+- `ANTHROPIC_API_KEY`: For Anthropic models.
+- `GOOGLE_API_KEY`: For Google Gemini models.
+- `PI_AGENT_DIR`: Override default config directory (default: `~/.pi`).
