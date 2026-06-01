@@ -92,9 +92,13 @@
 ## [0.71.0] - 2026-05-19
 
 ### Added
-- Completed Phase 14 analysis of deployment strategies. Documented plan to migrate cross-platform compilation targets from Bun/Node backends entirely to native `go build` cross-compilation binaries and distroless Docker containers.
-- Implemented the `pi-plannotator` extension for interactive plan reviews natively in Go.
-- Wired the `react_fallback` extension logic to autonomously intercept tool call failures and prompt ReAct reasoning.
+- Enhanced Go TUI (Bubbletea) with interactive autocompletion for slash commands and file references.
+- Implemented Aider-style \`repo_map\` for high-level repository context and definition extraction.
+- Internalized Hermes-style \`search_files\` and \`session_search\` (log search).
+- Added native \`skill_manage\` tool for persistent agent skill creation and updates.
+- Added \`scripts/build-go.sh\` for automated cross-platform binary generation.
+- Improved TUI information density with real-time token/cost statistics and a "Thinking" indicator.
+- Added TUI keybindings: \`Ctrl+P\` (Cycle Model), \`Ctrl+N\` (New Session).
 
 ### Fixed
 - Resolved `greptool` issue where hidden or unrestricted files (like logs) were ignored by ripgrep.

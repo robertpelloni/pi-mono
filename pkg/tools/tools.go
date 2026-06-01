@@ -46,7 +46,7 @@ var ReadOnlyTools = []string{"read", "grep", "find", "ls"}
 func CreateAllTools(cwd string) []agent.AgentTool {
 	return []agent.AgentTool{
 		nativetools.NativeReadTool(cwd),
-		bashtool.CreateBashTool(cwd),
+		bashtool.CreateBashTool(cwd, bashtool.DefaultSecurityPolicy()),
 		edittool.CreateEditTool(cwd),
 		writetool.CreateWriteTool(cwd),
 		nativetools.NativeGrepTool(cwd),
@@ -59,7 +59,7 @@ func CreateAllTools(cwd string) []agent.AgentTool {
 func CreateDefaultTools(cwd string) []agent.AgentTool {
 	return []agent.AgentTool{
 		nativetools.NativeReadTool(cwd),
-		bashtool.CreateBashTool(cwd),
+		bashtool.CreateBashTool(cwd, bashtool.DefaultSecurityPolicy()),
 		edittool.CreateEditTool(cwd),
 		writetool.CreateWriteTool(cwd),
 	}
@@ -83,7 +83,7 @@ func CreateToolsByName(cwd string, names []string) []agent.AgentTool {
 		case "read":
 			toolList = append(toolList, nativetools.NativeReadTool(cwd))
 		case "bash":
-			toolList = append(toolList, bashtool.CreateBashTool(cwd))
+			toolList = append(toolList, bashtool.CreateBashTool(cwd, bashtool.DefaultSecurityPolicy()))
 		case "edit":
 			toolList = append(toolList, edittool.CreateEditTool(cwd))
 		case "write":

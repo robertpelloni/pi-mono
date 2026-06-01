@@ -128,7 +128,7 @@ type AgentEvent struct {
 	ToolName      string         // Used by ToolExecution events
 	Args          map[string]any // Used by ToolExecution events
 	PartialResult any            // Used by EventToolExecutionUpdate
-	Result        any            // Used by EventToolExecutionEnd
+	Result        AgentToolResult            // Used by EventToolExecutionEnd
 	IsError       bool           // Used by EventToolExecutionEnd
 }
 
