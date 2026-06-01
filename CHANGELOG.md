@@ -2,10 +2,6 @@
 
 ## [0.84.0] - 2026-05-31
 ### Added
-- Optimized concurrent session handling in HTTP Server with automated inactivity cleanup.
-- Implemented Model Context Protocol (MCP) HTTP/SSE transport client.
-
-### Added
 - Implemented Robust ReAct Fallback logic in `pkg/extensions/react_fallback` for autonomous recovery.
 - Added initial Model Context Protocol (MCP) plugin with `use_mcp_tool` support.
 - Enhanced TUI to display "Reasoning (ReAct)..." status during fallback loops.

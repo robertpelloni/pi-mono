@@ -11,22 +11,19 @@ import (
 
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/agentsession"
+	"github.com/badlogic/pi-mono/pkg/ai"
 )
-
-type SessionEntry struct {
-	Session    *agentsession.AgentSession
-	LastAccess time.Time
-}
 
 // Server represents the HTTP web server for the Pi Web UI.
 type Server struct {
 	mu        sync.RWMutex
 	mux       *http.ServeMux
 	staticDir string
-	sessions  map[string]*SessionEntry
-	config    agentsession.AgentSessionConfig
+	sessions  map[string]*agentsession.AgentSession
+	config    agentsession.AgentSessionConfig // Template config for new sessions
 }
 
+// NewServer initializes a new Web UI Server with multi-session support.
 func NewServer(staticDir string, config agentsession.AgentSessionConfig) *Server {
 	if staticDir == "" {
 		staticDir = "packages/web-ui/dist"
@@ -36,37 +33,25 @@ func NewServer(staticDir string, config agentsession.AgentSessionConfig) *Server
 	s := &Server{
 		mux:       mux,
 		staticDir: staticDir,
-		sessions:  make(map[string]*SessionEntry),
+		sessions:  make(map[string]*agentsession.AgentSession),
 		config:    config,
 	}
 	s.routes()
-	go s.cleanupLoop()
 	return s
 }
 
-func (s *Server) cleanupLoop() {
-	ticker := time.NewTicker(10 * time.Minute)
-	for range ticker.C {
-		s.mu.Lock()
-		for id, entry := range s.sessions {
-			if time.Since(entry.LastAccess) > 1*time.Hour {
-				entry.Session.Dispose()
-				delete(s.sessions, id)
-			}
-		}
-		s.mu.Unlock()
-	}
-}
-
+// ServeHTTP implements the http.Handler interface.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
 
+// routes registers all the HTTP endpoints.
 func (s *Server) routes() {
 	s.mux.HandleFunc("/api/health", s.handleHealth())
 	s.mux.HandleFunc("/api/chat", s.handleChat())
 	s.mux.HandleFunc("/api/sessions", s.handleListSessions())
 
+	// Serve static files
 	fileServer := http.FileServer(http.Dir(s.staticDir))
 	s.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		path := filepath.Join(s.staticDir, r.URL.Path)
@@ -82,7 +67,7 @@ func (s *Server) routes() {
 func (s *Server) handleHealth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "version": "0.90.0"})
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "version": "0.86.0"})
 	}
 }
 
@@ -105,22 +90,19 @@ func (s *Server) handleChat() http.HandlerFunc {
 		}
 
 		s.mu.Lock()
-		entry, ok := s.sessions[req.SessionID]
+		sess, ok := s.sessions[req.SessionID]
 		if !ok {
+			// Create new session if ID not found or empty
 			if req.SessionID == "" {
 				req.SessionID = fmt.Sprintf("sess_%d", time.Now().UnixNano())
 			}
-			entry = &SessionEntry{
-				Session:    agentsession.NewAgentSession(s.config),
-				LastAccess: time.Now(),
-			}
-			s.sessions[req.SessionID] = entry
-		} else {
-			entry.LastAccess = time.Now()
+			// In a real implementation we would clone the template agent and session manager
+			sess = agentsession.NewAgentSession(s.config)
+			s.sessions[req.SessionID] = sess
 		}
 		s.mu.Unlock()
 
-		sess := entry.Session
+		// Setup SSE Headers
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
@@ -139,7 +121,19 @@ func (s *Server) handleChat() http.HandlerFunc {
 		defer unsubscribe()
 
 		go func() {
-			sess.Prompt(r.Context(), req.Message)
+			err := sess.Prompt(r.Context(), req.Message)
+			if err != nil {
+				errMsg := err.Error()
+				reason := ai.StopReasonError
+				eventsChan <- agent.AgentEvent{
+					Type: agent.EventMessageUpdate,
+					AssistantMessageEvent: &ai.AssistantMessageEvent{
+						Type:   ai.EventError,
+						Reason: &reason,
+						Error:  &ai.AssistantMessage{ErrorMessage: &errMsg},
+					},
+				}
+			}
 			eventsChan <- agent.AgentEvent{Type: agent.EventAgentEnd}
 		}()
 
@@ -148,9 +142,11 @@ func (s *Server) handleChat() http.HandlerFunc {
 			case <-r.Context().Done():
 				return
 			case event := <-eventsChan:
-				data, _ := json.Marshal(event)
-				fmt.Fprintf(w, "data: %s\n\n", string(data))
-				flusher.Flush()
+				data, err := json.Marshal(event)
+				if err == nil {
+					fmt.Fprintf(w, "data: %s\n\n", string(data))
+					flusher.Flush()
+				}
 				if event.Type == agent.EventAgentEnd {
 					return
 				}
@@ -163,10 +159,12 @@ func (s *Server) handleListSessions() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s.mu.RLock()
 		defer s.mu.RUnlock()
+
 		ids := make([]string, 0, len(s.sessions))
 		for id := range s.sessions {
 			ids = append(ids, id)
 		}
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{"sessions": ids})
 	}
