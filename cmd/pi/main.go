@@ -32,6 +32,7 @@ import (
 	"github.com/badlogic/pi-mono/pkg/server"
 	"github.com/badlogic/pi-mono/pkg/session"
 	"github.com/badlogic/pi-mono/pkg/sessionruntime"
+	"github.com/badlogic/pi-mono/pkg/agentregistry"
 	"github.com/badlogic/pi-mono/pkg/settings"
 	"github.com/badlogic/pi-mono/pkg/skills"
 	"github.com/badlogic/pi-mono/pkg/slashcommands"
@@ -393,6 +394,10 @@ func main() {
 	agentLoop.SetSystemPrompt(effectiveSystemPrompt)
 	agentLoop.SetThinkingLevel(thinkingLevel)
 
+	// Initialize and register the global scheduler
+	scheduler := agent.NewTaskScheduler(agentLoop)
+	agentregistry.GlobalScheduler = scheduler
+
 	// ─── Slash Commands ───
 	slashRegistry := slashcommands.NewRegistry()
 	slashRegistry.Register(slashcommands.SlashCommandInfo{
@@ -475,6 +480,9 @@ func main() {
 		CWD:            cwd,
 		AgentDir:       agentDir,
 	})
+
+	// Register the AgentSession as the global subagent runner
+	agentregistry.GlobalSubagentRunner = agentSess
 
 	// ─── Create Session Runtime ───
 	var runtime *sessionruntime.AgentSessionRuntime

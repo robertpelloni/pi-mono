@@ -268,17 +268,28 @@ func handleHermesBrowserNavigate(args map[string]interface{}) string {
 	return string(out)
 }
 
+// handleHermesBrowserClick simulates a browser click.
+// TODO: Replace with playwright-go implementation.
+// Logic: Use CDP (Chrome DevTools Protocol) to dispatch a click event to the element
+// mapped to the provided ref_id from the last browser_snapshot.
 func handleHermesBrowserClick(args map[string]interface{}) string {
 	refID, _ := args["ref_id"].(string)
 	return "Clicked on ref_id: " + refID
 }
 
+// handleHermesBrowserType simulates typing into a browser element.
+// TODO: Replace with playwright-go implementation.
+// Logic: Focus the element at ref_id and use Page.Keyboard.Type() to send keystrokes.
 func handleHermesBrowserType(args map[string]interface{}) string {
 	refID, _ := args["ref_id"].(string)
 	text, _ := args["text"].(string)
 	return "Typed '" + text + "' into ref_id: " + refID
 }
 
+// handleHermesBrowserSnapshot provides a structural view of the page.
+// TODO: Replace with playwright-go implementation using Accessibility Tree extraction.
+// Logic: Extract visible DOM elements, assign unique ref_ids, and return a simplified
+// markdown-like representation of the UI for the LLM.
 func handleHermesBrowserSnapshot(args map[string]interface{}) string {
 	return "Simulated Browser Snapshot Data:\n[#1] <a>Home</a>\n[#2] <button>Submit</button>"
 }
@@ -368,12 +379,19 @@ func handleHermesDelegateTask(args map[string]interface{}) string {
 	return result
 }
 
+// handleHermesHACallService calls a Home Assistant service.
+// TODO: Implement via Home Assistant REST API (/api/services/<domain>/<service>).
+// Requires HA_URL and HA_TOKEN in .env.
 func handleHermesHACallService(args map[string]interface{}) string {
 	domain, _ := args["domain"].(string)
 	service, _ := args["service"].(string)
 	return "Home Assistant service called: " + domain + "." + service
 }
 
+// handleHermesMOA implements Mixture-of-Agents collaborative reasoning.
+// TODO: Implement parallel model queries using pkg/ai streaming functions.
+// Logic: Send the user prompt to multiple models (GPT-4o, Claude 3.5, etc.) in parallel,
+// then feed all responses to a final 'aggregator' model to synthesize the best answer.
 func handleHermesMOA(args map[string]interface{}) string {
 	return "Mixture of Agents processed prompt collaboratively."
 }
