@@ -106,7 +106,7 @@ func Execute(ctx context.Context, input GrepToolInput, cwd string, ops GrepOpera
 }
 
 func executeWithRg(ctx context.Context, rgPath string, input GrepToolInput, searchDir string, isDir bool, effectiveLimit int, contextValue int, ops GrepOperations) (*GrepToolResult, error) {
-	args := []string{"--json", "--line-number", "--color=never", "--hidden"}
+	args := []string{"--json", "--line-number", "--color=never", "--hidden", "-u"}
 	if input.IgnoreCase {
 		args = append(args, "--ignore-case")
 	}

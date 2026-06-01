@@ -1,14 +1,17 @@
 package ai
 
 import (
-	"os"
-	"path/filepath"
-
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
+
+	"github.com/badlogic/pi-mono/pkg/findtool"
+	"github.com/badlogic/pi-mono/pkg/greptool"
 )
 
 // CleanRoomToolHandlers defines the unified underlying implementations for our exact parity tools.
@@ -232,8 +235,19 @@ func handleHermesMemory(args map[string]interface{}) string {
 }
 
 func handleHermesBrowserNavigate(args map[string]interface{}) string {
-	url, _ := args["url"].(string)
-	return "Navigated to: " + url
+	url, ok := args["url"].(string)
+	if !ok {
+		return "Error: missing 'url' parameter"
+	}
+
+	// Use lynx to get a text dump of the page
+	cmd := exec.Command("lynx", "-dump", url)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Sprintf("Error navigating to %s: %v\nOutput: %s", url, err, string(out))
+	}
+
+	return string(out)
 }
 
 func handleHermesBrowserClick(args map[string]interface{}) string {
@@ -257,7 +271,24 @@ func handleHermesClarify(args map[string]interface{}) string {
 }
 
 func handleHermesExecuteCode(args map[string]interface{}) string {
-	return "Python code execution simulated successfully."
+	code, ok := args["code"].(string)
+	if !ok {
+		return "Error: missing 'code' parameter"
+	}
+
+	// Attempt to run with python3
+	cmd := exec.Command("python3", "-c", code)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		// Fallback to python if python3 is missing
+		cmd = exec.Command("python", "-c", code)
+		out, err = cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Sprintf("Error executing Python code: %v\nOutput: %s", err, string(out))
+		}
+	}
+
+	return string(out)
 }
 
 func handleHermesCronjob(args map[string]interface{}) string {
@@ -280,20 +311,104 @@ func handleHermesMOA(args map[string]interface{}) string {
 	return "Mixture of Agents processed prompt collaboratively."
 }
 
-func handleHermesSessionSearch(args map[string]interface{}) string {
+func handleHermesSearchFiles(args map[string]interface{}) string {
+	target, _ := args["target"].(string)
 	query, _ := args["query"].(string)
-	return "Session search results for: " + query
+	path, _ := args["path"].(string)
+	if path == "" {
+		path = "."
+	}
+
+	cwd, _ := os.Getwd()
+
+	if target == "name" {
+		input := findtool.FindToolInput{
+			Pattern: query,
+			Path:    path,
+		}
+		result, err := findtool.Execute(context.Background(), input, cwd, nil)
+		if err != nil {
+			return "Error: " + err.Error()
+		}
+		return result.Content
+	} else if target == "content" {
+		input := greptool.GrepToolInput{
+			Pattern: query,
+			Path:    path,
+		}
+		result, err := greptool.Execute(context.Background(), input, cwd, nil)
+		if err != nil {
+			return "Error: " + err.Error()
+		}
+		return result.Content
+	}
+
+	return "Error: invalid target. Must be 'content' or 'name'."
 }
 
-func handleHermesSkillManage(args map[string]interface{}) string {
-	action, _ := args["action"].(string)
-	name, _ := args["name"].(string)
-	return "Skill '" + name + "' managed with action: " + action
+func handleHermesSessionSearch(args map[string]interface{}) string {
+	query, _ := args["query"].(string)
+	// Search in session logs if available
+	cwd, _ := os.Getwd()
+	logDir := filepath.Join(cwd, "logs")
+	if _, err := os.Stat(logDir); err == nil {
+		input := greptool.GrepToolInput{
+			Pattern: query,
+			Path:    logDir,
+		}
+		result, err := greptool.Execute(context.Background(), input, cwd, nil)
+		if err == nil {
+			return "Search results from logs:\n" + result.Content
+		}
+	}
+	return "Session search results for: " + query + " (no logs found)"
 }
 
 func handleHermesWebSearch(args map[string]interface{}) string {
-	query, _ := args["query"].(string)
-	return "Web search results for: " + query
+	query, ok := args["query"].(string)
+	if !ok {
+		return "Error: missing 'query' parameter"
+	}
+
+	// Use duckduckgo html search as a fallback for real search
+	searchURL := fmt.Sprintf("https://html.duckduckgo.com/html/?q=%s", strings.ReplaceAll(query, " ", "+"))
+	return handleHermesBrowserNavigate(map[string]interface{}{"url": searchURL})
+}
+
+func handleHermesTodo(args map[string]interface{}) string {
+	action, _ := args["action"].(string)
+	task, _ := args["task"].(string)
+
+	todoFile := ".pi_todo.md"
+
+	switch action {
+	case "add":
+		f, err := os.OpenFile(todoFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return "Error opening todo file: " + err.Error()
+		}
+		defer f.Close()
+		if _, err := f.WriteString("- [ ] " + task + "\n"); err != nil {
+			return "Error writing to todo file: " + err.Error()
+		}
+		return "Added to TODO list: " + task
+	case "list":
+		content, err := ioutil.ReadFile(todoFile)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return "TODO list is empty."
+			}
+			return "Error reading todo file: " + err.Error()
+		}
+		return "### TODO List\n\n" + string(content)
+	case "clear":
+		if err := os.Remove(todoFile); err != nil && !os.IsNotExist(err) {
+			return "Error clearing todo list: " + err.Error()
+		}
+		return "TODO list cleared."
+	default:
+		return "Unknown todo action: " + action
+	}
 }
 
 var CleanRoomTools = map[string]func(map[string]interface{}) string{
@@ -312,6 +427,8 @@ var CleanRoomTools = map[string]func(map[string]interface{}) string{
 	"session_search":             handleHermesSessionSearch,
 	"skill_manage":               handleHermesSkillManage,
 	"web_search":                 handleHermesWebSearch,
+	"todo":                       handleHermesTodo,
+	"search_files":               handleHermesSearchFiles,
 	"run_command":                handleAiderRunCommand,
 	"execute_command":            handleClineExecuteCommand,
 	"write_to_file":              handleClineWriteToFile,
@@ -319,6 +436,7 @@ var CleanRoomTools = map[string]func(map[string]interface{}) string{
 	"list_code_definition_names": handleClineListCodeDefinitionNames,
 	"browser_action":             handleClineBrowserAction,
 	"replace_lines":              handleAiderReplaceLines,
+	"repo_map":                   handleAiderRepoMap,
 }
 
 func handleAiderRunCommand(args map[string]interface{}) string {
@@ -395,12 +513,62 @@ func handleClineAskFollowup(args map[string]interface{}) string {
 
 func handleClineListCodeDefinitionNames(args map[string]interface{}) string {
 	path, _ := args["path"].(string)
-	unifiedArgs := map[string]interface{}{"command": "grep -roh 'func \\|class \\|type ' " + path}
-	out, err := HandleUnifiedCommand(unifiedArgs)
-	if err != nil {
-		return "Error searching AST paths: " + err.Error()
+	// Use greptool to find functions and classes natively
+	input := greptool.GrepToolInput{
+		Pattern: "(func|type|class|interface|struct) ",
+		Path:    path,
 	}
-	return out
+	cwd, _ := os.Getwd()
+	result, err := greptool.Execute(context.Background(), input, cwd, nil)
+	if err != nil {
+		return "Error listing definitions: " + err.Error()
+	}
+	return result.Content
+}
+
+func handleAiderRepoMap(args map[string]interface{}) string {
+	cwd, _ := os.Getwd()
+	files := findtool.FindToolInput{
+		Pattern: "**/*",
+		Path:    ".",
+		Limit:   100,
+	}
+	res, err := findtool.Execute(context.Background(), files, cwd, nil)
+	if err != nil {
+		return "Error building repo map: " + err.Error()
+	}
+
+	fileList := strings.Split(res.Content, "\n")
+	var sb strings.Builder
+	sb.WriteString("Repository Structure & Definitions:\n")
+
+	for _, f := range fileList {
+		if f == "" || strings.HasPrefix(f, "[") {
+			continue
+		}
+		sb.WriteString("\n📄 " + f + "\n")
+		// Get definitions for each file
+		defInput := greptool.GrepToolInput{
+			Pattern: "(func|type|class|interface|struct) ",
+			Path:    filepath.Join(cwd, f),
+		}
+		defRes, err := greptool.Execute(context.Background(), defInput, cwd, nil)
+		if err == nil && !strings.Contains(defRes.Content, "No matches found") {
+			defs := strings.Split(defRes.Content, "\n")
+			for _, d := range defs {
+				if d == "" || strings.HasPrefix(d, "[") {
+					continue
+				}
+				// Clean up grep output: file:line: match
+				parts := strings.SplitN(d, ":", 3)
+				if len(parts) >= 3 {
+					sb.WriteString("  " + strings.TrimSpace(parts[2]) + "\n")
+				}
+			}
+		}
+	}
+
+	return sb.String()
 }
 
 func handleClineBrowserAction(args map[string]interface{}) string {
@@ -408,7 +576,7 @@ func handleClineBrowserAction(args map[string]interface{}) string {
 	switch action {
 	case "launch":
 		url, _ := args["url"].(string)
-		return "Browser launched at: " + url
+		return handleHermesBrowserNavigate(map[string]interface{}{"url": url})
 	case "click":
 		coord, _ := args["coordinate"].(string)
 		return "Clicked at coordinate: " + coord
@@ -421,4 +589,40 @@ func handleClineBrowserAction(args map[string]interface{}) string {
 		return "Browser closed."
 	}
 	return "Unknown browser action."
+}
+
+func handleHermesSkillManage(args map[string]interface{}) string {
+	action, _ := args["action"].(string)
+	name, _ := args["name"].(string)
+	content, _ := args["content"].(string)
+
+	if name == "" {
+		return "Error: skill name is required"
+	}
+
+	// For now, save skills to .pi/skills/
+	skillDir := filepath.Join(".pi", "skills", name)
+	os.MkdirAll(skillDir, 0755)
+	skillFile := filepath.Join(skillDir, name+".md")
+
+	switch action {
+	case "create", "update":
+		// Wrap content in simple frontmatter if not present
+		if !strings.HasPrefix(content, "---") {
+			content = fmt.Sprintf("---\nname: %s\ndescription: %s\n---\n%s", name, name, content)
+		}
+		err := os.WriteFile(skillFile, []byte(content), 0644)
+		if err != nil {
+			return "Error managing skill: " + err.Error()
+		}
+		return "Skill '" + name + "' " + action + "d successfully."
+	case "delete":
+		err := os.RemoveAll(skillDir)
+		if err != nil {
+			return "Error deleting skill: " + err.Error()
+		}
+		return "Skill '" + name + "' deleted successfully."
+	default:
+		return "Unknown skill action: " + action
+	}
 }

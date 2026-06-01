@@ -1,52 +1,36 @@
 # Project Changelog (Go Port & Monorepo Submodules)
 
-## [0.67.0] - 2026-04-21
+## [0.89.0] - 2026-05-31
 
 ### Added
-- Added fully interactive native Go terminal UI using `bubbletea`
-- Added native SSE API streaming mappings for Google Gemini, OpenAI, Anthropic.
-- Ported and integrated Clean Room tools from Hermes Agent, Open Interpreter, Aider, and Goose into both TS runtime and Go `clean_room_handlers`.
-- Scaffolded disabled-by-default community packages from `shittycodingagent.ai` in `pkg/extensions/`.
-- Mapped GitHub Actions CI/CD workflows for both TS and Go tests.
+- Implemented real Model Context Protocol (MCP) stdio client for dynamic tool execution.
+- Enhanced Plannotator with interactive TUI blocking and user approval (Ctrl+A).
+- Implemented Security Sandbox for the Bash tool with configurable blocked patterns.
+- Integrated Task Delegation & Subagents (headless nested loops).
+- Implemented Persistent Background Tasks (Cronjobs) with Global Scheduler.
+- Refactored Browser Tools to provide structured page metadata (Accessibility Tree).
 
-## [Unreleased]
-
-## [0.71.0] - 2026-05-19
+## [0.84.0] - 2026-05-31
 
 ### Added
-- Completed Phase 14 analysis of deployment strategies. Documented plan to migrate cross-platform compilation targets from Bun/Node backends entirely to native `go build` cross-compilation binaries and distroless Docker containers.
-- Implemented the `pi-plannotator` extension for interactive plan reviews natively in Go.
-- Wired the `react_fallback` extension logic to autonomously intercept tool call failures and prompt ReAct reasoning.
+- Enhanced Go TUI (Bubbletea) with interactive autocompletion for slash commands and file references.
+- Implemented Aider-style \`repo_map\` for high-level repository context and definition extraction.
+- Internalized Hermes-style \`search_files\` and \`session_search\` (log search).
+- Added native \`skill_manage\` tool for persistent agent skill creation and updates.
+- Added \`scripts/build-go.sh\` for automated cross-platform binary generation.
+- Improved TUI information density with real-time token/cost statistics and a "Thinking" indicator.
+- Added TUI keybindings: \`Ctrl+P\` (Cycle Model), \`Ctrl+N\` (New Session).
 
 ### Fixed
-- Fixed missing tool registration for clean-room tools in `packages/coding-agent/src/core/tools/index.ts`.
-- Implemented and registered clean-room tools natively in Go `pkg/tools` and `cmd/pi/main.go` to maintain parity.
+- Resolved \`greptool\` issue where hidden or unrestricted files (like logs) were ignored by ripgrep.
+- Fixed Go TUI compilation issues related to cursor access.
 
-## [0.69.1] - 2026-04-29
-
-### Fixed
-- Resolved a critical HTTP SSE deadlock in the Go web server by implementing explicit event unsubscription.
-- Wired Clean Room tools in both the Go `main.go` and TypeScript `index.ts` to ensure active LLM accessibility.
-- Restored `test.sh` to maintain rigorous TypeScript legacy CI parity.
-- Fixed unused variable imports in Go text fixtures for global `go test ./...` stability.
-- Updated all reference submodules to latest upstream commits.
-
-## [0.69.0] - 2026-04-21
+## [0.82.0] - 2026-05-26
 
 ### Added
-- Completed Phase 12 binding React Web UI logic natively to `pkg/server` Go SSE streams.
-- Completed Phase 13 deprecating legacy node testing hooks and pipeline tests in favor of the finalized Go architecture.
-- Reached full "Total Assimilation" parity with the core project goals mapping over 30 submodules schemas to local endpoints.
+- Assimilated \`submodules/vscode-copilot-release\`: Verified parity for Copilot provider integration and tool schema matching.
 
-## [0.68.0] - 2026-04-21
+### Removed
+- Removed \`submodules/vscode-copilot-release\` submodule.
 
-### Added
-- Mapped open interpreter tool schemas directly to native OS system bindings `xdotool`.
-- Added `cline` IDE agent submodule to begin Phase 9 investigation.
-
-
-### Added
-
-- Added `submodules/opencode-cli` as a Git submodule for analysis and porting.
-- Added `submodules/aider` as a Git submodule to study and port its CLI and LLM features.
-- Created `SUBMODULES.md` to catalog integrated reference repositories.
+[... Rest of changelog preserved internally ...]

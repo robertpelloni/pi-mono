@@ -9,28 +9,33 @@ import (
 	"github.com/badlogic/pi-mono/pkg/ai"
 )
 
-// ReActFallbackPlugin provides a fallback reasoning loop when direct tool calling fails or models hallucinate tool names.
+// ReActFallbackPlugin provides a fallback reasoning loop when direct tool calling fails.
 type ReActFallbackPlugin struct {
 	Enabled bool
+	MaxSteps int
 }
 
-// NewReActFallbackPlugin initializes the plugin
 func NewReActFallbackPlugin() *ReActFallbackPlugin {
-	return &ReActFallbackPlugin{Enabled: false}
+	return &ReActFallbackPlugin{
+		Enabled: true,
+		MaxSteps: 3,
+	}
 }
 
-// InterceptAfterToolCall evaluates if a tool call failed due to hallucination and prompts a ReAct reasoning step.
 func (p *ReActFallbackPlugin) InterceptAfterToolCall(ctx context.Context, callCtx agent.AfterToolCallContext) (*agent.AfterToolCallResult, error) {
 	if !p.Enabled {
 		return nil, nil
 	}
 
-	// Simple heuristic: If tool failed or was unrecognized, inject a specific ReAct thought directive.
-	if callCtx.IsError || strings.Contains(fmt.Sprintf("%v", callCtx.Result), "Not implemented") {
-		overrideText := "I hallucinated a tool or encountered an error. I must now think step-by-step using ReAct format (Thought: ... Action: ... Observation: ...) to resolve this."
+	// Detect if the tool failed or was unrecognized
+	if callCtx.IsError || strings.Contains(fmt.Sprintf("%v", callCtx.Result), "tool not found") {
+		// Inject a steering message to the agent to use ReAct format for the next turn
+		directive := "I encountered a tool execution failure. I must now switch to ReAct reasoning mode to complete the task.\n" +
+			"Format: \nThought: [my reasoning]\nAction: [tool_name](args)\nObservation: [result]\n..."
+
 		return &agent.AfterToolCallResult{
 			Content: []ai.Content{
-				ai.TextContent{Text: overrideText},
+				ai.TextContent{Text: directive},
 			},
 		}, nil
 	}

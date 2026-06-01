@@ -1689,3 +1689,16 @@ func containsString(slice []string, val string) bool {
 	}
 	return false
 }
+
+func (as *AgentSession) RunTask(ctx context.Context, task string, parentContext string) (string, error) {
+	subagentPrompt := fmt.Sprintf("You are a subagent working on a subtask.\nParent Context: %s\nTask: %s\n\nSummarize results.", parentContext, task)
+	msg := ai.UserMessage{
+		Content: []ai.Content{ai.TextContent{Text: subagentPrompt}},
+		Timestamp: time.Now().UnixMilli(),
+	}
+	err := as.config.Agent.Prompt(ctx, msg)
+	if err != nil {
+		return "", err
+	}
+	return as.LastAssistantText(), nil
+}
