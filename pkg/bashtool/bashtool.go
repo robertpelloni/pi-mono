@@ -15,6 +15,7 @@ import (
 
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/ai"
+	"github.com/badlogic/pi-mono/pkg/security"
 	"github.com/badlogic/pi-mono/pkg/truncate"
 )
 
@@ -43,6 +44,15 @@ func CreateBashTool(cwd string) agent.AgentTool {
 			command, _ := params["command"].(string)
 			if command == "" {
 				return agent.AgentToolResult{}, fmt.Errorf("missing command parameter")
+			}
+
+			// Apply security sandbox checks
+			sandbox := security.GetSandboxConfig()
+			if err := sandbox.IsCommandSafe(command); err != nil {
+				return agent.AgentToolResult{}, err
+			}
+			if err := sandbox.ValidatePath(cwd); err != nil {
+				return agent.AgentToolResult{}, err
 			}
 
 			var timeoutSec float64
