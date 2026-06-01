@@ -15,11 +15,12 @@ import (
 
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/ai"
+	"github.com/badlogic/pi-mono/pkg/security"
 	"github.com/badlogic/pi-mono/pkg/truncate"
 )
 
 // CreateBashTool creates the bash tool with streaming output, timeout, and truncation.
-func CreateBashTool(cwd string, policy SecurityPolicy) agent.AgentTool {
+func CreateBashTool(cwd string) agent.AgentTool {
 	return agent.AgentTool{
 		Name:        "bash",
 		Label:       "bash",
@@ -45,11 +46,13 @@ func CreateBashTool(cwd string, policy SecurityPolicy) agent.AgentTool {
 				return agent.AgentToolResult{}, fmt.Errorf("missing command parameter")
 			}
 
-			if err := policy.IsCommandSafe(command); err != nil {
-				return agent.AgentToolResult{
-					IsError: true,
-					Content: []ai.Content{ai.TextContent{Text: err.Error()}},
-				}, nil
+			// Apply security sandbox checks
+			sandbox := security.GetSandboxConfig()
+			if err := sandbox.IsCommandSafe(command); err != nil {
+				return agent.AgentToolResult{}, err
+			}
+			if err := sandbox.ValidatePath(cwd); err != nil {
+				return agent.AgentToolResult{}, err
 			}
 
 			var timeoutSec float64

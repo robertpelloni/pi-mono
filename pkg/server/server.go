@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/badlogic/pi-mono/pkg"
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/agentsession"
 	"github.com/badlogic/pi-mono/pkg/ai"
@@ -67,7 +68,7 @@ func (s *Server) routes() {
 func (s *Server) handleHealth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "version": "0.86.0"})
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "version": pkg.Version})
 	}
 }
 
@@ -90,14 +91,17 @@ func (s *Server) handleChat() http.HandlerFunc {
 		}
 
 		s.mu.Lock()
+		// Auto-generate session ID if empty
+		if req.SessionID == "" {
+			req.SessionID = fmt.Sprintf("sess_%d", time.Now().UnixNano())
+		}
+
 		sess, ok := s.sessions[req.SessionID]
 		if !ok {
-			// Create new session if ID not found or empty
-			if req.SessionID == "" {
-				req.SessionID = fmt.Sprintf("sess_%d", time.Now().UnixNano())
-			}
-			// In a real implementation we would clone the template agent and session manager
-			sess = agentsession.NewAgentSession(s.config)
+			// Clone the base configuration for the new session to ensure thread safety
+			// and isolation. Since config is passed by value, this is a shallow copy.
+			sessionConfig := s.config
+			sess = agentsession.NewAgentSession(sessionConfig)
 			s.sessions[req.SessionID] = sess
 		}
 		s.mu.Unlock()

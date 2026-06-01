@@ -10,8 +10,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/badlogic/pi-mono/pkg/agentregistry"
 	"github.com/badlogic/pi-mono/pkg/findtool"
 	"github.com/badlogic/pi-mono/pkg/greptool"
+	"github.com/badlogic/pi-mono/pkg/security"
 )
 
 // CleanRoomToolHandlers defines the unified underlying implementations for our exact parity tools.
@@ -21,6 +23,11 @@ func HandleUnifiedRead(unifiedArgs map[string]interface{}) (string, error) {
 	path, ok := unifiedArgs["path"].(string)
 	if !ok {
 		return "", fmt.Errorf("missing or invalid 'path' parameter")
+	}
+
+	// Security Check
+	if err := security.GetSandboxConfig().ValidatePath(path); err != nil {
+		return "", err
 	}
 
 	content, err := ioutil.ReadFile(path)
@@ -68,6 +75,12 @@ func HandleUnifiedCommand(unifiedArgs map[string]interface{}) (string, error) {
 	command, ok := unifiedArgs["command"].(string)
 	if !ok {
 		return "", fmt.Errorf("missing or invalid 'command' parameter")
+	}
+
+	// Security Check
+	sandbox := security.GetSandboxConfig()
+	if err := sandbox.IsCommandSafe(command); err != nil {
+		return "", err
 	}
 
 	cmd := exec.Command("bash", "-c", command)
@@ -124,6 +137,11 @@ func HandleHermesWriteFile(unifiedArgs map[string]interface{}) (string, error) {
 	content, ok := unifiedArgs["content"].(string)
 	if !ok {
 		return "", fmt.Errorf("missing content")
+	}
+
+	// Security Check
+	if err := security.GetSandboxConfig().ValidatePath(filePath); err != nil {
+		return "", err
 	}
 
 	err := ioutil.WriteFile(filePath, []byte(content), 0644)
@@ -250,17 +268,28 @@ func handleHermesBrowserNavigate(args map[string]interface{}) string {
 	return string(out)
 }
 
+// handleHermesBrowserClick simulates a browser click.
+// TODO: Replace with playwright-go implementation.
+// Logic: Use CDP (Chrome DevTools Protocol) to dispatch a click event to the element
+// mapped to the provided ref_id from the last browser_snapshot.
 func handleHermesBrowserClick(args map[string]interface{}) string {
 	refID, _ := args["ref_id"].(string)
 	return "Clicked on ref_id: " + refID
 }
 
+// handleHermesBrowserType simulates typing into a browser element.
+// TODO: Replace with playwright-go implementation.
+// Logic: Focus the element at ref_id and use Page.Keyboard.Type() to send keystrokes.
 func handleHermesBrowserType(args map[string]interface{}) string {
 	refID, _ := args["ref_id"].(string)
 	text, _ := args["text"].(string)
 	return "Typed '" + text + "' into ref_id: " + refID
 }
 
+// handleHermesBrowserSnapshot provides a structural view of the page.
+// TODO: Replace with playwright-go implementation using Accessibility Tree extraction.
+// Logic: Extract visible DOM elements, assign unique ref_ids, and return a simplified
+// markdown-like representation of the UI for the LLM.
 func handleHermesBrowserSnapshot(args map[string]interface{}) string {
 	return "Simulated Browser Snapshot Data:\n[#1] <a>Home</a>\n[#2] <button>Submit</button>"
 }
@@ -292,21 +321,77 @@ func handleHermesExecuteCode(args map[string]interface{}) string {
 }
 
 func handleHermesCronjob(args map[string]interface{}) string {
+	if agentregistry.GlobalScheduler == nil {
+		return "Error: scheduler is not initialized"
+	}
+
 	action, _ := args["action"].(string)
-	return "Cronjob action '" + action + "' processed."
+	id, _ := args["id"].(string)
+	schedule, _ := args["schedule"].(string)
+	command, _ := args["command"].(string)
+
+	switch action {
+	case "create":
+		if id == "" || schedule == "" || command == "" {
+			return "Error: missing id, schedule, or command"
+		}
+		err := agentregistry.GlobalScheduler.CreateTask(id, schedule, command)
+		if err != nil {
+			return "Error creating cronjob: " + err.Error()
+		}
+		return "Cronjob '" + id + "' created successfully."
+	case "list":
+		tasks := agentregistry.GlobalScheduler.ListTasks()
+		if len(tasks) == 0 {
+			return "No active cronjobs."
+		}
+		return "Active Cronjobs:\n" + strings.Join(tasks, "\n")
+	case "remove":
+		if id == "" {
+			return "Error: missing id"
+		}
+		err := agentregistry.GlobalScheduler.RemoveTask(id)
+		if err != nil {
+			return "Error removing cronjob: " + err.Error()
+		}
+		return "Cronjob '" + id + "' removed successfully."
+	}
+
+	return "Unknown cronjob action: " + action
 }
 
 func handleHermesDelegateTask(args map[string]interface{}) string {
-	task, _ := args["task"].(string)
-	return "Subagent deployed for task: " + task
+	if agentregistry.GlobalSubagentRunner == nil {
+		return "Error: subagent runner is not initialized"
+	}
+
+	task, ok := args["task"].(string)
+	if !ok || task == "" {
+		return "Error: missing task"
+	}
+
+	// Deploy subagent
+	result, err := agentregistry.GlobalSubagentRunner.RunTask(context.Background(), task, "")
+	if err != nil {
+		return "Error deploying subagent: " + err.Error()
+	}
+
+	return result
 }
 
+// handleHermesHACallService calls a Home Assistant service.
+// TODO: Implement via Home Assistant REST API (/api/services/<domain>/<service>).
+// Requires HA_URL and HA_TOKEN in .env.
 func handleHermesHACallService(args map[string]interface{}) string {
 	domain, _ := args["domain"].(string)
 	service, _ := args["service"].(string)
 	return "Home Assistant service called: " + domain + "." + service
 }
 
+// handleHermesMOA implements Mixture-of-Agents collaborative reasoning.
+// TODO: Implement parallel model queries using pkg/ai streaming functions.
+// Logic: Send the user prompt to multiple models (GPT-4o, Claude 3.5, etc.) in parallel,
+// then feed all responses to a final 'aggregator' model to synthesize the best answer.
 func handleHermesMOA(args map[string]interface{}) string {
 	return "Mixture of Agents processed prompt collaboratively."
 }

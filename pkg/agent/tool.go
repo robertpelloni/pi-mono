@@ -8,8 +8,6 @@ import (
 
 // AgentToolResult represents the final or partial result produced by a tool.
 type AgentToolResult struct {
-	ApprovalRequired bool
-	ApprovalID       string
 	Content  []ai.Content `json:"content"`           // Contains ai.TextContent or ai.ImageContent
 	IsError  bool         `json:"isError,omitempty"` // True if the tool execution failed
 	Details  any          `json:"details,omitempty"` // Extra metadata (e.g., diff, truncation info)
