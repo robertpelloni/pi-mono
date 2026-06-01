@@ -19,7 +19,7 @@ import (
 )
 
 // CreateBashTool creates the bash tool with streaming output, timeout, and truncation.
-func CreateBashTool(cwd string, policy SecurityPolicy) agent.AgentTool {
+func CreateBashTool(cwd string) agent.AgentTool {
 	return agent.AgentTool{
 		Name:        "bash",
 		Label:       "bash",
@@ -43,13 +43,6 @@ func CreateBashTool(cwd string, policy SecurityPolicy) agent.AgentTool {
 			command, _ := params["command"].(string)
 			if command == "" {
 				return agent.AgentToolResult{}, fmt.Errorf("missing command parameter")
-			}
-
-			if err := policy.IsCommandSafe(command); err != nil {
-				return agent.AgentToolResult{
-					IsError: true,
-					Content: []ai.Content{ai.TextContent{Text: err.Error()}},
-				}, nil
 			}
 
 			var timeoutSec float64

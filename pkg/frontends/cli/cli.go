@@ -51,8 +51,7 @@ func (r *CLIRenderer) RenderEvent(event agent.AgentEvent) {
 		}
 
 		contentStr := ""
-		res := event.Result
-		{
+		if res, ok := event.Result.(agent.AgentToolResult); ok {
 			for _, c := range res.Content {
 				if txt, ok := c.(ai.TextContent); ok {
 					contentStr += txt.Text

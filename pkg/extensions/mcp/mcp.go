@@ -1,9 +1,10 @@
 package mcp
 
 import (
-	"strings"
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/ai"
 	"github.com/badlogic/pi-mono/pkg/mcp"
@@ -22,7 +23,16 @@ func NewMCPPlugin() *MCPPlugin {
 }
 
 func (p *MCPPlugin) Connect(name string, command string, args ...string) error {
-	client, err := mcp.NewClient(command, args...)
+	client, err := mcp.NewStdioClient(command, args...)
+	if err != nil {
+		return err
+	}
+	p.Clients[name] = client
+	return nil
+}
+
+func (p *MCPPlugin) ConnectSSE(name string, url string) error {
+	client, err := mcp.NewSSEClient(url)
 	if err != nil {
 		return err
 	}

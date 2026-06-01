@@ -38,8 +38,6 @@ type AgentUIModel struct {
 	spinner       spinner.Model
 	subagentActive bool
 	cronjobCount   int
-	awaitingApproval bool
-	approvalID       string
 
 	// Autocompletion state
 	showCompletions bool
@@ -190,14 +188,6 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.modelInfo = fmt.Sprintf("%s/%s", res.Model.Provider, res.Model.ID)
 					m.viewport.SetContent(m.conversation.String())
 					m.viewport.GotoBottom()
-				}
-			}
-		case tea.KeyCtrlA:
-			if m.awaitingApproval {
-				m.awaitingApproval = false
-				m.conversation.WriteString(StyleSlashInfo.Render("\n[System] Plan Approved. Proceeding...\n"))
-				if m.agentSession != nil {
-					go m.agentSession.Agent().Continue()
 				}
 			}
 		case tea.KeyCtrlN:
@@ -359,11 +349,6 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case agent.EventToolExecutionEnd:
 			status := "✓"
 			style := StyleToolSuccess
-			if event.Result.ApprovalRequired {
-				m.awaitingApproval = true
-				m.approvalID = event.Result.ApprovalID
-				m.statusLine = "WAITING FOR APPROVAL"
-			}
 			if event.IsError {
 				status = "✗"
 				style = StyleToolError

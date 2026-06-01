@@ -1,36 +1,40 @@
 # Project Changelog (Go Port & Monorepo Submodules)
 
-## [0.89.0] - 2026-05-31
+## [0.84.0] - 2026-05-31
+### Added
+- Optimized concurrent session handling in HTTP Server with automated inactivity cleanup.
+- Implemented Model Context Protocol (MCP) HTTP/SSE transport client.
 
 ### Added
-- Implemented real Model Context Protocol (MCP) stdio client for dynamic tool execution.
-- Enhanced Plannotator with interactive TUI blocking and user approval (Ctrl+A).
-- Implemented Security Sandbox for the Bash tool with configurable blocked patterns.
-- Integrated Task Delegation & Subagents (headless nested loops).
-- Implemented Persistent Background Tasks (Cronjobs) with Global Scheduler.
-- Refactored Browser Tools to provide structured page metadata (Accessibility Tree).
+- Implemented Robust ReAct Fallback logic in `pkg/extensions/react_fallback` for autonomous recovery.
+- Added initial Model Context Protocol (MCP) plugin with `use_mcp_tool` support.
+- Enhanced TUI to display "Reasoning (ReAct)..." status during fallback loops.
 
-## [0.84.0] - 2026-05-31
+### Added
+- Implemented Multi-Session support in the Go HTTP Server (`/api/sessions`).
+- Enhanced Go TUI with `/sessions` slash command for switching active sessions.
+- Integrated extension hooks (Plannotator) into server-driven agent loops.
+
 
 ### Added
 - Enhanced Go TUI (Bubbletea) with interactive autocompletion for slash commands and file references.
-- Implemented Aider-style \`repo_map\` for high-level repository context and definition extraction.
-- Internalized Hermes-style \`search_files\` and \`session_search\` (log search).
-- Added native \`skill_manage\` tool for persistent agent skill creation and updates.
-- Added \`scripts/build-go.sh\` for automated cross-platform binary generation.
+- Implemented Aider-style `repo_map` for high-level repository context and definition extraction.
+- Internalized Hermes-style `search_files` and `session_search` (log search).
+- Added native `skill_manage` tool for persistent agent skill creation and updates.
+- Added `scripts/build-go.sh` for automated cross-platform binary generation.
 - Improved TUI information density with real-time token/cost statistics and a "Thinking" indicator.
-- Added TUI keybindings: \`Ctrl+P\` (Cycle Model), \`Ctrl+N\` (New Session).
+- Added TUI keybindings: `Ctrl+P` (Cycle Model), `Ctrl+N` (New Session).
 
 ### Fixed
-- Resolved \`greptool\` issue where hidden or unrestricted files (like logs) were ignored by ripgrep.
+- Resolved `greptool` issue where hidden or unrestricted files (like logs) were ignored by ripgrep.
 - Fixed Go TUI compilation issues related to cursor access.
 
 ## [0.82.0] - 2026-05-26
 
 ### Added
-- Assimilated \`submodules/vscode-copilot-release\`: Verified parity for Copilot provider integration and tool schema matching.
+- Assimilated `submodules/vscode-copilot-release`: Verified parity for Copilot provider integration and tool schema matching.
 
 ### Removed
-- Removed \`submodules/vscode-copilot-release\` submodule.
+- Removed `submodules/vscode-copilot-release` submodule.
 
 [... Rest of changelog preserved internally ...]
