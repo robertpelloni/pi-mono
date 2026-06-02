@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -11,7 +12,7 @@ import (
 
 func TestWithFileMutationQueue(t *testing.T) {
 	// Create a temporary directory for our test file
-	tmpDir, err := os.MkdirTemp("", "mutation_queue_test")
+	tmpDir, err := ioutil.TempDir("", "mutation_queue_test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
@@ -20,7 +21,7 @@ func TestWithFileMutationQueue(t *testing.T) {
 	testFilePath := filepath.Join(tmpDir, "test.txt")
 
 	// Write initial content
-	err = os.WriteFile(testFilePath, []byte(""), 0644)
+	err = ioutil.WriteFile(testFilePath, []byte(""), 0644)
 	if err != nil {
 		t.Fatalf("Failed to write initial file: %v", err)
 	}
@@ -35,7 +36,7 @@ func TestWithFileMutationQueue(t *testing.T) {
 
 			_, err := WithFileMutationQueue(testFilePath, func() (any, error) {
 				// Simulate read-modify-write
-				content, err := os.ReadFile(testFilePath)
+				content, err := ioutil.ReadFile(testFilePath)
 				if err != nil {
 					return nil, err
 				}
@@ -45,7 +46,7 @@ func TestWithFileMutationQueue(t *testing.T) {
 
 				newContent := string(content) + fmt.Sprintf("%d\n", id)
 
-				err = os.WriteFile(testFilePath, []byte(newContent), 0644)
+				err = ioutil.WriteFile(testFilePath, []byte(newContent), 0644)
 				return nil, err
 			})
 
@@ -61,7 +62,7 @@ func TestWithFileMutationQueue(t *testing.T) {
 		defer wg.Done()
 		otherFile := filepath.Join(tmpDir, "other.txt")
 		_, err := WithFileMutationQueue(otherFile, func() (any, error) {
-			return nil, os.WriteFile(otherFile, []byte("other file"), 0644)
+			return nil, ioutil.WriteFile(otherFile, []byte("other file"), 0644)
 		})
 		if err != nil {
 			t.Errorf("Other file goroutine failed: %v", err)
@@ -72,7 +73,7 @@ func TestWithFileMutationQueue(t *testing.T) {
 
 	// Verify the final file has exactly 5 lines (0, 1, 2, 3, 4 in some order)
 	// Because they were executed sequentially via the mutation queue, no writes were lost.
-	content, err := os.ReadFile(testFilePath)
+	content, err := ioutil.ReadFile(testFilePath)
 	if err != nil {
 		t.Fatalf("Failed to read final file: %v", err)
 	}

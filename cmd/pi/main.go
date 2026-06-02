@@ -35,7 +35,6 @@ import (
 	"github.com/badlogic/pi-mono/pkg/settings"
 	"github.com/badlogic/pi-mono/pkg/skills"
 	"github.com/badlogic/pi-mono/pkg/slashcommands"
-	"github.com/badlogic/pi-mono/pkg/agentregistry"
 	"github.com/badlogic/pi-mono/pkg/systemprompt"
 	"github.com/badlogic/pi-mono/pkg/tools"
 )
@@ -393,9 +392,6 @@ func main() {
 	agentLoop := agent.NewAgent(modelInfo, toolList, streamFunc, agentConfig)
 	agentLoop.SetSystemPrompt(effectiveSystemPrompt)
 	agentLoop.SetThinkingLevel(thinkingLevel)
-	// Initialize and register the global scheduler
-	scheduler := agent.NewTaskScheduler(agentLoop)
-	agentregistry.GlobalScheduler = scheduler
 
 	// ─── Slash Commands ───
 	slashRegistry := slashcommands.NewRegistry()
@@ -468,7 +464,6 @@ func main() {
 
 	// ─── Create AgentSession (wraps Agent + Session + Retry + Compaction) ───
 	var agentSess *agentsession.AgentSession
-	// Register the AgentSession as the global subagent runner
 	agentSess = agentsession.NewAgentSession(agentsession.AgentSessionConfig{
 		Agent:          agentLoop,
 		SessionManager: sess,
@@ -479,9 +474,6 @@ func main() {
 		SlashCommands:  slashRegistry,
 		CWD:            cwd,
 		AgentDir:       agentDir,
-	})
-
-	agentregistry.GlobalSubagentRunner = agentSess
 	})
 
 	// ─── Create Session Runtime ───
@@ -560,9 +552,6 @@ func main() {
 			SlashCommands:  slashRegistry,
 			CWD:            cwd,
 			AgentDir:       agentDir,
-	})
-
-	agentregistry.GlobalSubagentRunner = agentSess
 		})
 		fmt.Fprintf(os.Stderr, "Starting web UI on :%d\n", *webPort)
 		if err := http.ListenAndServe(fmt.Sprintf(":%d", *webPort), srv); err != nil {

@@ -6,11 +6,6 @@
 - **Protocol Enforcement**: Automated repository sanitization and dual-direction merge across local and remote feature branches.
 - **Build Validation**: Verified cross-platform Go builds and updated version governance.
 
-## [0.94.0] - 2026-06-25
-### Added
-- **Upstream Synchronization**: Merged latest changes from parent repository.
-- **Large File Optimization**: Improved read performance for massive logs and source files.
-
 ## [0.92.0] - 2026-06-20
 ### Added
 - **Git Auto-Commit**: Added extension to automatically commit filesystem changes with 'ai: auto-commit' prefix (enabled via `PI_GIT_AUTO_COMMIT=1`).

@@ -4,10 +4,23 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+)
+
+var (
+	fileCache      []string
+	lastCacheTime  int64
+	cacheDuration  = int64(30) // seconds
 )
 
 // ListFilesRecursively returns a list of files in the given directory up to a maximum number.
 func ListFilesRecursively(root string, max int) []string {
+	now := time.Now().Unix()
+
+	if len(fileCache) > 0 && now-lastCacheTime < cacheDuration {
+		return fileCache
+	}
+
 	var files []string
 	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -30,5 +43,7 @@ func ListFilesRecursively(root string, max int) []string {
 		}
 		return nil
 	})
+	fileCache = files
+	lastCacheTime = now
 	return files
 }

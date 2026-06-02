@@ -623,14 +623,6 @@ func (m *AgentUIModel) handleSlashResult(result slashcommands.SlashCommandResult
 			m.agentSession.Reload()
 		}
 	}
-	if theme, ok := result.Custom.(string); ok && theme != "" {
-		if theme == "light" {
-			UpdateStyles(LightTheme)
-		} else {
-			UpdateStyles(DarkTheme)
-		}
-		m.conversation.WriteString(StyleSystem.Render(fmt.Sprintf("\n[System] Switched theme to: %s\n", theme)))
-	}
 }
 
 // formatArgs creates a short display string for tool arguments.
