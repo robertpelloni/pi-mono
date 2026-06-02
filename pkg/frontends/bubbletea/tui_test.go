@@ -125,7 +125,6 @@ func TestAgentUIModel_Styles(t *testing.T) {
 	_ = StyleSystem.String()
 	_ = StyleThinking.String()
 	_ = StyleSlashInfo.String()
-	_ = StyleError.String()
 	_ = StyleHeader.String()
 	_ = StyleCompaction.String()
 	_ = StyleRetry.String()

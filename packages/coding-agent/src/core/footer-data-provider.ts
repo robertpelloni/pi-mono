@@ -79,6 +79,18 @@ function resolveBranchWithGitAsync(repoDir: string): Promise<string | null> {
 	});
 }
 
+function isWslEnvironment(): boolean {
+	return process.platform === "linux" && !!(process.env.WSL_DISTRO_NAME || process.env.WSL_INTEROP);
+}
+
+function isWindowsMountedRepoPath(repoDir: string): boolean {
+	return /^\/mnt\/[a-z](?:\/|$)/i.test(repoDir);
+}
+
+function shouldPollGitHead(repoDir: string): boolean {
+	return isWslEnvironment() && isWindowsMountedRepoPath(repoDir);
+}
+
 /**
  * Provides git branch and extension statuses - data not otherwise accessible to extensions.
  * Token stats, model info available via ctx.sessionManager and ctx.model.
@@ -91,6 +103,8 @@ export class FooterDataProvider {
 	private cachedBranch: string | null | undefined = undefined;
 	private gitPaths: GitPaths | null | undefined = undefined;
 	private headWatcher: FSWatcher | null = null;
+	private headWatchFilePath: string | null = null;
+	private headWatchFileListener: ((current: Stats, previous: Stats) => void) | null = null;
 	private reftableWatcher: FSWatcher | null = null;
 	private reftableTablesListWatcher: FSWatcher | null = null;
 	private reftableTablesListPath: string | null = null;
@@ -282,6 +296,8 @@ export class FooterDataProvider {
 
 	private setupGitWatcher(): void {
 		if (!this.gitPaths) return;
+
+		const pollGitHead = shouldPollGitHead(this.gitPaths.repoDir);
 
 		// Watch the directory containing HEAD, not HEAD itself.
 		// Git uses atomic writes (write temp, rename over HEAD), which changes the inode.

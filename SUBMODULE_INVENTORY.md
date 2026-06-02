@@ -8,7 +8,7 @@ This document tracks the features, functionality, and assimilation status of ext
 | `cline` | **Assimilated** | VS Code integration, tool loops, MCP support, browser interaction, Plan/Act modes, Team coordination, Schedules. | `HandleClineExecuteCommand`, `HandleClineWriteToFile` in Go. Pi supports MCP via extensions. Plan mode and Teams are handled via `pi-plannotator` and session branching. |
 | `codebuff` | **Assimilated** | Multi-agent coordination (Planner, Editor, Reviewer), specialized agents (File Picker), custom agent definitions in TypeScript, Agent SDK. | Pi supports specialized agents via extensions and session branching. Multi-agent workflows are implemented via `pi-plannotator` and `react_fallback`. |
 | `goose` | **Assimilated** | Native Desktop/CLI/API, 15+ providers, ACP (Agent Connection Protocol) subscriptions, MCP support, Rust-based, Custom Distros. | Pi is a native CLI/API (Go/TS), supports 20+ providers including subscriptions (GitHub Copilot, OpenAI, Anthropic), and has full MCP support via extensions. |
-| `hermes-agent` | **Assimilated** | 47 native tools, self-improving skills, cross-platform gateway (Telegram, Discord, Slack), cron scheduler, delegation, multi-backend (Docker, SSH). | Pi implements many Hermes tools in `clean_room_handlers.go` (including real Python execution, web search, and TODO management). Pi has a native TUI and Slack bot (`pi-mom`). |
+| `hermes-agent` | **Assimilated** | 47 native tools, self-improving skills, cross-platform gateway (Telegram, Discord, Slack), cron scheduler, delegation, multi-backend (Docker, SSH). | Pi implements many Hermes tools in `clean_room_handlers.go`. Pi has a native TUI and Slack bot (`pi-mom`). Delegation and cronjobs are supported via extensions. |
 | `ii-agent` | **Assimilated** | Mobile/Website App development, Storybook generation, Video/Image generation, Fast/Deep Research, App integrations (Gmail, GitHub, Notion). | Pi supports code generation for any platform (Web/Mobile) via its toolset. Multimedia generation and deep research are achievable via specialized extensions. App integrations are handled via MCP. |
 | `mistral-vibe` | **Assimilated** | Interactive Chat, Powerful toolset (read/write/patch, bash, grep, todo), Subagents/Delegation, Slash commands, Skills system, MCP. | Pi provides a high-fidelity interactive chat, equivalent toolset (built-in and clean-room), subagent delegation via extensions, and a compatible skills system (`agentskills.io`). |
 | `ollama` | **Assimilated** | Local LLM inference wrapper, REST API, Modelfiles, wide community integration. | Pi natively supports Ollama as a provider in `pi-ai`, enabling seamless use of local models in both TS and Go runpoints. |
@@ -36,7 +36,7 @@ This document tracks the features, functionality, and assimilation status of ext
 - **Provider Parity:** Pi supports more providers (20+) and subscription types than Goose.
 
 ### Hermes Agent (`submodules/hermes-agent`)
-- **Tool Parity:** 15+ Hermes tools implemented in `pkg/ai/clean_room_handlers.go` (memory, browser_navigate using lynx, clarify, execute_code with local Python 3 support, web_search via DuckDuckGo, todo management, etc.).
+- **Tool Parity:** 15+ Hermes tools implemented in `pkg/ai/clean_room_handlers.go`.
 
 ### II-Agent (`submodules/ii-agent`)
 - **App Integrations:** Pi leverages the Model Context Protocol (MCP) to provide high-fidelity integrations.

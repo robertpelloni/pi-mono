@@ -3,26 +3,22 @@
 This document contains individual features, bug fixes, and other fine details that need to be solved/implemented in the short term.
 
 ## Immediate Action Items
-- [x] Optimize Go `HandleUnifiedRead` for very large files (streaming support).
-- [x] Implement robust terminal detection in Go (handled by Bubbletea).
-- [x] Add integration tests for `browser_action` tool parity.
+- [ ] Optimize Go `HandleUnifiedRead` for very large files (streaming support).
+- [ ] Implement robust terminal detection in Go for OSC 8 hyperlink support (parity with TS `tui`).
 - [ ] Refactor `pkg/server` to handle concurrent agent sessions more efficiently.
+- [ ] Add integration tests for `browser_action` tool parity.
 
-## Submodule Assimilation & TUI (Completed)
-- [x] Verify all 11 submodules' features are implemented.
+## Submodule Assimilation Verification (Phase 16)
+- [x] Verify all 11 submodules' features are implemented or redundant.
 - [x] Document assimilation in `SUBMODULE_INVENTORY.md`.
 - [x] Remove all submodules from the repository.
-- [x] Implement interactive autocompletion (/, @) in Go TUI.
-- [x] Implement RepoMap for high-level repo context.
-- [x] Implement Task Delegation & Subagents.
-- [x] Implement Persistent Background Tasks (Cronjobs).
 
 ## Documentation & Maintenance
-- [x] Synchronize `VISION.md` with the finalized Go architecture.
-- [x] Update `DEPLOY.md` with cross-platform binary instructions.
-- [ ] Audit `IDEAS.md` for post-assimilation pivot opportunities.
+- [ ] Synchronize `VISION.md` with the finalized Go architecture.
+- [ ] Update `DEPLOY.md` with cross-platform binary instructions.
+- [x] Audit `IDEAS.md` for post-assimilation pivot opportunities. (Implemented Git Auto-Commit & Themes)
 
 # Crucial Code Review Fixes (Completed)
 - [x] Fix Missing Tool Registration (Clean Room tools now active).
 - [x] Remove Node Scripts (Legacy automation cleaned).
-- [x] Release v0.69.0-v0.88.0 marking assimilation progress.
+- [x] Release v0.69.0-v0.82.0 marking assimilation progress.

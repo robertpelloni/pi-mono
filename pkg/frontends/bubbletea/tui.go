@@ -482,7 +482,6 @@ func (m *AgentUIModel) View() string {
 		return "Goodbye!\n"
 	}
 
-	header := ""
 	status := m.statusLine
 	if m.isGenerating {
 		status = m.spinner.View() + " " + status
@@ -491,6 +490,7 @@ func (m *AgentUIModel) View() string {
 		status = "SUBAGENT ACTIVE │ " + status
 	}
 
+	header := ""
 	if m.modelInfo != "" {
 		header = StyleHeader.Render(fmt.Sprintf(" %s │ %s ", m.modelInfo, status))
 	} else if status != "" {
@@ -622,14 +622,6 @@ func (m *AgentUIModel) handleSlashResult(result slashcommands.SlashCommandResult
 		if m.agentSession != nil {
 			m.agentSession.Reload()
 		}
-	}
-	if theme, ok := result.Custom.(string); ok && theme != "" {
-		if theme == "light" {
-			UpdateStyles(LightTheme)
-		} else {
-			UpdateStyles(DarkTheme)
-		}
-		m.conversation.WriteString(StyleSystem.Render(fmt.Sprintf("\n[System] Switched theme to: %s\n", theme)))
 	}
 }
 
