@@ -17,11 +17,12 @@ import (
 
 // Server represents the HTTP web server for the Pi Web UI.
 type Server struct {
-	mu        sync.RWMutex
-	mux       *http.ServeMux
-	staticDir string
-	sessions  map[string]*agentsession.AgentSession
-	config    agentsession.AgentSessionConfig // Template config for new sessions
+	mu         sync.RWMutex
+	mux        *http.ServeMux
+	staticDir  string
+	sessions   map[string]*agentsession.AgentSession
+	lastAccess map[string]time.Time
+	config     agentsession.AgentSessionConfig // Template config for new sessions
 }
 
 // NewServer initializes a new Web UI Server with multi-session support.
@@ -32,13 +33,36 @@ func NewServer(staticDir string, config agentsession.AgentSessionConfig) *Server
 
 	mux := http.NewServeMux()
 	s := &Server{
-		mux:       mux,
-		staticDir: staticDir,
-		sessions:  make(map[string]*agentsession.AgentSession),
-		config:    config,
+		mux:        mux,
+		staticDir:  staticDir,
+		sessions:   make(map[string]*agentsession.AgentSession),
+		lastAccess: make(map[string]time.Time),
+		config:     config,
 	}
 	s.routes()
+	go s.cleanupLoop()
 	return s
+}
+
+func (s *Server) cleanupLoop() {
+	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		s.mu.Lock()
+		now := time.Now()
+		for id, last := range s.lastAccess {
+			// Cleanup sessions idle for more than 1 hour
+			if now.Sub(last) > 1*time.Hour {
+				if sess, ok := s.sessions[id]; ok {
+					sess.Dispose()
+					delete(s.sessions, id)
+					delete(s.lastAccess, id)
+				}
+			}
+		}
+		s.mu.Unlock()
+	}
 }
 
 // ServeHTTP implements the http.Handler interface.
@@ -101,6 +125,7 @@ func (s *Server) handleChat() http.HandlerFunc {
 			sess = agentsession.NewAgentSession(s.config)
 			s.sessions[req.SessionID] = sess
 		}
+		s.lastAccess[req.SessionID] = time.Now()
 		s.mu.Unlock()
 
 		// Setup SSE Headers

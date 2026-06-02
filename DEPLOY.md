@@ -19,6 +19,12 @@ To generate binaries for all supported platforms (Darwin, Linux, Windows), run t
 ```
 Binaries will be available in the `dist/binaries/` directory.
 
+## Security Sandbox
+The agent can be restricted to a specific root directory for all file operations and shell commands by setting the `PI_ALLOWED_ROOT` environment variable.
+```bash
+export PI_ALLOWED_ROOT=/path/to/safe/workspace
+```
+
 ## Configuration
 The agent stores persistent state (skills, sessions, settings) in `~/.pi/`.
 - **Skills**: `~/.pi/skills/`
