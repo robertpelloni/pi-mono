@@ -144,27 +144,34 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.showCompletions {
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			switch msg.Type {
+		if kmsg, ok := msg.(tea.KeyMsg); ok {
+			switch kmsg.Type {
 			case tea.KeyUp, tea.KeyTab:
 				m.completionIndex--
 				if m.completionIndex < 0 {
 					m.completionIndex = len(m.completions) - 1
 				}
-				return m, nil
+				m.textarea, tiCmd = m.textarea.Update(msg)
+				m.viewport, vpCmd = m.viewport.Update(msg)
+				return m, tea.Batch(tiCmd, vpCmd, spCmd)
 			case tea.KeyDown:
 				m.completionIndex++
 				if m.completionIndex >= len(m.completions) {
 					m.completionIndex = 0
 				}
-				return m, nil
+				m.textarea, tiCmd = m.textarea.Update(msg)
+				m.viewport, vpCmd = m.viewport.Update(msg)
+				return m, tea.Batch(tiCmd, vpCmd, spCmd)
 			case tea.KeyEnter:
 				m.applyCompletion()
-				return m, nil
+				m.textarea, tiCmd = m.textarea.Update(msg)
+				m.viewport, vpCmd = m.viewport.Update(msg)
+				return m, tea.Batch(tiCmd, vpCmd, spCmd)
 			case tea.KeyEsc:
 				m.showCompletions = false
-				return m, nil
+				m.textarea, tiCmd = m.textarea.Update(msg)
+				m.viewport, vpCmd = m.viewport.Update(msg)
+				return m, tea.Batch(tiCmd, vpCmd, spCmd)
 			}
 		}
 	}
@@ -174,7 +181,7 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case spinner.TickMsg:
-		return m, spCmd
+		// Handled above via spinner.Update
 	case tea.KeyMsg:
 		// Trigger completion
 		m.updateCompletions()
@@ -298,7 +305,7 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.viewport.SetContent(m.conversation.String())
 		m.viewport.GotoBottom()
-		return m, m.listenForSessionEvents()
+		evCmd = m.listenForSessionEvents()
 
 	case EventMsg:
 		event := agent.AgentEvent(msg)
@@ -380,10 +387,10 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.viewport.SetContent(m.conversation.String())
 		m.viewport.GotoBottom()
-		return m, m.listenForEvents()
+		evCmd = m.listenForEvents()
 	}
 
-	return m, tea.Batch(tiCmd, vpCmd, spCmd)
+	return m, tea.Batch(tiCmd, vpCmd, spCmd, evCmd)
 }
 
 func (m *AgentUIModel) updateCompletions() {

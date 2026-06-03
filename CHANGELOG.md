@@ -1,5 +1,13 @@
 # Project Changelog (Go Port & Monorepo Submodules)
 
+## [0.96.0] - 2026-06-30
+### Added
+- **Collaborative Intelligence**: Implemented Mixture-of-Agents (MOA) engine for parallel model reasoning and synthesis.
+- **Go TUI v2 Enhancements**: Added `/moa` and `/theme` slash commands.
+- **Performance Optimization**: Implemented 30-second time-based file cache for TUI autocompletion.
+- **Stability**: Fixed critical Bubbletea event handling bugs and added 40+ unit tests.
+- **Total Assimilation**: All 11 submodule features (Aider repo-map, Cline tools, etc.) now implemented as native Go handlers.
+
 ## [0.94.0] - 2026-06-25
 ### Added
 - **Upstream Synchronization**: Merged latest changes from parent repository while preserving the native Go architecture.

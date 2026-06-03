@@ -43,6 +43,7 @@ func ListFilesRecursively(root string, max int) []string {
 		}
 		return nil
 	})
+
 	fileCache = files
 	lastCacheTime = now
 	return files

@@ -36,4 +36,9 @@ var (
 	// Diff styles
 	StyleDiffAdd = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Background(lipgloss.Color("22"))
 	StyleDiffDel = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Background(lipgloss.Color("52"))
+
+	// Completion styles
+	StyleCompletionHeader   = lipgloss.NewStyle().Background(lipgloss.Color("238")).Foreground(lipgloss.Color("255")).Bold(true)
+	StyleCompletionSelected = lipgloss.NewStyle().Background(lipgloss.Color("240")).Foreground(lipgloss.Color("255")).Bold(true)
+	StyleCompletionItem     = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
 )
