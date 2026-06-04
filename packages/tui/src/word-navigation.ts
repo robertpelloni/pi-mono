@@ -1,6 +1,6 @@
-import { getWordSegmenter, isWhitespaceChar, PUNCTUATION_REGEX } from "./utils.ts";
+import { getSegmenter, isWhitespaceChar, PUNCTUATION_REGEX } from "./utils.js";
 
-const wordSegmenter = getWordSegmenter();
+const wordSegmenter = new Intl.Segmenter(undefined, { granularity: "word" });
 
 /**
  * Options for word navigation functions.
