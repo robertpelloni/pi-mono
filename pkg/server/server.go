@@ -91,17 +91,14 @@ func (s *Server) handleChat() http.HandlerFunc {
 		}
 
 		s.mu.Lock()
-		// Auto-generate session ID if empty
-		if req.SessionID == "" {
-			req.SessionID = fmt.Sprintf("sess_%d", time.Now().UnixNano())
-		}
-
 		sess, ok := s.sessions[req.SessionID]
 		if !ok {
-			// Clone the base configuration for the new session to ensure thread safety
-			// and isolation. Since config is passed by value, this is a shallow copy.
-			sessionConfig := s.config
-			sess = agentsession.NewAgentSession(sessionConfig)
+			// Create new session if ID not found or empty
+			if req.SessionID == "" {
+				req.SessionID = fmt.Sprintf("sess_%d", time.Now().UnixNano())
+			}
+			// In a real implementation we would clone the template agent and session manager
+			sess = agentsession.NewAgentSession(s.config)
 			s.sessions[req.SessionID] = sess
 		}
 		s.mu.Unlock()

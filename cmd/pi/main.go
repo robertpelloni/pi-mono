@@ -15,7 +15,6 @@ import (
 	"github.com/badlogic/pi-mono/pkg/compaction"
 	"github.com/badlogic/pi-mono/pkg/extensions/acp_adapter"
 	"github.com/badlogic/pi-mono/pkg/extensions/babysitter"
-	"github.com/badlogic/pi-mono/pkg/extensions/gitcommit"
 	"github.com/badlogic/pi-mono/pkg/extensions/plannotator"
 	"github.com/badlogic/pi-mono/pkg/extensions/react_fallback"
 	"github.com/badlogic/pi-mono/pkg/extensions/mcp"
@@ -33,7 +32,6 @@ import (
 	"github.com/badlogic/pi-mono/pkg/server"
 	"github.com/badlogic/pi-mono/pkg/session"
 	"github.com/badlogic/pi-mono/pkg/sessionruntime"
-	"github.com/badlogic/pi-mono/pkg/agentregistry"
 	"github.com/badlogic/pi-mono/pkg/settings"
 	"github.com/badlogic/pi-mono/pkg/skills"
 	"github.com/badlogic/pi-mono/pkg/slashcommands"
@@ -252,7 +250,6 @@ func main() {
 
 	var reactFallbackPlugin *react_fallback.ReActFallbackPlugin
 	var mcpPlugin *mcp.MCPPlugin
-	var gitCommitPlugin *gitcommit.GitAutoCommitPlugin
 	if !*noTools {
 		toolList = tools.CreateAllTools(cwd)
 	}
@@ -266,7 +263,6 @@ func main() {
 		}
 
 		reactFallbackPlugin = react_fallback.NewReActFallbackPlugin()
-		gitCommitPlugin = gitcommit.NewGitAutoCommitPlugin(cwd)
 	mcpPlugin = mcp.NewMCPPlugin()
 		babysitterPlugin := babysitter.NewBabysitterPlugin()
 		acpAdapterPlugin := acp_adapter.NewACPAdapterPlugin()
@@ -277,9 +273,6 @@ func main() {
 	toolList = mcpPlugin.AddTools(toolList)
 			toolList = babysitterPlugin.AddTools(toolList)
 			toolList = acpAdapterPlugin.AddTools(toolList)
-			if gitCommitPlugin != nil {
-				toolList = gitCommitPlugin.AddUndoTool(toolList)
-			}
 			// ReAct fallback uses hook, not tool
 			reactFallbackPlugin.Enabled = true
 		}
@@ -331,9 +324,6 @@ func main() {
 		afterToolCallHooks = append(afterToolCallHooks, outputguard.InitAfterHook(cwd))
 		if reactFallbackPlugin != nil {
 			afterToolCallHooks = append(afterToolCallHooks, reactFallbackPlugin.InterceptAfterToolCall)
-		}
-		if gitCommitPlugin != nil {
-			afterToolCallHooks = append(afterToolCallHooks, gitCommitPlugin.InterceptAfterToolCall)
 		}
 	}
 
@@ -403,10 +393,6 @@ func main() {
 	agentLoop.SetSystemPrompt(effectiveSystemPrompt)
 	agentLoop.SetThinkingLevel(thinkingLevel)
 
-	// Initialize and register the global scheduler
-	scheduler := agent.NewTaskScheduler(agentLoop)
-	agentregistry.GlobalScheduler = scheduler
-
 	// ─── Slash Commands ───
 	slashRegistry := slashcommands.NewRegistry()
 	slashRegistry.Register(slashcommands.SlashCommandInfo{
@@ -418,18 +404,6 @@ func main() {
 			return slashcommands.SlashCommandResult{Info: "Usage: /model <model-id>"}, nil
 		}
 		return slashcommands.SlashCommandResult{SwitchModel: args}, nil
-	})
-
-	slashRegistry.Register(slashcommands.SlashCommandInfo{
-		Name:        "theme",
-		Description: "Switch the TUI theme (dark, light)",
-		Source:      slashcommands.SourceBuiltin,
-	}, func(args string) (slashcommands.SlashCommandResult, error) {
-		theme := strings.TrimSpace(strings.ToLower(args))
-		if theme != "dark" && theme != "light" {
-			return slashcommands.SlashCommandResult{Info: "Usage: /theme <dark|light>"}, nil
-		}
-		return slashcommands.SlashCommandResult{Custom: theme}, nil
 	})
 
 	// ─── Initialize Session ───
@@ -501,9 +475,6 @@ func main() {
 		CWD:            cwd,
 		AgentDir:       agentDir,
 	})
-
-	// Register the AgentSession as the global subagent runner
-	agentregistry.GlobalSubagentRunner = agentSess
 
 	// ─── Create Session Runtime ───
 	var runtime *sessionruntime.AgentSessionRuntime

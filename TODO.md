@@ -16,7 +16,7 @@ This document contains individual features, bug fixes, and other fine details th
 ## Documentation & Maintenance
 - [ ] Synchronize `VISION.md` with the finalized Go architecture.
 - [ ] Update `DEPLOY.md` with cross-platform binary instructions.
-- [ ] Audit `IDEAS.md` for post-assimilation pivot opportunities.
+- [x] Audit `IDEAS.md` for post-assimilation pivot opportunities. (Implemented Git Auto-Commit & Themes)
 
 # Crucial Code Review Fixes (Completed)
 - [x] Fix Missing Tool Registration (Clean Room tools now active).
