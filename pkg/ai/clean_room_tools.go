@@ -549,6 +549,41 @@ var ClineListCodeDefinitionNames = CleanRoomToolSchema{
 	},
 }
 
+var WarpAction = CleanRoomToolSchema{
+	Name:        "warp_action",
+	Description: "Execute a Warp-compatible agent action (e.g., RequestCommandOutput, UseComputer).",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"type": map[string]interface{}{"type": "string"},
+			"params": map[string]interface{}{
+				"type": "object",
+			},
+		},
+		"required": []string{"type"},
+	},
+}
+
+var TabbyCompletion = CleanRoomToolSchema{
+	Name:        "tabby_completion",
+	Description: "Get code completions from the Tabby-compatible engine.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"language": map[string]interface{}{"type": "string"},
+			"segments": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"prefix": map[string]interface{}{"type": "string"},
+					"suffix": map[string]interface{}{"type": "string"},
+				},
+			},
+			"mode": map[string]interface{}{"type": "string"},
+		},
+		"required": []string{"segments"},
+	},
+}
+
 var ClineBrowserAction = CleanRoomToolSchema{
 	Name:        "browser_action",
 	Description: "Interact with a Puppeteer-controlled browser.",

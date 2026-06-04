@@ -52,6 +52,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/chat", s.handleChat())
 	s.mux.HandleFunc("/api/sessions", s.handleListSessions())
 
+	// Assimilated Parity Endpoints
+	s.mux.HandleFunc("/v1/completions", s.handleTabbyCompletions())
+	s.mux.HandleFunc("/api/warp/action", s.handleWarpAction())
+
 	// Serve static files
 	fileServer := http.FileServer(http.Dir(s.staticDir))
 	s.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -168,5 +172,47 @@ func (s *Server) handleListSessions() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{"sessions": ids})
+	}
+}
+
+func (s *Server) handleTabbyCompletions() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req ai.TabbyCompletionRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// For parity endpoints, we use a global registry or session-bound one
+		// For now, we use a simple registry instance.
+		reg := &ai.Registry{}
+		resp, err := reg.HandleTabbyCompletion(r.Context(), &req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+func (s *Server) handleWarpAction() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var action ai.WarpAgentAction
+		if err := json.NewDecoder(r.Body).Decode(&action); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		reg := &ai.Registry{}
+		resp, err := reg.HandleWarpAction(r.Context(), &action)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
 	}
 }
