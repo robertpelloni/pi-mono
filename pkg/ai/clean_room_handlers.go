@@ -16,6 +16,44 @@ import (
 
 // CleanRoomToolHandlers defines the unified underlying implementations for our exact parity tools.
 
+// HandleTabbyCompletionTool routes Tabby completion requests to the native Go implementation.
+func (r *Registry) HandleTabbyCompletionTool(args map[string]interface{}) string {
+	raw, err := json.Marshal(args)
+	if err != nil {
+		return "Error marshaling Tabby request: " + err.Error()
+	}
+
+	var req TabbyCompletionRequest
+	if err := json.Unmarshal(raw, &req); err != nil {
+		return "Error unmarshaling Tabby request: " + err.Error()
+	}
+
+	resp, err := r.HandleTabbyCompletion(context.Background(), &req)
+	if err != nil {
+		return "Error executing Tabby completion: " + err.Error()
+	}
+
+	respRaw, _ := json.MarshalIndent(resp, "", "  ")
+	return string(respRaw)
+}
+
+// HandleWarpActionTool routes Warp-specific tool calls to the native implementation.
+func (r *Registry) HandleWarpActionTool(args map[string]interface{}) string {
+	raw, _ := json.Marshal(args)
+	var action WarpAgentAction
+	if err := json.Unmarshal(raw, &action); err != nil {
+		return "Error unmarshaling Warp action: " + err.Error()
+	}
+
+	resp, err := r.HandleWarpAction(context.Background(), &action)
+	if err != nil {
+		return "Error executing Warp action: " + err.Error()
+	}
+
+	respRaw, _ := json.MarshalIndent(resp, "", "  ")
+	return string(respRaw)
+}
+
 // HandleUnifiedRead takes unified parameters (where path is guaranteed to be set) and returns file contents.
 func HandleUnifiedRead(unifiedArgs map[string]interface{}) (string, error) {
 	path, ok := unifiedArgs["path"].(string)
@@ -437,6 +475,8 @@ var CleanRoomTools = map[string]func(map[string]interface{}) string{
 	"browser_action":             handleClineBrowserAction,
 	"replace_lines":              handleAiderReplaceLines,
 	"repo_map":                   handleAiderRepoMap,
+	"tabby_completion":           nil, // Placeholder for registry-bound handler
+	"warp_action":                nil, // Placeholder for registry-bound handler
 }
 
 func handleAiderRunCommand(args map[string]interface{}) string {

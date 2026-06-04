@@ -6,7 +6,7 @@ This document extensively describes and outlines in full detail the ultimate goa
 
 The ultimate vision is to create the most comprehensive, robust, and functional open-source AI coding agent ecosystem. This involves transitioning from the current TypeScript monorepo into a massive, streamlined Go ultra-project.
 
-We aim to assimilate the best features, architectures, and functionalities from over 30 leading AI tools, CLIs, and IDE extensions into a single unified platform.
+We aim to assimilate the best features, architectures, and functionalities from over 30 leading AI tools, CLIs, and IDE extensions into a single unified platform, including Tabby, Warp, Hyper, Wave, Codex Desktop, Antigravity 2.0, Claude Desktop, Claude Code, Codex CLI, Gemini-CLI, OpenCode, and Hermes.
 
 ## Core Design Principles
 

@@ -1,5 +1,10 @@
 # Project Changelog (Go Port & Monorepo Submodules)
 
+## [0.97.0] - 2026-07-05
+### Added
+- **Ultimate LLM Harness**: Initiated Phase 19 for the systematic assimilation of Tabby, Warp, Hyper, Wave, Codex Desktop, Antigravity 2.0, Claude Desktop, Claude Code, Codex CLI, Gemini-CLI, OpenCode, and Hermes.
+- **Tabby Assimilation**: Commenced analysis and implementation of Tabby's self-hosted AI coding assistant features.
+
 ## [0.96.0] - 2026-06-30
 ### Added
 - **Collaborative Intelligence**: Implemented Mixture-of-Agents (MOA) engine for parallel model reasoning and synthesis.
