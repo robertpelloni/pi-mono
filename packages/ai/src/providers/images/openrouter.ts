@@ -14,9 +14,9 @@ import type {
 	ImagesModel,
 	ImagesOptions,
 	TextContent,
-} from "../../types.ts";
-import { headersToRecord } from "../../utils/headers.ts";
-import { sanitizeSurrogates } from "../../utils/sanitize-unicode.ts";
+} from "../../types.js";
+import { headersToRecord } from "../../utils/headers.js";
+import { sanitizeSurrogates } from "../../utils/sanitize-unicode.js";
 
 interface OpenRouterGeneratedImage {
 	image_url?: string | { url?: string };
