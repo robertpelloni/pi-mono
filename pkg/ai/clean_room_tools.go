@@ -576,21 +576,6 @@ var HyperThemeSync = CleanRoomToolSchema{
 	},
 }
 
-var WaveAction = CleanRoomToolSchema{
-	Name:        "wave_action",
-	Description: "Execute a Wave-compatible agent action (e.g., readfile, term, web).",
-	InputSchema: map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"type": map[string]interface{}{"type": "string"},
-			"params": map[string]interface{}{
-				"type": "object",
-			},
-		},
-		"required": []string{"type"},
-	},
-}
-
 var TabbyCompletion = CleanRoomToolSchema{
 	Name:        "tabby_completion",
 	Description: "Get code completions from the Tabby-compatible engine.",

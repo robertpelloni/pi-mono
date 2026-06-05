@@ -39,10 +39,14 @@ Pi includes a **Unified Tool Harness** that provides API parity with other major
 The Go server automatically exposes several parity endpoints:
 - **Tabby Compatibility**: `/v1/completions`
 - **Warp Compatibility**: `/api/warp/action`
+- **Wave Compatibility**: `/api/wave/action`
 
 To start the parity server:
 ```bash
 ./pi-agent server
 ```
+
+### Performance & Scaling
+For high-concurrency environments, see [PERFORMANCE.md](PERFORMANCE.md) for benchmark results and resource recommendations.
 
 For more details on request/response schemas, see [API.md](API.md).

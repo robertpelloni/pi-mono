@@ -56,17 +56,3 @@ Synchronizes the terminal theme with a Hyper-compatible configuration.
 }
 ```
 **Response:** Success message confirming initialization.
-
-### Wave Action
-`POST /api/wave/action`
-Executes an agentic action using the Wave-compatible schema.
-**Payload:**
-```json
-{
-  "type": "readfile",
-  "params": {
-    "path": "main.go"
-  }
-}
-```
-**Response:** Wave-compatible `ActionResponse`.

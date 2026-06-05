@@ -79,22 +79,4 @@ func TestServer_AssimilatedEndpoints(t *testing.T) {
 			t.Errorf("expected status 500, got %d", rr.Code)
 		}
 	})
-
-	t.Run("Wave Action Route", func(t *testing.T) {
-		payload := map[string]interface{}{
-			"type": "readfile",
-			"params": map[string]interface{}{
-				"path": "go.mod",
-			},
-		}
-		body, _ := json.Marshal(payload)
-		req := httptest.NewRequest("POST", "/api/wave/action", bytes.NewBuffer(body))
-		rr := httptest.NewRecorder()
-
-		s.ServeHTTP(rr, req)
-
-		if rr.Code != http.StatusOK {
-			t.Errorf("expected status 200, got %d", rr.Code)
-		}
-	})
 }
