@@ -333,7 +333,7 @@ export interface AssistantImages {
 	timestamp: number; // Unix timestamp in milliseconds
 }
 
-import type { TSchema } from "typebox";
+import type { TSchema } from "@sinclair/typebox";
 
 export interface Tool<TParameters extends TSchema = TSchema> {
 	name: string;

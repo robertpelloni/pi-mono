@@ -564,6 +564,18 @@ var WarpAction = CleanRoomToolSchema{
 	},
 }
 
+var HyperThemeSync = CleanRoomToolSchema{
+	Name:        "hyper_theme_sync",
+	Description: "Synchronize terminal theme with a Hyper-compatible configuration.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"config": map[string]interface{}{"type": "string"},
+		},
+		"required": []string{"config"},
+	},
+}
+
 var TabbyCompletion = CleanRoomToolSchema{
 	Name:        "tabby_completion",
 	Description: "Get code completions from the Tabby-compatible engine.",

@@ -2,6 +2,7 @@
 
 ## Architectural Observations
 - The project has successfully moved from a TS monorepo to a unified Go project.
+- A **Unified Tool Harness** (`pkg/ai/harness.go`) manages the routing of assimilated tool schemas (Tabby, Warp) to native Go implementations.
 - Submodules served as temporary "clean room" references to achieve tool parity with existing agents (Aider, Cline, Hermes, etc.).
 - `pkg/ai/clean_room_handlers.go` and `pkg/ai/clean_room_tools.go` are the core of our parity effort, mapping specific schemas to internal implementations.
 

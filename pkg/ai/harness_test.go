@@ -45,6 +45,19 @@ func TestHarness_ExecuteTool(t *testing.T) {
 		}
 	})
 
+	t.Run("Hyper Theme Sync", func(t *testing.T) {
+		args := map[string]interface{}{
+			"config": `{"config": {"colors": {"black": "#000"}}}`,
+		}
+		resp, err := h.ExecuteTool(context.Background(), "hyper_theme_sync", args)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if !strings.Contains(resp, "initialized") {
+			t.Errorf("expected success message, got: %s", resp)
+		}
+	})
+
 	t.Run("Unknown Tool", func(t *testing.T) {
 		_, err := h.ExecuteTool(context.Background(), "unknown_tool", nil)
 		if err == nil {
