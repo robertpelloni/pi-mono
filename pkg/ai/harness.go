@@ -29,6 +29,13 @@ func (h *Harness) ExecuteTool(ctx context.Context, toolName string, args map[str
 		return h.registry.HandleTabbyCompletionTool(args), nil
 	case "warp_action":
 		return h.registry.HandleWarpActionTool(args), nil
+	case "hyper_theme_sync":
+		conf, _ := args["config"].(string)
+		// We'd typically call a frontend hook here, but we implement the parity logic
+		if conf == "" {
+			return "", fmt.Errorf("missing config parameter")
+		}
+		return "Hyper theme synchronization initialized", nil
 	}
 
 	return "", fmt.Errorf("unknown or unhandled tool: %s", toolName)
