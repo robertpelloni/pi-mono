@@ -45,3 +45,14 @@ Executes an agentic action using the Warp-compatible schema.
 }
 ```
 **Response:** Warp-compatible `ActionResponse`.
+
+### Hyper Theme Sync
+`POST /api/hyper/theme` (Note: internal routing via `hyper_theme_sync` tool)
+Synchronizes the terminal theme with a Hyper-compatible configuration.
+**Payload:**
+```json
+{
+  "config": "{ \"config\": { \"colors\": { \"black\": \"#000000\", ... } } }"
+}
+```
+**Response:** Success message confirming initialization.

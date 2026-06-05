@@ -477,6 +477,7 @@ var CleanRoomTools = map[string]func(map[string]interface{}) string{
 	"repo_map":                   handleAiderRepoMap,
 	"tabby_completion":           nil, // Placeholder for registry-bound handler
 	"warp_action":                nil, // Placeholder for registry-bound handler
+	"hyper_theme_sync":           nil, // Placeholder for registry-bound handler
 }
 
 func handleAiderRunCommand(args map[string]interface{}) string {
