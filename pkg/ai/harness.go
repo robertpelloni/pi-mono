@@ -36,6 +36,8 @@ func (h *Harness) ExecuteTool(ctx context.Context, toolName string, args map[str
 			return "", fmt.Errorf("missing config parameter")
 		}
 		return "Hyper theme synchronization initialized", nil
+	case "wave_action":
+		return h.registry.HandleWaveActionTool(args), nil
 	}
 
 	return "", fmt.Errorf("unknown or unhandled tool: %s", toolName)
