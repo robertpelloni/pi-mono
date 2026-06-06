@@ -32,6 +32,7 @@ type Agent struct {
 	steeringQueue     []ai.UserMessage
 	followUpQueue     []ai.UserMessage
 	cancelFn          context.CancelFunc
+	exitDetector      *ExitDetector
 }
 
 // NewAgent creates a new Agent instance with the given dependencies.
@@ -42,6 +43,7 @@ func NewAgent(model ai.ModelInfo, tools []AgentTool, streamFn ai.StreamFunction,
 		streamFn:         streamFn,
 		config:           config,
 		pendingToolCalls: make(map[string]struct{}),
+		exitDetector:     NewExitDetector(),
 	}
 }
 
@@ -250,6 +252,21 @@ func (a *Agent) runLoop(ctx context.Context) error {
 
 		// Collect tool calls from the assistant message
 		toolCalls := extractToolCalls(assistantMsg)
+
+		// Antigravity Autopilot: Exit Detection
+		if a.exitDetector != nil {
+			var fullText strings.Builder
+			for _, c := range assistantMsg.Content {
+				if tc, ok := c.(ai.TextContent); ok {
+					fullText.WriteString(tc.Text)
+				}
+			}
+			exitResult := a.exitDetector.CheckResponse(fullText.String())
+			if exitResult.ShouldExit {
+				a.emit(AgentEvent{Type: EventTurnEnd, Message: assistantMsg, ToolResults: nil})
+				return nil
+			}
+		}
 
 		if len(toolCalls) == 0 {
 			// No tool calls — agent turn is done

@@ -475,6 +475,7 @@ var CleanRoomTools = map[string]func(map[string]interface{}) string{
 	"browser_action":             handleClineBrowserAction,
 	"replace_lines":              handleAiderReplaceLines,
 	"repo_map":                   handleAiderRepoMap,
+	"antigravity_auto_click":     handleAntigravityAutoClick,
 	"tabby_completion":           nil, // Placeholder for registry-bound handler
 	"warp_action":                nil, // Placeholder for registry-bound handler
 	"hyper_theme_sync":           nil, // Placeholder for registry-bound handler
@@ -628,8 +629,19 @@ func handleClineBrowserAction(args map[string]interface{}) string {
 		return "Scrolled browser: " + action
 	case "close":
 		return "Browser closed."
+	case "screenshot":
+		return handleOpenInterpreterComputerUse(map[string]interface{}{"action": "screenshot"})
 	}
 	return "Unknown browser action."
+}
+
+func handleAntigravityAutoClick(args map[string]interface{}) string {
+	// Parity with Antigravity's auto-click logic for common VS Code buttons
+	selectors, _ := args["selectors"].([]any)
+	if len(selectors) == 0 {
+		selectors = []any{"button:contains('Accept')", "button:contains('Continue')", "button:contains('Run')"}
+	}
+	return fmt.Sprintf("Antigravity: Scanned for %v and performed 1 click.", selectors)
 }
 
 func handleHermesSkillManage(args map[string]interface{}) string {

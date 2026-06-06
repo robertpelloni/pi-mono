@@ -55,6 +55,7 @@ func (s *Server) routes() {
 	// Assimilated Parity Endpoints
 	s.mux.HandleFunc("/v1/completions", s.handleTabbyCompletions())
 	s.mux.HandleFunc("/api/warp/action", s.handleWarpAction())
+	s.mux.HandleFunc("/api/wave/action", s.handleWaveAction())
 
 	// Serve static files
 	fileServer := http.FileServer(http.Dir(s.staticDir))
@@ -187,6 +188,26 @@ func (s *Server) handleTabbyCompletions() http.HandlerFunc {
 		// For now, we use a simple registry instance.
 		reg := &ai.Registry{}
 		resp, err := reg.HandleTabbyCompletion(r.Context(), &req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+func (s *Server) handleWaveAction() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var action ai.WaveAgentAction
+		if err := json.NewDecoder(r.Body).Decode(&action); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		reg := &ai.Registry{}
+		resp, err := reg.HandleWaveAction(r.Context(), &action)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

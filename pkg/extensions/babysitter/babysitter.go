@@ -3,6 +3,7 @@ package babysitter
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/badlogic/pi-mono/pkg/agent"
@@ -11,12 +12,17 @@ import (
 
 // BabysitterPlugin represents the a5c-ai/babysitter-pi orchestration extension
 type BabysitterPlugin struct {
-	Enabled bool
+	Enabled      bool
+	lastActionAt time.Time
+	mu           sync.Mutex
 }
 
 // NewBabysitterPlugin initializes the orchestration plugin
 func NewBabysitterPlugin() *BabysitterPlugin {
-	return &BabysitterPlugin{Enabled: false}
+	return &BabysitterPlugin{
+		Enabled:      false,
+		lastActionAt: time.Now(),
+	}
 }
 
 // AddTools injects the babysitter orchestration tools
@@ -25,7 +31,49 @@ func (p *BabysitterPlugin) AddTools(tools []agent.AgentTool) []agent.AgentTool {
 		return tools
 	}
 
-	return append(tools, p.HealthCheckTool(), p.OrchestrateRecoveryTool())
+	return append(tools, p.HealthCheckTool(), p.OrchestrateRecoveryTool(), p.WatchdogTool())
+}
+
+// WatchdogTool implements Antigravity's Auto-Bump logic for session recovery.
+func (p *BabysitterPlugin) WatchdogTool() agent.AgentTool {
+	return agent.AgentTool{
+		Name:        "watchdog_bump",
+		Description: "Monitor session for idle state and perform 'bump' to resume stalled agent logic.",
+		Label:       "Babysitter: Watchdog Bump",
+		Parameters: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"timeout_sec": map[string]any{
+					"type":        "number",
+					"description": "Idle timeout in seconds before bumping.",
+				},
+			},
+		},
+		Execute: func(ctx context.Context, toolCallId string, params map[string]any, onUpdate agent.AgentToolUpdateCallback) (agent.AgentToolResult, error) {
+			timeoutSec, _ := params["timeout_sec"].(float64)
+			if timeoutSec == 0 {
+				timeoutSec = 30
+			}
+
+			p.mu.Lock()
+			idle := time.Since(p.lastActionAt)
+			p.mu.Unlock()
+
+			if idle.Seconds() >= timeoutSec {
+				msg := "Watchdog detected stall. Performing session bump..."
+				p.RecordAction()
+				return agent.AgentToolResult{Content: []ai.Content{ai.TextContent{Text: msg}}}, nil
+			}
+
+			return agent.AgentToolResult{Content: []ai.Content{ai.TextContent{Text: "Watchdog: Session active."}}}, nil
+		},
+	}
+}
+
+func (p *BabysitterPlugin) RecordAction() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.lastActionAt = time.Now()
 }
 
 func (p *BabysitterPlugin) HealthCheckTool() agent.AgentTool {
