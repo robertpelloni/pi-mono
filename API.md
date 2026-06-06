@@ -70,3 +70,17 @@ Executes an agentic action using the Wave-compatible `aiusechat` schema.
 }
 ```
 **Response:** Wave-compatible `ActionResponse`.
+
+## Unified Tool Harness
+
+The server also supports a wide range of assimilated tools via its internal harness. These can be invoked by agents or via specialized adapters.
+
+### Available Parity Tools
+- `antigravity_auto_click`: Scans for and clicks common VS Code AI buttons.
+- `computer`: Anthropic-style "Computer Use" (type, key, mouse_move, left_click).
+- `memory`: Persistent key-value storage for agent state.
+- `todo`: Task management within the project context.
+- `search_files`: High-performance file content and name searching.
+- `execute_code`: Python-based sandboxed code execution.
+- `skill_manage`: Lifecycle management for self-improving agent skills.
+- `browser_action`: Browser automation (launch, click, type, screenshot).
