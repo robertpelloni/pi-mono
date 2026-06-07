@@ -69,6 +69,18 @@ type TabbyDebug struct {
 	Prompt   string         `json:"prompt,omitempty"`
 }
 
+// TabbyNextEditRequest represents the request for next edit suggestion.
+type TabbyNextEditRequest struct {
+	Segments *TabbySegments `json:"segments"`
+	Filepath string         `json:"filepath"`
+	Language string         `json:"language,omitempty"`
+}
+
+// TabbyNextEditResponse represents the response for next edit suggestion.
+type TabbyNextEditResponse struct {
+	Choice TabbyChoice `json:"choice"`
+}
+
 // HandleTabbyCompletion handles requests from Tabby-compatible clients.
 func (r *Registry) HandleTabbyCompletion(ctx context.Context, req *TabbyCompletionRequest) (*TabbyCompletionResponse, error) {
 	if req == nil {
@@ -142,5 +154,32 @@ func (r *Registry) HandleTabbyCompletion(ctx context.Context, req *TabbyCompleti
 			{Index: 0, Text: fullText},
 		},
 		Mode: mode,
+	}, nil
+}
+
+// HandleTabbyNextEdit handles next-edit suggestion requests.
+func (r *Registry) HandleTabbyNextEdit(ctx context.Context, req *TabbyNextEditRequest) (*TabbyNextEditResponse, error) {
+	if req == nil || req.Segments == nil {
+		return nil, fmt.Errorf("invalid request")
+	}
+
+	// Delegate to completion handler with next_edit_suggestion mode
+	compReq := &TabbyCompletionRequest{
+		Language: req.Language,
+		Segments: req.Segments,
+		Mode:     "next_edit_suggestion",
+	}
+
+	resp, err := r.HandleTabbyCompletion(ctx, compReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.Choices) == 0 {
+		return nil, fmt.Errorf("no choice returned from model")
+	}
+
+	return &TabbyNextEditResponse{
+		Choice: resp.Choices[0],
 	}, nil
 }

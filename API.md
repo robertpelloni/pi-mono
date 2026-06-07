@@ -28,9 +28,24 @@ Returns a list of active session IDs.
 
 ### Tabby Completion (v1)
 `POST /v1/completions`
-Provides compatibility with Tabby-compatible IDE extensions.
+Provides compatibility with Tabby-compatible IDE extensions. Supports standard code completion and next-edit suggestions.
 **Payload:** Matches Tabby's `CompletionRequest` schema.
 **Response:** Matches Tabby's `CompletionResponse` schema.
+
+### Tabby Next-Edit Suggestion
+`POST /v1/next-edit-suggestion`
+Predictive editing based on git diffs and current file segments.
+**Payload:**
+```json
+{
+  "segments": {
+    "prefix": "...",
+    "suffix": "..."
+  },
+  "filepath": "main.go"
+}
+```
+**Response:** `NextEditSuggestionResponse` containing the predicted edit.
 
 ### Warp Action
 `POST /api/warp/action`
@@ -59,7 +74,7 @@ Synchronizes the terminal theme with a Hyper-compatible configuration.
 
 ### Wave Action
 `POST /api/wave/action`
-Executes an agentic action using the Wave-compatible `aiusechat` schema.
+Executes an agentic action using the Wave-compatible `aiusechat` schema. Supported types: `readfile`, `writefile`, `term`, `web`, `screenshot`.
 **Payload:**
 ```json
 {
@@ -84,3 +99,6 @@ The server also supports a wide range of assimilated tools via its internal harn
 - `execute_code`: Python-based sandboxed code execution.
 - `skill_manage`: Lifecycle management for self-improving agent skills.
 - `browser_action`: Browser automation (launch, click, type, screenshot).
+- `apply_patch`: OpenCode-style unified diff application (supports add/update/delete).
+- `multiedit`: Multiple string replacements in a single file pass.
+- `repo_map`: Ranked repository structure generation for LLM context optimization.

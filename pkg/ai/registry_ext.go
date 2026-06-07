@@ -25,10 +25,10 @@ func (m *ModelInfo) Stream(ctx context.Context, aiCtx Context, options any) (Ass
 
 // GetDefaultModel returns the default model from the registry.
 func (r *Registry) GetDefaultModel() *ModelInfo {
-	modelsRegistryMu.RLock()
-	defer modelsRegistryMu.RUnlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	// Simple stub for parity tools - in a real implementation this would be configurable.
-	for _, providerModels := range modelsRegistry {
+	for _, providerModels := range r.models {
 		for _, model := range providerModels {
 			return &model
 		}
