@@ -84,3 +84,6 @@ The server also supports a wide range of assimilated tools via its internal harn
 - `execute_code`: Python-based sandboxed code execution.
 - `skill_manage`: Lifecycle management for self-improving agent skills.
 - `browser_action`: Browser automation (launch, click, type, screenshot).
+- `apply_patch`: OpenCode-style unified diff application (supports add/update/delete).
+- `multiedit`: Multiple string replacements in a single file pass.
+- `repo_map`: Ranked repository structure generation for LLM context optimization.
