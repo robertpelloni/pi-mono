@@ -571,7 +571,14 @@ func handleRepomapGenerate(args map[string]interface{}) string {
 	if baseDir == "" {
 		baseDir = "."
 	}
-	files, _ := args["mentioned_files"].([]string)
+	filesRaw, _ := args["mentioned_files"].([]interface{})
+	var files []string
+	for _, f := range filesRaw {
+		if s, ok := f.(string); ok {
+			files = append(files, s)
+		}
+	}
+
 	res, err := repomap.Generate(repomap.Options{
 		BaseDir:        baseDir,
 		MentionedFiles: files,
