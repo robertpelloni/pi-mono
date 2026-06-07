@@ -16,6 +16,13 @@ func TestServer_E2E(t *testing.T) {
 	s := NewServer("", agentsession.AgentSessionConfig{})
 
 	t.Run("E2E - Tabby Flow", func(t *testing.T) {
+		// Mock a model in the registry to avoid 500
+		s.registry.RegisterModel(ai.ModelInfo{
+			ID:       "mock-model",
+			Provider: "mock",
+			API:      "mock",
+		})
+
 		payload := map[string]interface{}{
 			"segments": map[string]interface{}{
 				"prefix": "func main() {",
@@ -26,7 +33,7 @@ func TestServer_E2E(t *testing.T) {
 		rr := httptest.NewRecorder()
 		s.ServeHTTP(rr, req)
 
-		// Expect 500 (no models) but verifies the entire route stack
+		// It still fails in model.Stream because no provider is registered, but it gets further
 		if rr.Code != http.StatusInternalServerError {
 			t.Errorf("expected status 500, got %d", rr.Code)
 		}

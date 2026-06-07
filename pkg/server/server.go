@@ -22,6 +22,7 @@ type Server struct {
 	staticDir string
 	sessions  map[string]*agentsession.AgentSession
 	config    agentsession.AgentSessionConfig // Template config for new sessions
+	registry  *ai.Registry                    // Persistent registry for parity endpoints
 }
 
 // NewServer initializes a new Web UI Server with multi-session support.
@@ -36,6 +37,7 @@ func NewServer(staticDir string, config agentsession.AgentSessionConfig) *Server
 		staticDir: staticDir,
 		sessions:  make(map[string]*agentsession.AgentSession),
 		config:    config,
+		registry:  ai.NewRegistry(),
 	}
 	s.routes()
 	return s
@@ -185,10 +187,7 @@ func (s *Server) handleTabbyCompletions() http.HandlerFunc {
 			return
 		}
 
-		// For parity endpoints, we use a global registry or session-bound one
-		// For now, we use a simple registry instance.
-		reg := &ai.Registry{}
-		resp, err := reg.HandleTabbyCompletion(r.Context(), &req)
+		resp, err := s.registry.HandleTabbyCompletion(r.Context(), &req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -207,8 +206,7 @@ func (s *Server) handleTabbyNextEdit() http.HandlerFunc {
 			return
 		}
 
-		reg := &ai.Registry{}
-		resp, err := reg.HandleTabbyNextEdit(r.Context(), &req)
+		resp, err := s.registry.HandleTabbyNextEdit(r.Context(), &req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -227,8 +225,7 @@ func (s *Server) handleWaveAction() http.HandlerFunc {
 			return
 		}
 
-		reg := &ai.Registry{}
-		resp, err := reg.HandleWaveAction(r.Context(), &action)
+		resp, err := s.registry.HandleWaveAction(r.Context(), &action)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -247,8 +244,7 @@ func (s *Server) handleWarpAction() http.HandlerFunc {
 			return
 		}
 
-		reg := &ai.Registry{}
-		resp, err := reg.HandleWarpAction(r.Context(), &action)
+		resp, err := s.registry.HandleWarpAction(r.Context(), &action)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
