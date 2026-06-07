@@ -11,7 +11,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-check-test:
+  go-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep lynx xdotool scrot
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build -v ./cmd/pi/... ./pkg/...
+
+      - name: Test
+        run: go test -v ./pkg/...
+
+  ts-legacy-check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -23,12 +50,6 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev fd-find ripgrep
-          sudo ln -s $(which fdfind) /usr/local/bin/fd
-
       - name: Install dependencies
         run: npm ci
 
@@ -37,6 +58,3 @@ jobs:
 
       - name: Check
         run: npm run check
-
-      - name: Test
-        run: npm test

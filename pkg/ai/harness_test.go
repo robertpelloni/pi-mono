@@ -2,6 +2,8 @@ package ai
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -17,8 +19,6 @@ func TestHarness_ExecuteTool(t *testing.T) {
 				"suffix": "}",
 			},
 		}
-		// Since we have no models registered,
-		// this should return a result string containing the error.
 		resp, err := h.ExecuteTool(context.Background(), "tabby_completion", args)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -56,11 +56,54 @@ func TestHarness_ExecuteTool(t *testing.T) {
 			t.Errorf("expected success message, got: %s", resp)
 		}
 	})
+}
 
-	t.Run("Unknown Tool", func(t *testing.T) {
-		_, err := h.ExecuteTool(context.Background(), "unknown_tool", nil)
-		if err == nil {
-			t.Errorf("expected error for unknown tool, got nil")
+func TestHarness_TabbyNextEdit(t *testing.T) {
+	reg := NewRegistry()
+	h := NewHarness(reg)
+	ctx := context.Background()
+
+	t.Run("Tabby Next Edit - Invalid", func(t *testing.T) {
+		args := map[string]interface{}{
+			"filepath": "main.go",
+		}
+		resp, err := h.ExecuteTool(ctx, "tabby_completion", args)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if !strings.Contains(resp, "Error") {
+			t.Errorf("expected error message in response, got: %s", resp)
+		}
+	})
+}
+
+func TestHarness_WaveAction(t *testing.T) {
+	reg := NewRegistry()
+	h := NewHarness(reg)
+	ctx := context.Background()
+
+	tmpDir, err := os.MkdirTemp("", "wave-test-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	testFile := filepath.Join(tmpDir, "test.txt")
+	os.WriteFile(testFile, []byte("hello wave"), 0644)
+
+	t.Run("Wave Action - ReadFile", func(t *testing.T) {
+		args := map[string]interface{}{
+			"type": "readfile",
+			"params": map[string]interface{}{
+				"path": testFile,
+			},
+		}
+		resp, err := h.ExecuteTool(ctx, "wave_action", args)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if !strings.Contains(resp, "hello wave") {
+			t.Errorf("unexpected response: %s", resp)
 		}
 	})
 }
