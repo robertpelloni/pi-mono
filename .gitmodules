@@ -1,0 +1,3 @@
+[submodule "submodules/hyperharness"]
+	path = submodules/hyperharness
+	url = https://github.com/robertpelloni/hyperharness
