@@ -2,8 +2,13 @@
 
 ## [0.97.0] - 2026-07-05
 ### Added
-- **Ultimate LLM Harness**: Initiated Phase 19 for the systematic assimilation of Tabby, Warp, Hyper, Wave, Codex Desktop, Antigravity 2.0, Claude Desktop, Claude Code, Codex CLI, Gemini-CLI, OpenCode, and Hermes.
-- **Tabby Assimilation**: Commenced analysis and implementation of Tabby's self-hosted AI coding assistant features.
+- **Ultimate LLM Harness**: Completed Phase 19 for the systematic assimilation of Tabby, Warp, Hyper, Wave, Antigravity 2.0, and OpenCode.
+- **Unified Tool Harness**: Implemented native Go handlers for Tabby (completions/next-edit), Warp (agentic actions), and Wave (aiusechat).
+- **RepoMap**: Ported advanced symbol indexing and relevance ranking logic from Hyperharness for context optimization.
+- **OpenCode Parity**: Internalized `apply_patch` and `multiedit` tool functionality.
+- **Terminal Enhancements**: Added OSC 8/133 support in Bubbletea TUI for parity with Warp/Ghostty.
+- **Watchdog & Exit Detection**: Integrated Antigravity 2.0's session bump and exit detection logic.
+- **Cross-Platform Builds**: Verified stable v0.97.0 binaries for Darwin, Linux, and Windows.
 
 ## [0.96.0] - 2026-06-30
 ### Added
