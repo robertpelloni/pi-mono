@@ -33,7 +33,7 @@ func (r *Registry) HandleWaveAction(ctx context.Context, action *WaveAgentAction
 	case "writefile":
 		path, _ := action.Params["path"].(string)
 		content, _ := action.Params["content"].(string)
-		out, err := HandleHermesWriteFile(map[string]interface{}{"file_path": path, "content": content})
+		out, err := handleHermesWriteFile(map[string]interface{}{"file_path": path, "content": content})
 		if err != nil {
 			return &WaveActionResponse{Status: "error", Error: err.Error()}, nil
 		}

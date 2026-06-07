@@ -12,11 +12,12 @@ import (
 
 	"github.com/badlogic/pi-mono/pkg/findtool"
 	"github.com/badlogic/pi-mono/pkg/greptool"
+	"github.com/badlogic/pi-mono/pkg/repomap"
+	"github.com/badlogic/pi-mono/pkg/opencode"
 )
 
 // CleanRoomToolHandlers defines the unified underlying implementations for our exact parity tools.
 
-// HandleTabbyCompletionTool routes Tabby completion requests to the native Go implementation.
 func (r *Registry) HandleTabbyCompletionTool(args map[string]interface{}) string {
 	raw, err := json.Marshal(args)
 	if err != nil {
@@ -37,7 +38,6 @@ func (r *Registry) HandleTabbyCompletionTool(args map[string]interface{}) string
 	return string(respRaw)
 }
 
-// HandleWarpActionTool routes Warp-specific tool calls to the native implementation.
 func (r *Registry) HandleWarpActionTool(args map[string]interface{}) string {
 	raw, _ := json.Marshal(args)
 	var action WarpAgentAction
@@ -54,7 +54,6 @@ func (r *Registry) HandleWarpActionTool(args map[string]interface{}) string {
 	return string(respRaw)
 }
 
-// HandleUnifiedRead takes unified parameters (where path is guaranteed to be set) and returns file contents.
 func HandleUnifiedRead(unifiedArgs map[string]interface{}) (string, error) {
 	path, ok := unifiedArgs["path"].(string)
 	if !ok {
@@ -66,7 +65,6 @@ func HandleUnifiedRead(unifiedArgs map[string]interface{}) (string, error) {
 		return "", fmt.Errorf("error reading file %s: %v", path, err)
 	}
 
-	// Apply offset/limit if provided
 	lines := strings.Split(string(content), "\n")
 
 	offset := 0
@@ -101,7 +99,6 @@ func HandleUnifiedRead(unifiedArgs map[string]interface{}) (string, error) {
 	return strings.Join(lines[start:end], "\n"), nil
 }
 
-// HandleUnifiedCommand takes unified parameters (where command is guaranteed to be set) and executes a bash command.
 func HandleUnifiedCommand(unifiedArgs map[string]interface{}) (string, error) {
 	command, ok := unifiedArgs["command"].(string)
 	if !ok {
@@ -117,83 +114,6 @@ func HandleUnifiedCommand(unifiedArgs map[string]interface{}) (string, error) {
 	return string(out), nil
 }
 
-// HandleHermesPatch implements the find-and-replace logic for the Hermes patch tool.
-func HandleHermesPatch(unifiedArgs map[string]interface{}) (string, error) {
-	filePath, ok := unifiedArgs["file_path"].(string)
-	if !ok {
-		return "", fmt.Errorf("missing file_path")
-	}
-	findStr, ok := unifiedArgs["find"].(string)
-	if !ok {
-		return "", fmt.Errorf("missing find string")
-	}
-	replaceStr, ok := unifiedArgs["replace"].(string)
-	if !ok {
-		return "", fmt.Errorf("missing replace string")
-	}
-
-	content, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read file: %v", err)
-	}
-
-	contentStr := string(content)
-	if !strings.Contains(contentStr, findStr) {
-		return "", fmt.Errorf("target string not found in file")
-	}
-
-	// Basic string replacement. A full implementation would use fuzzy matching as documented.
-	newContent := strings.Replace(contentStr, findStr, replaceStr, 1)
-
-	err = ioutil.WriteFile(filePath, []byte(newContent), 0644)
-	if err != nil {
-		return "", fmt.Errorf("failed to write file: %v", err)
-	}
-
-	return "Patch applied successfully", nil
-}
-
-// HandleHermesWriteFile implements the destructive file overwrite for the Hermes write_file tool.
-func HandleHermesWriteFile(unifiedArgs map[string]interface{}) (string, error) {
-	filePath, ok := unifiedArgs["file_path"].(string)
-	if !ok {
-		return "", fmt.Errorf("missing file_path")
-	}
-	content, ok := unifiedArgs["content"].(string)
-	if !ok {
-		return "", fmt.Errorf("missing content")
-	}
-
-	err := ioutil.WriteFile(filePath, []byte(content), 0644)
-	if err != nil {
-		return "", fmt.Errorf("failed to write file: %v", err)
-	}
-
-	return "File written successfully", nil
-}
-
-// MapHermesCleanRoomParams routes Hermes-specific parameter structures to the unified handlers.
-func MapHermesCleanRoomParams(toolName string, rawArgs []byte) (map[string]interface{}, error) {
-	var args map[string]interface{}
-	if err := json.Unmarshal(rawArgs, &args); err != nil {
-		return nil, err
-	}
-
-	unified := make(map[string]interface{})
-	for k, v := range args {
-		unified[k] = v
-	}
-
-	// Normalizing paths for Hermes schemas
-	if path, ok := args["file_path"].(string); ok {
-		unified["path"] = path
-	}
-
-	return unified, nil
-}
-
-// Native OpenInterpreter bindings for specific action enums.
-// These interact directly with 'xdotool' (Linux) or 'cliclick' natively if installed.
 func handleOpenInterpreterComputerUse(args map[string]interface{}) string {
 	action, ok := args["action"].(string)
 	if !ok {
@@ -206,7 +126,6 @@ func handleOpenInterpreterComputerUse(args map[string]interface{}) string {
 		if text == "" {
 			return "Error: missing text to type"
 		}
-		// Attempting generic OS invocation
 		cmd := exec.Command("xdotool", "type", text)
 		err := cmd.Run()
 		if err != nil {
@@ -250,6 +169,15 @@ func handleOpenInterpreterComputerUse(args map[string]interface{}) string {
 		}
 		return "Left click executed"
 
+	case "screenshot":
+		// Native screenshot parity
+		cmd := exec.Command("scrot", "/tmp/pi_screenshot.png")
+		err := cmd.Run()
+		if err != nil {
+			return "Error taking screenshot: " + err.Error()
+		}
+		return "Screenshot saved to /tmp/pi_screenshot.png"
+
 	default:
 		return "Simulated execution of unhandled action: " + action
 	}
@@ -278,7 +206,6 @@ func handleHermesBrowserNavigate(args map[string]interface{}) string {
 		return "Error: missing 'url' parameter"
 	}
 
-	// Use lynx to get a text dump of the page
 	cmd := exec.Command("lynx", "-dump", url)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -314,11 +241,9 @@ func handleHermesExecuteCode(args map[string]interface{}) string {
 		return "Error: missing 'code' parameter"
 	}
 
-	// Attempt to run with python3
 	cmd := exec.Command("python3", "-c", code)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		// Fallback to python if python3 is missing
 		cmd = exec.Command("python", "-c", code)
 		out, err = cmd.CombinedOutput()
 		if err != nil {
@@ -386,7 +311,6 @@ func handleHermesSearchFiles(args map[string]interface{}) string {
 
 func handleHermesSessionSearch(args map[string]interface{}) string {
 	query, _ := args["query"].(string)
-	// Search in session logs if available
 	cwd, _ := os.Getwd()
 	logDir := filepath.Join(cwd, "logs")
 	if _, err := os.Stat(logDir); err == nil {
@@ -408,7 +332,6 @@ func handleHermesWebSearch(args map[string]interface{}) string {
 		return "Error: missing 'query' parameter"
 	}
 
-	// Use duckduckgo html search as a fallback for real search
 	searchURL := fmt.Sprintf("https://html.duckduckgo.com/html/?q=%s", strings.ReplaceAll(query, " ", "+"))
 	return handleHermesBrowserNavigate(map[string]interface{}{"url": searchURL})
 }
@@ -474,11 +397,13 @@ var CleanRoomTools = map[string]func(map[string]interface{}) string{
 	"list_code_definition_names": handleClineListCodeDefinitionNames,
 	"browser_action":             handleClineBrowserAction,
 	"replace_lines":              handleAiderReplaceLines,
-	"repo_map":                   handleAiderRepoMap,
+	"repo_map":                   handleRepomapGenerate,
 	"antigravity_auto_click":     handleAntigravityAutoClick,
-	"tabby_completion":           nil, // Placeholder for registry-bound handler
-	"warp_action":                nil, // Placeholder for registry-bound handler
-	"hyper_theme_sync":           nil, // Placeholder for registry-bound handler
+	"apply_patch":                handleOpenCodeApplyPatch,
+	"multiedit":                  handleOpenCodeMultiEdit,
+	"tabby_completion":           nil,
+	"warp_action":                nil,
+	"hyper_theme_sync":           nil,
 }
 
 func handleAiderRunCommand(args map[string]interface{}) string {
@@ -507,14 +432,13 @@ func handleAiderReplaceLines(args map[string]interface{}) string {
 	}
 
 	lines := strings.Split(string(content), "\n")
-	startLine := int(startLineF) - 1 // 1-indexed to 0-indexed
+	startLine := int(startLineF) - 1
 	endLine := int(endLineF) - 1
 
 	if startLine < 0 || startLine >= len(lines) || endLine < 0 || endLine >= len(lines) || startLine > endLine {
 		return "Error: line boundaries are invalid"
 	}
 
-	// Reconstruct the file with the replaced section
 	newLines := append([]string{}, lines[:startLine]...)
 	newLines = append(newLines, strings.Split(replacement, "\n")...)
 	newLines = append(newLines, lines[endLine+1:]...)
@@ -541,11 +465,21 @@ func handleClineWriteToFile(args map[string]interface{}) string {
 	path, _ := args["path"].(string)
 	content, _ := args["content"].(string)
 	unifiedArgs := map[string]interface{}{"file_path": path, "content": content}
-	out, err := HandleHermesWriteFile(unifiedArgs)
+	out, err := handleHermesWriteFile(unifiedArgs)
 	if err != nil {
 		return "Error: " + err.Error()
 	}
 	return out
+}
+
+func handleHermesWriteFile(args map[string]interface{}) (string, error) {
+	path, _ := args["file_path"].(string)
+	content, _ := args["content"].(string)
+	err := os.WriteFile(path, []byte(content), 0644)
+	if err != nil {
+		return "", err
+	}
+	return "File written successfully", nil
 }
 
 func handleClineAskFollowup(args map[string]interface{}) string {
@@ -555,7 +489,6 @@ func handleClineAskFollowup(args map[string]interface{}) string {
 
 func handleClineListCodeDefinitionNames(args map[string]interface{}) string {
 	path, _ := args["path"].(string)
-	// Use greptool to find functions and classes natively
 	input := greptool.GrepToolInput{
 		Pattern: "(func|type|class|interface|struct) ",
 		Path:    path,
@@ -566,51 +499,6 @@ func handleClineListCodeDefinitionNames(args map[string]interface{}) string {
 		return "Error listing definitions: " + err.Error()
 	}
 	return result.Content
-}
-
-func handleAiderRepoMap(args map[string]interface{}) string {
-	cwd, _ := os.Getwd()
-	files := findtool.FindToolInput{
-		Pattern: "**/*",
-		Path:    ".",
-		Limit:   100,
-	}
-	res, err := findtool.Execute(context.Background(), files, cwd, nil)
-	if err != nil {
-		return "Error building repo map: " + err.Error()
-	}
-
-	fileList := strings.Split(res.Content, "\n")
-	var sb strings.Builder
-	sb.WriteString("Repository Structure & Definitions:\n")
-
-	for _, f := range fileList {
-		if f == "" || strings.HasPrefix(f, "[") {
-			continue
-		}
-		sb.WriteString("\n📄 " + f + "\n")
-		// Get definitions for each file
-		defInput := greptool.GrepToolInput{
-			Pattern: "(func|type|class|interface|struct) ",
-			Path:    filepath.Join(cwd, f),
-		}
-		defRes, err := greptool.Execute(context.Background(), defInput, cwd, nil)
-		if err == nil && !strings.Contains(defRes.Content, "No matches found") {
-			defs := strings.Split(defRes.Content, "\n")
-			for _, d := range defs {
-				if d == "" || strings.HasPrefix(d, "[") {
-					continue
-				}
-				// Clean up grep output: file:line: match
-				parts := strings.SplitN(d, ":", 3)
-				if len(parts) >= 3 {
-					sb.WriteString("  " + strings.TrimSpace(parts[2]) + "\n")
-				}
-			}
-		}
-	}
-
-	return sb.String()
 }
 
 func handleClineBrowserAction(args map[string]interface{}) string {
@@ -636,12 +524,62 @@ func handleClineBrowserAction(args map[string]interface{}) string {
 }
 
 func handleAntigravityAutoClick(args map[string]interface{}) string {
-	// Parity with Antigravity's auto-click logic for common VS Code buttons
 	selectors, _ := args["selectors"].([]any)
 	if len(selectors) == 0 {
 		selectors = []any{"button:contains('Accept')", "button:contains('Continue')", "button:contains('Run')"}
 	}
 	return fmt.Sprintf("Antigravity: Scanned for %v and performed 1 click.", selectors)
+}
+
+func handleOpenCodeApplyPatch(args map[string]interface{}) string {
+	patchText, _ := args["patchText"].(string)
+	hunks, err := opencode.ParsePatch(patchText)
+	if err != nil {
+		return "Error parsing patch: " + err.Error()
+	}
+	res := opencode.ApplyPatch(hunks, ".")
+	var lines []string
+	for _, f := range res.Files {
+		if f.Err != nil {
+			lines = append(lines, fmt.Sprintf("Error %s: %v", f.Path, f.Err))
+		} else {
+			lines = append(lines, fmt.Sprintf("Updated %s (+%d -%d)", f.Path, f.Additions, f.Deletions))
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+func handleOpenCodeMultiEdit(args map[string]interface{}) string {
+	path, _ := args["filePath"].(string)
+	editsRaw, _ := args["edits"].([]interface{})
+	var edits []opencode.MultiEditItem
+	data, _ := json.Marshal(editsRaw)
+	json.Unmarshal(data, &edits)
+
+	res, err := opencode.ApplyMultiEdit(opencode.MultiEditParams{
+		FilePath: path,
+		Edits:    edits,
+	})
+	if err != nil {
+		return "Error applying multiedit: " + err.Error()
+	}
+	return fmt.Sprintf("Success: Updated %s (+%d -%d)", res.Path, res.Additions, res.Deletions)
+}
+
+func handleRepomapGenerate(args map[string]interface{}) string {
+	baseDir, _ := args["base_dir"].(string)
+	if baseDir == "" {
+		baseDir = "."
+	}
+	files, _ := args["mentioned_files"].([]string)
+	res, err := repomap.Generate(repomap.Options{
+		BaseDir:        baseDir,
+		MentionedFiles: files,
+	})
+	if err != nil {
+		return "Error generating repo map: " + err.Error()
+	}
+	return res.Map
 }
 
 func handleHermesSkillManage(args map[string]interface{}) string {
@@ -653,14 +591,12 @@ func handleHermesSkillManage(args map[string]interface{}) string {
 		return "Error: skill name is required"
 	}
 
-	// For now, save skills to .pi/skills/
 	skillDir := filepath.Join(".pi", "skills", name)
 	os.MkdirAll(skillDir, 0755)
 	skillFile := filepath.Join(skillDir, name+".md")
 
 	switch action {
 	case "create", "update":
-		// Wrap content in simple frontmatter if not present
 		if !strings.HasPrefix(content, "---") {
 			content = fmt.Sprintf("---\nname: %s\ndescription: %s\n---\n%s", name, name, content)
 		}
@@ -678,4 +614,22 @@ func handleHermesSkillManage(args map[string]interface{}) string {
 	default:
 		return "Unknown skill action: " + action
 	}
+}
+
+func MapHermesCleanRoomParams(toolName string, rawArgs []byte) (map[string]interface{}, error) {
+	var args map[string]interface{}
+	if err := json.Unmarshal(rawArgs, &args); err != nil {
+		return nil, err
+	}
+
+	unified := make(map[string]interface{})
+	for k, v := range args {
+		unified[k] = v
+	}
+
+	if path, ok := args["file_path"].(string); ok {
+		unified["path"] = path
+	}
+
+	return unified, nil
 }
