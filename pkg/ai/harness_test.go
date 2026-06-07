@@ -17,9 +17,8 @@ func TestHarness_ExecuteTool(t *testing.T) {
 				"suffix": "}",
 			},
 		}
-		// Since we have no models registered in the global modelsRegistry (which GetDefaultModel uses),
+		// Since we have no models registered,
 		// this should return a result string containing the error.
-		ClearModelsRegistry()
 		resp, err := h.ExecuteTool(context.Background(), "tabby_completion", args)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
