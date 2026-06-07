@@ -49,7 +49,7 @@ Predictive editing based on git diffs and current file segments.
 
 ### Warp Action
 `POST /api/warp/action`
-Executes an agentic action using the Warp-compatible schema.
+Executes an agentic action using the Warp-compatible `AIAgentActionType` schema. Supported types: `RequestCommandOutput`, `ReadFiles`, `Grep`, `FileGlob`, `CallMCPTool`, `UseComputer`.
 **Payload:**
 ```json
 {
