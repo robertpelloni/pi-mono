@@ -2,6 +2,18 @@
 
 This document describes the API endpoints provided by the Pi Agent server, including native and assimilated parity endpoints.
 
+## Usage Guidelines
+
+### Authentication
+Currently, the Pi server assumes a secure local environment. Production deployments should be fronted by a reverse proxy (e.g., Nginx, Caddy) providing Bearer Token or OIDC authentication.
+
+### Session Persistence
+- **Native Endpoints**: Use the `sessionId` field to maintain conversation history. If omitted, a fresh session is generated.
+- **Parity Endpoints**: Tabby, Warp, and Wave endpoints are stateless at the HTTP layer but leverage Pi's global `Registry` and `RepoMap` for context.
+
+### Tool Harness Routing
+Requests to parity endpoints are automatically routed through the **Unified Tool Harness** (`pkg/ai/harness.go`). This engine performs 1:1 schema mapping between third-party requests and Pi's native Go handlers.
+
 ## Core Endpoints
 
 ### Health Check
@@ -49,7 +61,7 @@ Predictive editing based on git diffs and current file segments.
 
 ### Warp Action
 `POST /api/warp/action`
-Executes an agentic action using the Warp-compatible schema.
+Executes an agentic action using the Warp-compatible `AIAgentActionType` schema. Supported types: `RequestCommandOutput`, `ReadFiles`, `Grep`, `FileGlob`, `CallMCPTool`, `UseComputer`.
 **Payload:**
 ```json
 {
@@ -102,3 +114,13 @@ The server also supports a wide range of assimilated tools via its internal harn
 - `apply_patch`: OpenCode-style unified diff application (supports add/update/delete).
 - `multiedit`: Multiple string replacements in a single file pass.
 - `repo_map`: Ranked repository structure generation for LLM context optimization.
+
+## Error Codes
+
+| Status Code | Description |
+| :--- | :--- |
+| `200 OK` | Request processed successfully. |
+| `400 Bad Request` | Invalid JSON payload or missing required parameters. |
+| `401 Unauthorized` | (Reserved) Authentication failed. |
+| `500 Internal Server Error` | Backend handler failed (e.g., no default model configured). |
+| `503 Service Unavailable` | Model provider rate-limited or overloaded. |

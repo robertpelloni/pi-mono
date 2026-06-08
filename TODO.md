@@ -23,16 +23,16 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Remove Node Scripts (Legacy automation cleaned).
 - [x] Release v0.69.0-v0.82.0 marking assimilation progress.
 
-## Phase 19: Ultimate LLM Harness
+## Phase 19: Ultimate LLM Harness (Complete)
 - [x] Assimilate Tabby (Submodule analysis, feature porting).
 - [x] Assimilate Warp (Submodule analysis, feature porting).
 - [x] Assimilate Hyper (Submodule analysis, feature porting).
 - [x] Assimilate Wave (Submodule analysis, feature porting).
-- [ ] Assimilate Codex Desktop (Submodule analysis, feature porting).
 - [x] Assimilate Antigravity 2.0 (Submodule analysis, feature porting).
-- [ ] Assimilate Claude Desktop (Submodule analysis, feature porting).
-- [ ] Assimilate Claude Code (Submodule analysis, feature porting).
-- [ ] Assimilate Codex CLI (Submodule analysis, feature porting).
-- [ ] Assimilate Gemini-CLI (Submodule analysis, feature porting).
 - [x] Assimilate OpenCode (Submodule analysis, feature porting).
-- [ ] Assimilate Hermes (Submodule analysis, feature porting).
+
+## Phase 20: Extended Assimilation
+- [ ] Assimilate Claude Desktop & Claude Code (Submodule analysis, feature porting).
+- [ ] Assimilate Codex Desktop & Codex CLI (Submodule analysis, feature porting).
+- [ ] Assimilate Gemini-CLI (Submodule analysis, feature porting).
+- [ ] Assimilate Hermes Desktop (Submodule analysis, feature porting).
