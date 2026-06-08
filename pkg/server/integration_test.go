@@ -6,12 +6,28 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"strings"
 
 	"github.com/badlogic/pi-mono/pkg/agentsession"
+	"github.com/badlogic/pi-mono/pkg/ai"
 )
 
 func TestServer_AssimilatedEndpoints(t *testing.T) {
 	s := NewServer("", agentsession.AgentSessionConfig{})
+
+	// Register mock provider for integration tests
+	apiProv := ai.APIProvider{
+		API: ai.Api("mock-api"),
+		Stream: mockStreamIntegration,
+		StreamSimple: mockStreamIntegration,
+	}
+	ai.RegisterAPIProvider(apiProv, "test")
+
+	s.Registry().RegisterModel(ai.ModelInfo{
+		ID: "test-model",
+		Provider: "mock-prov",
+		API: ai.Api("mock-api"),
+	})
 
 	t.Run("Tabby Completion Route", func(t *testing.T) {
 		payload := map[string]interface{}{
@@ -25,9 +41,14 @@ func TestServer_AssimilatedEndpoints(t *testing.T) {
 
 		s.ServeHTTP(rr, req)
 
-		// Expect 500 because no models are registered, but the route should be found
-		if rr.Code != http.StatusInternalServerError {
-			t.Errorf("expected status 500, got %d", rr.Code)
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d, body: %s", rr.Code, rr.Body.String())
+		}
+
+		var resp ai.TabbyCompletionResponse
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		if len(resp.Choices) == 0 || resp.Choices[0].Text != "mock-response" {
+			t.Errorf("unexpected tabby response text: %v", resp.Choices)
 		}
 	})
 
@@ -47,36 +68,35 @@ func TestServer_AssimilatedEndpoints(t *testing.T) {
 		if rr.Code != http.StatusOK {
 			t.Errorf("expected status 200, got %d", rr.Code)
 		}
-	})
 
-	t.Run("Warp Action - Invalid JSON", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/api/warp/action", bytes.NewBuffer([]byte("{invalid}")))
-		rr := httptest.NewRecorder()
-		s.ServeHTTP(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("expected status 400, got %d", rr.Code)
+		var resp ai.WarpActionResponse
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		if resp.Status != "success" || !strings.Contains(resp.Output, "test") {
+			t.Errorf("unexpected warp response: %v", resp)
 		}
 	})
 
-	t.Run("Tabby Completion - Next Edit Suggestion", func(t *testing.T) {
+	t.Run("Wave Action Route", func(t *testing.T) {
 		payload := map[string]interface{}{
-			"mode": "next_edit_suggestion",
-			"segments": map[string]interface{}{
-				"prefix": "test",
-				"edit_history": map[string]interface{}{
-					"original_code":   "old",
-					"edits_diff":      "diff",
-					"current_version": "new",
-				},
+			"type": "term",
+			"params": map[string]interface{}{
+				"command": "echo wave",
 			},
 		}
 		body, _ := json.Marshal(payload)
-		req := httptest.NewRequest("POST", "/v1/completions", bytes.NewBuffer(body))
+		req := httptest.NewRequest("POST", "/api/wave/action", bytes.NewBuffer(body))
 		rr := httptest.NewRecorder()
+
 		s.ServeHTTP(rr, req)
-		// Should still hit 500 (no models) but the routing/unmarshaling is verified
-		if rr.Code != http.StatusInternalServerError {
-			t.Errorf("expected status 500, got %d", rr.Code)
+
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", rr.Code)
+		}
+
+		var resp ai.WaveActionResponse
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		if resp.Status != "success" || !strings.Contains(resp.Output, "wave") {
+			t.Errorf("unexpected wave response: %v", resp)
 		}
 	})
 }
