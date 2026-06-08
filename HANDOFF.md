@@ -8,6 +8,7 @@
 - **Parity HTTP Server**: Added compatibility routes in `pkg/server/server.go` for Tabby, Warp, and Wave IDE extensions.
 - **Submodule Cleanup**: Removed 6 major submodules after functional porting, keeping the repo clean and self-contained.
 - **Documentation Overhaul**: Updated `VISION.md`, `MEMORY.md`, `API.md`, `ROADMAP.md`, `TODO.md`, and `CHANGELOG.md` to reflect the v0.97.0 state.
+- **Tools Reference**: Created `TOOLS.md` with exhaustive specifications and unit tests for 15+ clean-room parity tools.
 
 ## Current State
 - **Project Version:** v0.97.0

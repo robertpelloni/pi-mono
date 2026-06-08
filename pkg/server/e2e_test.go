@@ -2,11 +2,13 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"testing"
+	"os"
 	"strings"
+	"testing"
 
 	"github.com/badlogic/pi-mono/pkg/agentsession"
 	"github.com/badlogic/pi-mono/pkg/ai"
@@ -85,6 +87,54 @@ func TestServer_E2E(t *testing.T) {
 		}
 		if !strings.Contains(resp.Output, "module github.com/badlogic/pi-mono") {
 			t.Errorf("unexpected output: %s", resp.Output)
+		}
+	})
+}
+
+func TestServer_ComplexMutations(t *testing.T) {
+	s := NewServer("", agentsession.AgentSessionConfig{})
+
+	t.Run("E2E - OpenCode MultiEdit", func(t *testing.T) {
+		// 1. Create a test file
+		tmpFile := "e2e_multiedit_test.txt"
+		os.WriteFile(tmpFile, []byte("original text"), 0644)
+		defer os.Remove(tmpFile)
+
+		// 2. Prepare MultiEdit payload (internal harness call via Chat or direct endpoint if we add it)
+		h := ai.NewHarness(s.registry)
+		args := map[string]interface{}{
+			"filePath": tmpFile,
+			"edits": []interface{}{
+				map[string]interface{}{"oldString": "original", "newString": "modified"},
+			},
+		}
+
+		resp, err := h.ExecuteTool(context.Background(), "multiedit", args)
+		if err != nil {
+			t.Errorf("multiedit failed: %v", err)
+		}
+		if !strings.Contains(resp, "Success") {
+			t.Errorf("unexpected response: %s", resp)
+		}
+
+		content, _ := os.ReadFile(tmpFile)
+		if string(content) != "modified text" {
+			t.Errorf("file not updated correctly: %s", string(content))
+		}
+	})
+
+	t.Run("E2E - RepoMap Generation", func(t *testing.T) {
+		h := ai.NewHarness(s.registry)
+		args := map[string]interface{}{
+			"base_dir": ".",
+		}
+
+		resp, err := h.ExecuteTool(context.Background(), "repo_map", args)
+		if err != nil {
+			t.Errorf("repo_map failed: %v", err)
+		}
+		if !strings.Contains(resp, "<repo_map>") {
+			t.Errorf("invalid repo_map response: %s", resp)
 		}
 	})
 }

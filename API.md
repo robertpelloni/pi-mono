@@ -100,7 +100,7 @@ Executes an agentic action using the Wave-compatible `aiusechat` schema. Support
 
 ## Unified Tool Harness
 
-The server also supports a wide range of assimilated tools via its internal harness. These can be invoked by agents or via specialized adapters.
+The server also supports a wide range of assimilated tools via its internal harness. These can be invoked by agents or via specialized adapters. For a detailed specification of all available tools, see [TOOLS.md](TOOLS.md).
 
 ### Available Parity Tools
 - `antigravity_auto_click`: Scans for and clicks common VS Code AI buttons.
