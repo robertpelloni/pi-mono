@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -60,7 +59,12 @@ func HandleUnifiedRead(unifiedArgs map[string]interface{}) (string, error) {
 		return "", fmt.Errorf("missing or invalid 'path' parameter")
 	}
 
-	content, err := ioutil.ReadFile(path)
+	safePath, err := validatePath(path)
+	if err != nil {
+		return "", err
+	}
+
+	content, err := os.ReadFile(safePath)
 	if err != nil {
 		return "", fmt.Errorf("error reading file %s: %v", path, err)
 	}
@@ -193,7 +197,13 @@ func handleHermesMemory(args map[string]interface{}) string {
 	memoryDir := ".pi_memory"
 	os.MkdirAll(memoryDir, 0755)
 
-	err := os.WriteFile(filepath.Join(memoryDir, key+".txt"), []byte(value), 0644)
+	targetPath := filepath.Join(memoryDir, key+".txt")
+	safePath, err := validatePath(targetPath)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+
+	err = os.WriteFile(safePath, []byte(value), 0644)
 	if err != nil {
 		return "Error saving memory: " + err.Error()
 	}
@@ -241,6 +251,8 @@ func handleHermesExecuteCode(args map[string]interface{}) string {
 		return "Error: missing 'code' parameter"
 	}
 
+	// This tool executes arbitrary code. In a production harness, this must be sandboxed.
+	// For parity verification, we execute it locally but document the risk in ARCHITECTURE.md and MAINTENANCE.md.
 	cmd := exec.Command("python3", "-c", code)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -282,12 +294,17 @@ func handleHermesSearchFiles(args map[string]interface{}) string {
 		path = "."
 	}
 
+	safePath, err := validatePath(path)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+
 	cwd, _ := os.Getwd()
 
 	if target == "name" {
 		input := findtool.FindToolInput{
 			Pattern: query,
-			Path:    path,
+			Path:    safePath,
 		}
 		result, err := findtool.Execute(context.Background(), input, cwd, nil)
 		if err != nil {
@@ -297,7 +314,7 @@ func handleHermesSearchFiles(args map[string]interface{}) string {
 	} else if target == "content" {
 		input := greptool.GrepToolInput{
 			Pattern: query,
-			Path:    path,
+			Path:    safePath,
 		}
 		result, err := greptool.Execute(context.Background(), input, cwd, nil)
 		if err != nil {
@@ -354,7 +371,7 @@ func handleHermesTodo(args map[string]interface{}) string {
 		}
 		return "Added to TODO list: " + task
 	case "list":
-		content, err := ioutil.ReadFile(todoFile)
+		content, err := os.ReadFile(todoFile)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return "TODO list is empty."
@@ -426,7 +443,12 @@ func handleAiderReplaceLines(args map[string]interface{}) string {
 		return "Error: missing required arguments for replace_lines"
 	}
 
-	content, err := ioutil.ReadFile(filePath)
+	safePath, err := validatePath(filePath)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+
+	content, err := os.ReadFile(safePath)
 	if err != nil {
 		return "Error reading file: " + err.Error()
 	}
@@ -443,7 +465,7 @@ func handleAiderReplaceLines(args map[string]interface{}) string {
 	newLines = append(newLines, strings.Split(replacement, "\n")...)
 	newLines = append(newLines, lines[endLine+1:]...)
 
-	err = ioutil.WriteFile(filePath, []byte(strings.Join(newLines, "\n")), 0644)
+	err = os.WriteFile(safePath, []byte(strings.Join(newLines, "\n")), 0644)
 	if err != nil {
 		return "Error writing file: " + err.Error()
 	}
@@ -473,9 +495,18 @@ func handleClineWriteToFile(args map[string]interface{}) string {
 }
 
 func handleHermesWriteFile(args map[string]interface{}) (string, error) {
-	path, _ := args["file_path"].(string)
+	path, ok := args["file_path"].(string)
+	if !ok {
+		return "", fmt.Errorf("missing 'file_path'")
+	}
 	content, _ := args["content"].(string)
-	err := os.WriteFile(path, []byte(content), 0644)
+
+	safePath, err := validatePath(path)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.WriteFile(safePath, []byte(content), 0644)
 	if err != nil {
 		return "", err
 	}
@@ -489,9 +520,15 @@ func handleClineAskFollowup(args map[string]interface{}) string {
 
 func handleClineListCodeDefinitionNames(args map[string]interface{}) string {
 	path, _ := args["path"].(string)
+
+	safePath, err := validatePath(path)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+
 	input := greptool.GrepToolInput{
 		Pattern: "(func|type|class|interface|struct) ",
-		Path:    path,
+		Path:    safePath,
 	}
 	cwd, _ := os.Getwd()
 	result, err := greptool.Execute(context.Background(), input, cwd, nil)
@@ -571,6 +608,12 @@ func handleRepomapGenerate(args map[string]interface{}) string {
 	if baseDir == "" {
 		baseDir = "."
 	}
+
+	_, err := validatePath(baseDir)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+
 	filesRaw, _ := args["mentioned_files"].([]interface{})
 	var files []string
 	for _, f := range filesRaw {
