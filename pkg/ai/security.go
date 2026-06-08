@@ -27,8 +27,9 @@ func validatePath(path string) (string, error) {
 		return "", err
 	}
 
-	// If it's a /tmp path, allow it for certain tools
-	if strings.HasPrefix(absPath, "/tmp/") {
+	// Allow temporary system paths for specific tools
+	tempDir := os.TempDir()
+	if strings.HasPrefix(absPath, tempDir) {
 		return absPath, nil
 	}
 

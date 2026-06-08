@@ -65,10 +65,14 @@ func TestServer_E2E(t *testing.T) {
 	})
 
 	t.Run("E2E - Wave Flow", func(t *testing.T) {
+		// Create a file in current test dir
+		os.WriteFile("test_wave.txt", []byte("module github.com/badlogic/pi-mono"), 0644)
+		defer os.Remove("test_wave.txt")
+
 		payload := map[string]interface{}{
 			"type": "readfile",
 			"params": map[string]interface{}{
-				"path": "../../go.mod",
+				"path": "test_wave.txt",
 			},
 		}
 		body, _ := json.Marshal(payload)
@@ -77,7 +81,7 @@ func TestServer_E2E(t *testing.T) {
 		s.ServeHTTP(rr, req)
 
 		if rr.Code != http.StatusOK {
-			t.Errorf("expected status 200, got %d", rr.Code)
+			t.Errorf("expected status 200, got %d, body: %s", rr.Code, rr.Body.String())
 		}
 
 		var resp ai.WaveActionResponse
@@ -95,12 +99,10 @@ func TestServer_ComplexMutations(t *testing.T) {
 	s := NewServer("", agentsession.AgentSessionConfig{})
 
 	t.Run("E2E - OpenCode MultiEdit", func(t *testing.T) {
-		// 1. Create a test file
 		tmpFile := "e2e_multiedit_test.txt"
 		os.WriteFile(tmpFile, []byte("original text"), 0644)
 		defer os.Remove(tmpFile)
 
-		// 2. Prepare MultiEdit payload (internal harness call via Chat or direct endpoint if we add it)
 		h := ai.NewHarness(s.registry)
 		args := map[string]interface{}{
 			"filePath": tmpFile,

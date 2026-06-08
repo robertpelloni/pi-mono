@@ -19,11 +19,24 @@ To generate binaries for all supported platforms (Darwin, Linux, Windows), run t
 ```
 Binaries will be available in the `dist/binaries/` directory.
 
+## Staging vs. Production
+Pi Agent uses the `PI_AGENT_DIR` environment variable to isolate environments.
+
+### Staging Environment
+- **Configuration**: Set `PI_AGENT_DIR=.pi-staging`.
+- **Database**: Uses local staging files.
+- **Port**: Default 8081.
+
+### Production Environment
+- **Configuration**: Default `~/.pi/`.
+- **Database**: Uses persistent user data.
+- **Port**: Default 8080.
+
 ## Configuration
-The agent stores persistent state (skills, sessions, settings) in `~/.pi/`.
-- **Skills**: `~/.pi/skills/`
-- **Sessions**: `~/.pi/sessions/`
-- **Settings**: `~/.pi/settings.json`
+The agent stores persistent state (skills, sessions, settings) in your configured agent directory.
+- **Skills**: `skills/`
+- **Sessions**: `sessions/`
+- **Settings**: `settings.json`
 
 ## Environment Variables
 Set the following variables in your `.env` or shell:
