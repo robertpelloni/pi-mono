@@ -49,6 +49,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // routes registers all the HTTP endpoints.
+func (s *Server) Registry() *ai.Registry {
+	return s.registry
+}
+
 func (s *Server) routes() {
 	s.mux.HandleFunc("/api/health", s.handleHealth())
 	s.mux.HandleFunc("/api/chat", s.handleChat())
