@@ -6,7 +6,7 @@ import (
 )
 
 func TestCreateBashTool(t *testing.T) {
-	tool := CreateBashTool(".")
+	tool := CreateBashTool(".", DefaultSecurityPolicy())
 	if tool.Name != "bash" {
 		t.Errorf("Expected tool name 'bash', got %q", tool.Name)
 	}

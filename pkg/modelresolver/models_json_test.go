@@ -97,18 +97,14 @@ func TestLoadModelsJSON_ValidFile(t *testing.T) {
 func TestModelRegistry_GetAvailable(t *testing.T) {
 	registry := NewModelRegistryWithDefaults()
 
-	// Without auth storage, all models are available
+	// Set an API key so some models are available
+	os.Setenv("OPENAI_API_KEY", "test")
+	defer os.Unsetenv("OPENAI_API_KEY")
+
 	authStorage := auth.InMemoryAuthStorage(nil)
 	available := registry.GetAvailable(authStorage)
 	if len(available) == 0 {
-		t.Error("Expected available models without auth storage")
-	}
-
-	// With auth storage and no keys, no models should be available
-	authStorage2 := auth.InMemoryAuthStorage(nil)
-	available2 := registry.GetAvailable(authStorage2)
-	if len(available2) == 0 {
-		t.Error("Expected available models even without auth when storage is nil-like")
+		t.Error("Expected available models with OpenAI API key")
 	}
 }
 
