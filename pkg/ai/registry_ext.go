@@ -54,8 +54,7 @@ func (r *Registry) GetDefaultModel() *ModelInfo {
 	defer r.mu.RUnlock()
 	// Simple stub for parity tools - in a real implementation this would be configurable.
 	for _, providerModels := range r.models {
-		for id := range providerModels {
-			model := providerModels[id]
+		for _, model := range providerModels {
 			return &model
 		}
 	}

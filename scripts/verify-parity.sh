@@ -1,5 +1,5 @@
 #!/bin/bash
-PORT=${1:-8080}
+PORT=${1:-8081}
 BASE_URL="http://localhost:$PORT"
 
 echo "Verifying Pi Parity Ecosystem on $BASE_URL..."

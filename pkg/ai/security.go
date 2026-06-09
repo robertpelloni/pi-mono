@@ -29,13 +29,11 @@ func validatePath(path string) (string, error) {
 
 	// Allow temporary system paths for specific tools
 	tempDir := os.TempDir()
-	relTemp, err := filepath.Rel(tempDir, absPath)
-	if err == nil && !strings.HasPrefix(relTemp, "..") {
+	if strings.HasPrefix(absPath, tempDir) {
 		return absPath, nil
 	}
 
-	rel, err := filepath.Rel(absCwd, absPath)
-	if err != nil || strings.HasPrefix(rel, "..") {
+	if !strings.HasPrefix(absPath, absCwd) {
 		return "", fmt.Errorf("security violation: path %s is outside project root %s", path, absCwd)
 	}
 
