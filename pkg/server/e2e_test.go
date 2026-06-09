@@ -10,8 +10,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/agentsession"
 	"github.com/badlogic/pi-mono/pkg/ai"
+	"github.com/badlogic/pi-mono/pkg/settings"
 )
 
 func TestServer_E2E(t *testing.T) {
@@ -139,4 +141,60 @@ func TestServer_ComplexMutations(t *testing.T) {
 			t.Errorf("invalid repo_map response: %s", resp)
 		}
 	})
+}
+
+func TestServer_LLMToolCoordination(t *testing.T) {
+	// 1. Setup server with mock stream
+	model := ai.ModelInfo{
+		ID: "coord-model",
+		Provider: "mock-prov",
+		API: ai.Api("mock-api"),
+	}
+
+	// Manual NewAgent
+	ag := agent.NewAgent(model, nil, mockToolCoordinationStream, agent.AgentLoopConfig{})
+
+	// Create minimal settings manager
+	tmpDir, _ := os.MkdirTemp("", "settings-test")
+	defer os.RemoveAll(tmpDir)
+	sm := settings.Create(".", tmpDir)
+
+	cfg := agentsession.AgentSessionConfig{
+		Agent:    ag,
+		Settings: sm,
+	}
+	s := NewServer("", cfg)
+
+	// Register the mock API provider
+	apiProv := ai.APIProvider{
+		API: ai.Api("mock-api"),
+		Stream: mockToolCoordinationStream,
+		StreamSimple: mockToolCoordinationStream,
+	}
+	ai.RegisterAPIProvider(apiProv, "test")
+
+	// Pre-populate the registry
+	s.registry.RegisterModel(model)
+
+	// 2. Start Chat
+	payload := chatRequest{
+		Message: "Please read go.mod",
+	}
+	body, _ := json.Marshal(payload)
+	req := httptest.NewRequest("POST", "/api/chat", bytes.NewBuffer(body))
+	rr := httptest.NewRecorder()
+	s.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d, body: %s", rr.Code, rr.Body.String())
+	}
+
+	// 3. Verify interaction (SSE stream contains tool call and final answer)
+	output := rr.Body.String()
+	if !strings.Contains(output, "toolcall_start") {
+		t.Error("expected tool call in response stream")
+	}
+	if !strings.Contains(output, "I have read the file.") {
+		t.Error("expected final LLM answer in response stream")
+	}
 }

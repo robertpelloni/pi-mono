@@ -9,6 +9,7 @@
 - **Terminal Enhancements**: Added OSC 8/133 support in Bubbletea TUI for parity with Warp/Ghostty.
 - **Watchdog & Exit Detection**: Integrated Antigravity 2.0's session bump and exit detection logic.
 - **Cross-Platform Builds**: Verified stable v0.97.0 binaries for Darwin, Linux, and Windows.
+- **Security Hardening**: Implemented robust path validation using `filepath.Rel` to prevent directory traversal and prefix-overlap attacks across agentic tools.
 
 ## [0.96.0] - 2026-06-30
 ### Added

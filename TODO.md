@@ -3,8 +3,8 @@
 This document contains individual features, bug fixes, and other fine details that need to be solved/implemented in the short term.
 
 ## Immediate Action Items
-- [ ] Optimize Go `HandleUnifiedRead` for very large files (streaming support).
-- [ ] Implement robust terminal detection in Go for OSC 8 hyperlink support (parity with TS `tui`).
+- [x] Optimize Go `HandleUnifiedRead` for very large files (streaming support).
+- [x] Implement robust terminal detection in Go for OSC 8 hyperlink support (parity with TS `tui`).
 - [ ] Refactor `pkg/server` to handle concurrent agent sessions more efficiently.
 - [ ] Add integration tests for `browser_action` tool parity.
 
