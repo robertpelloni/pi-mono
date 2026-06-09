@@ -74,15 +74,23 @@ Executes an agentic action using the Warp-compatible `AIAgentActionType` schema.
 **Response:** Warp-compatible `ActionResponse`.
 
 ### Hyper Theme Sync
-`POST /api/hyper/theme` (Note: internal routing via `hyper_theme_sync` tool)
-Synchronizes the terminal theme with a Hyper-compatible configuration.
+`POST /api/hyper/theme`
+Synchronizes the terminal theme with a Hyper-compatible configuration. This affects the TUI's color palette and styling in real-time.
+
+**Example (cURL):**
+```bash
+curl -X POST http://localhost:8080/api/hyper/theme \
+  -H "Content-Type: application/json" \
+  -d '{"config": "{\"config\": {\"colors\": {\"black\": \"#000000\"}}}"}'
+```
+
 **Payload:**
 ```json
 {
   "config": "{ \"config\": { \"colors\": { \"black\": \"#000000\", ... } } }"
 }
 ```
-**Response:** Success message confirming initialization.
+**Response:** `{"message": "Hyper theme synchronization initialized"}`
 
 ### Wave Action
 `POST /api/wave/action`

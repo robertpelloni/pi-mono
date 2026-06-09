@@ -99,4 +99,25 @@ func TestServer_AssimilatedEndpoints(t *testing.T) {
 			t.Errorf("unexpected wave response: %v", resp)
 		}
 	})
+
+	t.Run("Hyper Theme Sync Route", func(t *testing.T) {
+		payload := map[string]interface{}{
+			"config": `{"config": {"colors": {"black": "#000"}}}`,
+		}
+		body, _ := json.Marshal(payload)
+		req := httptest.NewRequest("POST", "/api/hyper/theme", bytes.NewBuffer(body))
+		rr := httptest.NewRecorder()
+
+		s.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", rr.Code)
+		}
+
+		var resp map[string]string
+		json.Unmarshal(rr.Body.Bytes(), &resp)
+		if !strings.Contains(resp["message"], "initialized") {
+			t.Errorf("unexpected hyper response: %v", resp)
+		}
+	})
 }
