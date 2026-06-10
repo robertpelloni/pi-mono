@@ -9,7 +9,7 @@
 ## Building from Source
 To build the native Go binary for your current platform:
 ```bash
-go build -o pi-agent ./cmd/pi
+go build -o pi ./cmd/pi
 ```
 
 ## Cross-Platform Compilation
@@ -17,7 +17,7 @@ To generate binaries for all supported platforms (Darwin, Linux, Windows), run t
 ```bash
 ./scripts/build-go.sh
 ```
-Binaries will be available in the `dist/binaries/` directory.
+Binaries will be available in the `dist/binaries/` as `pi-<os>-<arch>`.
 
 ## Staging vs. Production
 Pi Agent uses the `PI_AGENT_DIR` environment variable to isolate environments.
@@ -56,7 +56,7 @@ The Go server automatically exposes several parity endpoints:
 
 To start the parity server:
 ```bash
-./pi-agent server
+./pi server
 ```
 
 ### Performance & Scaling

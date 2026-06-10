@@ -23,7 +23,7 @@ To verify and recover a failed agent service:
 2. Execute a restart:
    ```bash
    # Kill existing server and restart
-   pkill pi-agent
-   ./pi-agent server --port 8080 &
+   pkill pi
+   ./pi server --port 8080 &
    ```
 3. Re-submit the pending task and confirm success by checking if the session status returns to RUNNING in the UI or via `/api/sessions`.
