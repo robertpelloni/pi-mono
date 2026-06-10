@@ -50,5 +50,10 @@ To start the interactive terminal interface:
 ### Tool Harness Routing
 The Pi Agent features a **Unified Tool Harness** that automatically routes requests from third-party tools (e.g., a Tabby request for code completion) to native Go handlers. These handlers are designed for 100% functional parity with the original tools, ensuring that your existing developer workflows remain uninterrupted while gaining the performance benefits of the Go backend.
 
+**Usage Scenarios:**
+- **IDE Acceleration**: Configure the Tabby extension in VS Code to point to `http://localhost:8080` for high-performance code completion.
+- **Agentic Terminal**: Use Warp with the Pi backend (`/api/warp/action`) to leverage native Go search and command execution.
+- **Unified Interface**: Use the Wave terminal with Pi's `aiusechat` parity to consolidate all AI tool calls through a single high-speed router.
+
 ### Autonomous Execution
 Pi supports autonomous delegation and exit detection. When given a complex task, the agent can spawn sub-agents, monitor their progress via a global scheduler, and automatically terminate when the objective is achieved or if an unrecoverable error occurs.
