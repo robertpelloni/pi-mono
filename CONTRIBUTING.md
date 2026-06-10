@@ -25,13 +25,18 @@ This exists because AI makes it trivial to generate plausible-looking but low-qu
 ## Before Submitting a PR
 
 ```bash
+# For Go changes
+go vet ./...
+go test ./...
+
+# For Legacy TS changes
 npm run check  # must pass with no errors
 ./test.sh      # must pass
 ```
 
 Do not edit `CHANGELOG.md`. Changelog entries are added by maintainers.
 
-If you're adding a new provider to `packages/ai`, see `AGENTS.md` for required tests.
+If you're adding a new provider to `pkg/ai` (Go) or `packages/ai` (TS), see `AGENTS.md` for required tests.
 
 ## Philosophy
 

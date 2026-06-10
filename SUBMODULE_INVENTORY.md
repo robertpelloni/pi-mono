@@ -18,7 +18,7 @@ This document tracks the features, functionality, and assimilation status of ext
 | `tabby` | **Assimilated** | Self-hosted AI coding assistant, RAG-based completions, next-edit suggestions, repository indexing, Answer Engine. | Pi natively supports multiple LLM providers (including local via Ollama). Tabby's RAG and specialized completion endpoints are implemented as native Go handlers in `pkg/ai/tabby.go`. |
 | `warp` | **Assimilated** | Agentic development environment, terminal blocks, AI command generation, computer use, workflows, Oz agent integration. | Warp's block-based architecture and AI orchestration are mapped to Pi's TUI and agent delegation system. Native computer use is supported via `xdotool` bindings in `pkg/ai/warp.go`. |
 | `hyper` | **Assimilated** | Extensible terminal, plugin system, themes, web-tech based UI. | Hyper's plugin and theme architecture is used to enhance Pi's Go-based extension system. Parity theme configuration (colors, fonts, padding) is supported via the theme system. |
-| `wave` | **In Progress** | AI-native terminal, Wysh (Wave Shell), block-based UI, integrated AI chat and tool loop. | Wave's `aiusechat` package and Wysh command structure are being analyzed for integration into Pi's autonomous harness. |
+| `wave` | **Assimilated** | AI-native terminal, Wysh (Wave Shell), block-based UI, integrated AI chat and tool loop. | Wave's `aiusechat` toolset (readfile, writefile, term, web, screenshot) is implemented in `pkg/ai/wave.go`. |
 
 ## Detailed Assimilation Progress
 

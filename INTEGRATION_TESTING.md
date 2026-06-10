@@ -25,7 +25,7 @@ For high-fidelity verification against real tools (e.g., Warp, Tabby), we use th
 ### Usage
 1. Start the Pi server:
    ```bash
-   ./pi-agent server --port 8080
+   ./pi server --port 8080
    ```
 2. Run the verification script:
    ```bash

@@ -6,7 +6,7 @@ Pi Agent provides 1:1 API compatibility with several major AI coding tools and t
 Pi supports the Tabby v1 completion and next-edit suggestion APIs.
 
 ### Configuration
-1. Start the Pi server: `./pi-agent server --port 8080`
+1. Start the Pi server: `./pi server --port 8080`
 2. In your IDE (VS Code, IntelliJ), locate the Tabby extension settings.
 3. Set the **Server URL** to: `http://localhost:8080`
 4. Pi will now handle code completions and Fill-In-the-Middle (FIM) requests using its unified model registry.
