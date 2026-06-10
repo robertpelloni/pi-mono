@@ -40,7 +40,21 @@ Returns a list of active session IDs.
 
 ### Tabby Completion (v1)
 `POST /v1/completions`
-Provides compatibility with Tabby-compatible IDE extensions. Supports standard code completion and next-edit suggestions.
+Provides compatibility with Tabby-compatible IDE extensions. Supports standard code completion and Fill-In-the-Middle (FIM).
+
+**Example (cURL):**
+```bash
+curl -X POST http://localhost:8080/v1/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "segments": {
+      "prefix": "func main() {",
+      "suffix": "}"
+    },
+    "language": "go"
+  }'
+```
+
 **Payload:** Matches Tabby's `CompletionRequest` schema.
 **Response:** Matches Tabby's `CompletionResponse` schema.
 
@@ -62,6 +76,19 @@ Predictive editing based on git diffs and current file segments.
 ### Warp Action
 `POST /api/warp/action`
 Executes an agentic action using the Warp-compatible `AIAgentActionType` schema. Supported types: `RequestCommandOutput`, `ReadFiles`, `Grep`, `FileGlob`, `CallMCPTool`, `UseComputer`.
+
+**Example (cURL):**
+```bash
+curl -X POST http://localhost:8080/api/warp/action \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "RequestCommandOutput",
+    "params": {
+      "command": "hostname"
+    }
+  }'
+```
+
 **Payload:**
 ```json
 {
@@ -95,6 +122,19 @@ curl -X POST http://localhost:8080/api/hyper/theme \
 ### Wave Action
 `POST /api/wave/action`
 Executes an agentic action using the Wave-compatible `aiusechat` schema. Supported types: `readfile`, `writefile`, `term`, `web`, `screenshot`.
+
+**Example (cURL):**
+```bash
+curl -X POST http://localhost:8080/api/wave/action \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "readfile",
+    "params": {
+      "path": "go.mod"
+    }
+  }'
+```
+
 **Payload:**
 ```json
 {
