@@ -19,6 +19,7 @@ Executed on standard dev sandbox environment.
 - **Total Requests**: 1,000
 - **Successful Completions**: 100%
 - **System Stability**: Stable, no race conditions detected in model registry or harness routing.
+- **Concurrent Load Performance**: Verified stable <5ms latency for Tabby/Warp/Wave endpoints under concurrent load (concurrency=5).
 
 ## Resource Recommendations
 

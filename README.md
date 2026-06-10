@@ -25,11 +25,11 @@ OSS weekend runs Thursday, April 2, 2026 through Monday, April 13, 2026. New iss
   <a href="https://exe.dev"><img src="packages/coding-agent/docs/images/exy.png" alt="Exy mascot" width="48" /><br />exe.dev</a>
 </p>
 
-# Pi Monorepo (v0.97.0)
+# Pi Monorepo
 
-> **Looking for the pi coding agent?** The core is now a high-performance Go application. See **[cmd/pi](cmd/pi)** for the main entry point.
+> **Looking for the pi coding agent?** See **[packages/coding-agent](packages/coding-agent)** for installation and usage.
 
-Tools for building AI agents and managing LLM deployments. This repository has been transformed into the **Ultimate LLM Harness**, assimilating features from Tabby, Warp, Wave, Aider, and OpenCode into a unified Go platform.
+Tools for building AI agents and managing LLM deployments.
 
 ## Share your OSS coding agent sessions
 
@@ -47,22 +47,17 @@ I regularly publish my own `pi-mono` work sessions here:
 
 - [badlogicgames/pi-mono on Hugging Face](https://huggingface.co/datasets/badlogicgames/pi-mono)
 
-## Core Architecture (Go Port)
+## Packages
 
 | Package | Description |
 |---------|-------------|
-| **[pkg/ai](pkg/ai)** | Unified Tool Harness & multi-provider LLM API (Anthropic, OpenAI, etc.) |
-| **[pkg/server](pkg/server)** | Parity API server (Tabby, Warp, Wave compatible) |
-| **[pkg/repomap](pkg/repomap)** | High-performance RepoMap & symbol indexing |
-| **[pkg/opencode](pkg/opencode)** | Unified patching and multi-edit engine |
-| **[pkg/agent](pkg/agent)** | Autonomous agent runtime & delegation |
-
-## Legacy Packages (TypeScript)
-
-| Package | Description |
-|---------|-------------|
-| **[@mariozechner/pi-mom](packages/mom)** | Slack bot that delegates messages |
+| **[@mariozechner/pi-ai](packages/ai)** | Unified multi-provider LLM API (OpenAI, Anthropic, Google, etc.) |
+| **[@mariozechner/pi-agent-core](packages/agent)** | Agent runtime with tool calling and state management |
+| **[@mariozechner/pi-coding-agent](packages/coding-agent)** | Interactive coding agent CLI |
+| **[@mariozechner/pi-mom](packages/mom)** | Slack bot that delegates messages to the pi coding agent |
+| **[@mariozechner/pi-tui](packages/tui)** | Terminal UI library with differential rendering |
 | **[@mariozechner/pi-web-ui](packages/web-ui)** | Web components for AI chat interfaces |
+| **[@mariozechner/pi-pods](packages/pods)** | CLI for managing vLLM deployments on GPU pods |
 
 ## Contributing
 
