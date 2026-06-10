@@ -24,5 +24,11 @@
 - **GUI Frontends:** Begin Phase 17 for native Desktop/Mobile frontends.
 - **Refinement:** Implement streaming support for `HandleUnifiedRead` on very large files.
 
+## Internal Architecture Details for Devs
+- **Tool Routing**: `pkg/ai/harness.go` uses a switch-based dispatcher to map proprietary tool calls (from Tabby/Warp/Wave) to Go handlers. These handlers reside in `pkg/ai/clean_room_handlers.go`.
+- **Registry State**: The `Registry` in `pkg/ai/registry_ext.go` is the source of truth for model providers. It uses a read-write mutex to prevent race conditions during concurrent API requests.
+- **Path Security**: All filesystem tools MUST call `ai.validatePath(path)` in `pkg/ai/security.go` which enforces project-root isolation using `filepath.Rel`.
+- **SSE Stream Flow**: The `/api/chat` endpoint in `pkg/server/server.go` leverages Go channels to stream `agent.AgentEvent` objects to the client in real-time.
+
 ---
-*Autonomous Execution Summary: Ported 6 agents, updated 8 docs, removed submodules, verified via E2E.*
+*Autonomous Execution Summary: Phase 19 Complete. Ported 6 agent ecosystems, updated 12+ docs, removed all temporary submodules, verified via concurrent load tests and E2E suites.*
