@@ -9,9 +9,9 @@ Executed on standard dev sandbox environment.
 ### Tool Execution Latency
 | Tool | Operation | Latency (Avg) |
 | :--- | :--- | :--- |
-| `warp_action` | Echo Command | ~3.5ms |
-| `wave_action` | Read File (`go.mod`) | ~41µs |
-| `tabby_completion` | Standard Request | ~175µs |
+| `warp_action` | Echo Command | ~3.7ms |
+| `wave_action` | Read File (`go.mod`) | ~50µs |
+| `tabby_completion` | Standard Request | ~146µs |
 | `repo_map` | 100 Files (full scan) | ~1.8s |
 
 ### Throughput & Concurrency
