@@ -1,4 +1,6 @@
-# Deployment & Environment Setup
+# Deployment & Environment Setup (v0.97.0)
+
+This guide covers the deployment of the **Ultimate LLM Harness**, a high-performance Go-based AI agent backend.
 
 ## Prerequisites
 - Go 1.24.3 or higher
@@ -10,6 +12,12 @@
 To build the native Go binary for your current platform:
 ```bash
 go build -o pi ./cmd/pi
+```
+
+### Automated Setup
+Use the provided script to verify your system environment:
+```bash
+./scripts/setup-env.sh
 ```
 
 ## Cross-Platform Compilation
