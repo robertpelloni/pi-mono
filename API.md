@@ -22,7 +22,15 @@ Returns the current status and version of the server.
 
 ### Chat Stream
 `POST /api/chat`
-Starts a streaming AI conversation.
+Starts a streaming AI conversation using native Server-Sent Events (SSE).
+
+**Example (cURL):**
+```bash
+curl -N -X POST http://localhost:8080/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello, Pi!", "sessionId": "optional-id"}'
+```
+
 **Payload:**
 ```json
 {
@@ -30,7 +38,7 @@ Starts a streaming AI conversation.
   "message": "User prompt"
 }
 ```
-**Response:** SSE (Server-Sent Events) stream of `AgentEvent` objects.
+**Response:** SSE stream of `AgentEvent` objects. For detailed integration logic, see [API_GUIDELINES.md](API_GUIDELINES.md).
 
 ### List Sessions
 `GET /api/sessions`
