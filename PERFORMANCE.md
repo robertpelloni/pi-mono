@@ -21,6 +21,7 @@ Executed on standard dev sandbox environment.
 - **System Stability**: Stable, no race conditions detected in model registry or harness routing.
 - **Concurrent Load Performance**: Verified stable <5ms latency for Tabby/Warp/Wave endpoints under concurrent load (concurrency=5).
 - **Staging Benchmarks (v0.97.0)**: BenchmarkHarness_ExecuteTool ~2.8ms/op, 18KB/op, 157 allocs/op.
+- **High-Concurrency Performance**: Verified stable <5ms average latency for parity endpoints under concurrent load (10 workers, 100 reqs/endpoint).
 
 ## Resource Recommendations
 
