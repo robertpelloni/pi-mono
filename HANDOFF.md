@@ -19,6 +19,22 @@
 - **Clean Room Tool Stubs**: Some complex tools (e.g., advanced browser interaction, home assistant) are implemented as functional stubs awaiting higher-fidelity internal providers.
 - **Performance**: While overhead is minimal (<1ms), extremely large RepoMap generation for 10k+ file repositories needs further optimization (caching).
 
+## QA Verification Procedures
+To verify v0.97.0 "Ultimate LLM Harness":
+1. **Tool Parity**: Run `./scripts/verify-parity.sh 8080` against a running `pi server`.
+2. **Performance**: Execute `./scripts/load-test.sh 8080 5 20` and confirm average tool latency is <5ms.
+3. **E2E Integration**: Execute `go test -v ./pkg/server/...` to verify all parity routes via internal mocks.
+4. **Security**: Run `go test -v pkg/ai/security_test.go pkg/ai/security.go` to verify path validation logic.
+
+## QA Verification Procedures (v0.97.0)
+1. **Prerequisite Check**: Run `./scripts/setup-env.sh` to ensure `rg`, `lynx`, and `go` are installed.
+2. **Build Verification**: Run `./scripts/build-go.sh` and verify 5 binaries in `dist/binaries/`.
+3. **Protocol Parity**:
+   - Start server: `./dist/binaries/pi-linux-amd64 server --port 8080`.
+   - Execute parity checks: `./scripts/verify-parity.sh 8080`.
+4. **Load & Stability**: Execute `./scripts/load-test.sh 8080 5 20` and verify stable <5ms latency.
+5. **E2E Suite**: Run `go test -v ./pkg/server/...` to verify internal routing and coordination.
+
 ## Next Steps for Successor
 - **Phase 20:** Extended assimilation for remaining minor agents (Hermes Desktop, Codex CLI).
 - **GUI Frontends:** Begin Phase 17 for native Desktop/Mobile frontends.
