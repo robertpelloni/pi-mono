@@ -103,8 +103,6 @@ export class FooterDataProvider {
 	private cachedBranch: string | null | undefined = undefined;
 	private gitPaths: GitPaths | null | undefined = undefined;
 	private headWatcher: FSWatcher | null = null;
-	private headWatchFilePath: string | null = null;
-	private headWatchFileListener: ((current: Stats, previous: Stats) => void) | null = null;
 	private reftableWatcher: FSWatcher | null = null;
 	private reftableTablesListWatcher: FSWatcher | null = null;
 	private reftableTablesListPath: string | null = null;
@@ -297,7 +295,7 @@ export class FooterDataProvider {
 	private setupGitWatcher(): void {
 		if (!this.gitPaths) return;
 
-		const pollGitHead = shouldPollGitHead(this.gitPaths.repoDir);
+		const _pollGitHead = shouldPollGitHead(this.gitPaths.repoDir);
 
 		// Watch the directory containing HEAD, not HEAD itself.
 		// Git uses atomic writes (write temp, rename over HEAD), which changes the inode.

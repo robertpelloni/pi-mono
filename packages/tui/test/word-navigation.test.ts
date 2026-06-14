@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { findWordBackward, findWordForward } from "../src/word-navigation.ts";
+import { findWordBackward, findWordForward } from "../src/word-navigation.js";
 
 describe("findWordBackward", () => {
 	it("basic words: hello world", () => {
@@ -129,7 +129,7 @@ describe("atomic segments", () => {
 
 	// The functions slice text before calling segment(), so we map each expected
 	// substring to its pre-split segments.
-	const segmentMap = new Map<string, Intl.SegmentData[]>([
+	const segmentMap = new Map([
 		[
 			text, // full text (not used but for clarity)
 			[

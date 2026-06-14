@@ -1,4 +1,4 @@
-import { getSegmenter, isWhitespaceChar, PUNCTUATION_REGEX } from "./utils.js";
+import { isWhitespaceChar, PUNCTUATION_REGEX } from "./utils.js";
 
 const wordSegmenter = new Intl.Segmenter(undefined, { granularity: "word" });
 

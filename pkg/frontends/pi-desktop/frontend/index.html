@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pi-desktop</title>
+    <link rel="stylesheet" href="./src/app.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Header -->
+      <header id="header">
+        <div class="header-left">
+          <span class="logo">pi</span>
+          <span class="version" id="version"></span>
+        </div>
+        <div class="header-right">
+          <span class="model-info" id="model-info">--</span>
+          <span class="session-id" id="session-id"></span>
+        </div>
+      </header>
+
+      <!-- Chat Area -->
+      <main id="chat">
+        <div id="messages"></div>
+        <div id="status" class="status-line hidden">
+          <span class="spinner"></span>
+          <span id="status-text">Generating...</span>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer id="footer">
+        <div class="footer-stats" id="footer-stats"></div>
+        <div class="footer-cwd" id="footer-cwd"></div>
+      </footer>
+
+      <!-- Input -->
+      <div id="input-area">
+        <textarea
+          id="user-input"
+          placeholder="Type a message... (Enter to send, Shift+Enter for newline)"
+          rows="2"
+        ></textarea>
+        <div class="input-actions">
+          <button id="btn-send" title="Send (Ctrl+S)">▶</button>
+          <button id="btn-abort" class="hidden" title="Abort (Esc)">■</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="./src/main.js"></script>
+  </body>
+</html>

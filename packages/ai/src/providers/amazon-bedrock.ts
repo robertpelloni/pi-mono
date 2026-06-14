@@ -536,7 +536,7 @@ function createNonBlankTextBlock(text: string): ContentBlock.TextMember | undefi
 	return sanitized.trim().length === 0 ? undefined : { text: sanitized };
 }
 
-function createRequiredTextBlock(text: string): ContentBlock.TextMember {
+function _createRequiredTextBlock(text: string): ContentBlock.TextMember {
 	return createNonBlankTextBlock(text) ?? { text: EMPTY_TEXT_PLACEHOLDER };
 }
 

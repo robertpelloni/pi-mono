@@ -134,6 +134,13 @@ export class VirtualTerminal implements Terminal {
 	}
 
 	/**
+	 * Alias for flush(), named for test ergonomics. Waits for the next render cycle to complete.
+	 */
+	async waitForRender(): Promise<void> {
+		return this.flush();
+	}
+
+	/**
 	 * Flush and get viewport - convenience method for tests
 	 */
 	async flushAndGetViewport(): Promise<string[]> {

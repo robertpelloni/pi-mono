@@ -1025,18 +1025,14 @@ const FOCUS_PANEL_CONFIGS = [
 ] satisfies FocusPanelConfig[];
 
 class FocusDemoController extends BaseOverlay {
-	private panels: FocusPanel[] = [];
-	private handles: OverlayHandle[] = [];
-	private focusIndex = -1;
-
 	constructor(
 		private tui: TUI,
 		theme: Theme,
 		private done: () => void,
 	) {
 		super(theme);
-		const colors = ["error", "success", "accent"] as const;
-		const labels = ["Alpha", "Beta", "Gamma"];
+		const _colors = ["error", "success", "accent"] as const;
+		const _labels = ["Alpha", "Beta", "Gamma"];
 
 		for (const config of FOCUS_PANEL_CONFIGS) {
 			const panel = new FocusPanel({ theme, config, controller: this });
@@ -1158,8 +1154,8 @@ class FocusPanel extends BaseOverlay {
 		theme: Theme,
 		label: string,
 		private color: "error" | "success" | "accent",
-		private onTab: () => void,
-		private onClose: () => void,
+		_onTab: () => void,
+		_onClose: () => void,
 	) {
 		super(theme);
 		this.label = label;
