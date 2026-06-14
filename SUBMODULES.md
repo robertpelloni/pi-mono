@@ -18,4 +18,9 @@ For a detailed breakdown of which features were internalized, see [SUBMODULE_INV
 | `open-interpreter` | Assimilated | `computer` (xdotool), sandboxed code execution |
 | `opencode-cli` | Assimilated | Auto Drive/Review via session branching |
 | `vscode-copilot-release`| Assimilated | Strictly mapped `vscode_read` and Copilot provider support |
+| `tabby` | Assimilated | `/v1/completions`, RAG context, next-edit suggestions |
+| `warp` | Assimilated | `/api/warp/action`, terminal blocks, agentic actions |
+| `hyper` | Assimilated | Terminal theme synchronization and config parity |
+| `wave` | Assimilated | `/api/wave/action`, `aiusechat` toolset parity |
+| `antigravity-autopilot` | Assimilated | Auto-Click, Auto-Bump (Watchdog), Exit Detection |
 

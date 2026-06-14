@@ -137,6 +137,7 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		tiCmd tea.Cmd
 		vpCmd tea.Cmd
 		spCmd tea.Cmd
+		evCmd tea.Cmd
 	)
 
 	if m.isGenerating {

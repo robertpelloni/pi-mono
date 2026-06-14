@@ -15,6 +15,10 @@ This document tracks the features, functionality, and assimilation status of ext
 | `open-interpreter` | **Assimilated** | Sandboxed code execution, computer use (xdotool, mouse/keyboard), multi-language support (Python, JS, Shell), local environment access. | Supported via `handleOpenInterpreterComputerUse` in Go. Pi's `bash` tool provides local environment access. Sandboxing is supported via extensions. |
 | `opencode-cli` | **Assimilated** | Auto Drive orchestration, Auto Review (background ghost-commits), Browser integration (CDP), Multi-agent commands (/plan, /code, /solve), Theme system, MCP. | Pi provides `pi-plannotator` for plan/code consensus, equivalent background reviews via session branching, native browser tool, and a robust theme system. |
 | `vscode-copilot-release` | **Assimilated** | Copilot parity logic, model/tool strictly mapped, inline suggestions, chat interface. | Pi supports GitHub Copilot as a subscription provider, mapping its internal tool schemas and model behaviors to Pi's unified interface. |
+| `tabby` | **Assimilated** | Self-hosted AI coding assistant, RAG-based completions, next-edit suggestions, repository indexing, Answer Engine. | Pi natively supports multiple LLM providers (including local via Ollama). Tabby's RAG and specialized completion endpoints are implemented as native Go handlers in `pkg/ai/tabby.go`. |
+| `warp` | **Assimilated** | Agentic development environment, terminal blocks, AI command generation, computer use, workflows, Oz agent integration. | Warp's block-based architecture and AI orchestration are mapped to Pi's TUI and agent delegation system. Native computer use is supported via `xdotool` bindings in `pkg/ai/warp.go`. |
+| `hyper` | **Assimilated** | Extensible terminal, plugin system, themes, web-tech based UI. | Hyper's plugin and theme architecture is used to enhance Pi's Go-based extension system. Parity theme configuration (colors, fonts, padding) is supported via the theme system. |
+| `wave` | **In Progress** | AI-native terminal, Wysh (Wave Shell), block-based UI, integrated AI chat and tool loop. | Wave's `aiusechat` package and Wysh command structure are being analyzed for integration into Pi's autonomous harness. |
 
 ## Detailed Assimilation Progress
 
@@ -57,4 +61,22 @@ This document tracks the features, functionality, and assimilation status of ext
 - **Copilot Integration:** Pi supports GitHub Copilot as a first-class provider.
 - **Parity Tracking:** The reference schemas in this submodule were used to ensure Pi's `clean-room-tools` (like `vscode_read`) match the exact expectations of Copilot-tuned models.
 
-*(Inventory updated during 0.82.0 Assimilation Cycle)*
+### Tabby (`submodules/tabby`)
+- **Code Completion:** Tabby's prefix/suffix-based completion with context (filepath, git_url) is implemented in `pkg/ai/tabby.go`.
+- **Next-Edit Suggestion:** Predictive editing mode based on git diffs and edit history.
+- **RAG Integration:** Tabby's snippet retrieval from local codebase patterns is integrated into Pi's context management.
+
+### Warp (`submodules/warp`)
+- **Agentic Actions:** Warp's `AIAgentActionType` (CommandOutput, ReadFiles, SearchCodebase, FileEdits, Grep, Glob, MCP, ComputerUse, StartAgent) implemented in `pkg/ai/warp.go`.
+- **Terminal Blocks:** Warp's concept of isolating command output into blocks is reflected in Pi's TUI rendering.
+- **Oz Orchestration:** Parallel agent management and cloud-agent steerability are supported via Pi's `delegate_task` and o1/o3-mini workflows.
+
+### Hyper (`submodules/hyper`)
+- **Plugin System:** Hyper's decorator pattern (`decorateConfig`, `decorateMenu`, `decorateEnv`) is mirrored in Pi's opt-in extension registry in `pkg/extensions/`.
+- **Theme Support:** Mapping Hyper's color palette (black, red, green, etc.) and configuration schema (fontSize, fontFamily, padding) to Pi's TUI theme switching logic.
+
+### Wave (`submodules/wave`)
+- **AI Tool Loop:** Wave's `aiusechat` toolset (readfile, writefile, term, web, screenshot) matches Pi's native and clean-room tool implementations.
+- **Wysh Integration:** Analyzing Wave's shell (Wysh) for potential command-line parity in Pi.
+
+*(Inventory updated during 0.97.0 Assimilation Cycle)*

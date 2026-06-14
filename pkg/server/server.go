@@ -22,6 +22,7 @@ type Server struct {
 	staticDir string
 	sessions  map[string]*agentsession.AgentSession
 	config    agentsession.AgentSessionConfig // Template config for new sessions
+	registry  *ai.Registry                    // Persistent registry for parity endpoints
 }
 
 // NewServer initializes a new Web UI Server with multi-session support.
@@ -36,6 +37,7 @@ func NewServer(staticDir string, config agentsession.AgentSessionConfig) *Server
 		staticDir: staticDir,
 		sessions:  make(map[string]*agentsession.AgentSession),
 		config:    config,
+		registry:  ai.NewRegistry(),
 	}
 	s.routes()
 	return s
@@ -47,10 +49,20 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // routes registers all the HTTP endpoints.
+func (s *Server) Registry() *ai.Registry {
+	return s.registry
+}
+
 func (s *Server) routes() {
 	s.mux.HandleFunc("/api/health", s.handleHealth())
 	s.mux.HandleFunc("/api/chat", s.handleChat())
 	s.mux.HandleFunc("/api/sessions", s.handleListSessions())
+
+	// Assimilated Parity Endpoints
+	s.mux.HandleFunc("/v1/completions", s.handleTabbyCompletions())
+	s.mux.HandleFunc("/v1/next-edit-suggestion", s.handleTabbyNextEdit())
+	s.mux.HandleFunc("/api/warp/action", s.handleWarpAction())
+	s.mux.HandleFunc("/api/wave/action", s.handleWaveAction())
 
 	// Serve static files
 	fileServer := http.FileServer(http.Dir(s.staticDir))
@@ -168,5 +180,81 @@ func (s *Server) handleListSessions() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{"sessions": ids})
+	}
+}
+
+func (s *Server) handleTabbyCompletions() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req ai.TabbyCompletionRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		resp, err := s.registry.HandleTabbyCompletion(r.Context(), &req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+func (s *Server) handleTabbyNextEdit() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req ai.TabbyNextEditRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		resp, err := s.registry.HandleTabbyNextEdit(r.Context(), &req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+func (s *Server) handleWaveAction() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var action ai.WaveAgentAction
+		if err := json.NewDecoder(r.Body).Decode(&action); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		resp, err := s.registry.HandleWaveAction(r.Context(), &action)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+func (s *Server) handleWarpAction() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var action ai.WarpAgentAction
+		if err := json.NewDecoder(r.Body).Decode(&action); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		resp, err := s.registry.HandleWarpAction(r.Context(), &action)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
 	}
 }
