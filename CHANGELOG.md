@@ -1,5 +1,15 @@
 # Project Changelog (Go Port & Monorepo Submodules)
 
+## [Unreleased]
+### Added
+- **Claude Code Parity**: Added Claude Code tool schemas (write_file, edit, search_files, list_files) and handlers registered via `CleanRoomTools`. Claude-specific parameter names (`old_string`, `new_string`, `pattern`) are normalized via `MapCleanRoomParams`.
+- **Browser Action Integration Test**: Added full test suite for `browser_action` covering launch, click, type, scroll, close, screenshot, and unknown action paths. Registration check included.
+- **Streaming HandleUnifiedRead**: Refactored `HandleUnifiedRead` to use `bufio.Scanner` for line-by-line streaming instead of loading the entire file into memory. Fixes off-by-one errors with trailing newlines.
+- **Extended Assimilation (Phase 20)**: Integrated Claude Desktop, Claude Code, Codex CLI, and Gemini CLI. All now marked **Assimilated** in submodule inventory.
+
+### Fixed
+- **Bashtool Test**: Updated `CreateBashTool` call to include required `SecurityPolicy` argument.
+
 ## [0.97.0] - 2026-07-05
 ### Added
 - **Ultimate LLM Harness**: Completed Phase 19 for the systematic assimilation of Tabby, Warp, Hyper, Wave, Antigravity 2.0, and OpenCode.

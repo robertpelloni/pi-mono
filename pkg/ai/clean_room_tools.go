@@ -82,6 +82,82 @@ var ClaudeCodeBash = CleanRoomToolSchema{
 	},
 }
 
+var ClaudeCodeWriteFile = CleanRoomToolSchema{
+	Name:        "write_file",
+	Description: "Write content to a file at the specified path.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"file_path": map[string]interface{}{
+				"type":        "string",
+				"description": "The absolute or relative path to the file to write.",
+			},
+			"content": map[string]interface{}{
+				"type":        "string",
+				"description": "The complete content to write to the file.",
+			},
+		},
+		"required": []string{"file_path", "content"},
+	},
+}
+
+var ClaudeCodeEdit = CleanRoomToolSchema{
+	Name:        "edit",
+	Description: "Make targeted find-and-replace edits in a file.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"file_path": map[string]interface{}{
+				"type":        "string",
+				"description": "The absolute or relative path to the file to edit.",
+			},
+			"old_string": map[string]interface{}{
+				"type":        "string",
+				"description": "The exact text to find and replace.",
+			},
+			"new_string": map[string]interface{}{
+				"type":        "string",
+				"description": "The replacement text.",
+			},
+		},
+		"required": []string{"file_path", "old_string", "new_string"},
+	},
+}
+
+var ClaudeCodeSearchFiles = CleanRoomToolSchema{
+	Name:        "search_files",
+	Description: "Search file contents for a pattern using regex.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"pattern": map[string]interface{}{
+				"type":        "string",
+				"description": "The regex pattern to search for.",
+			},
+			"path": map[string]interface{}{
+				"type":        "string",
+				"description": "The directory to search in (defaults to current directory).",
+			},
+		},
+		"required": []string{"pattern"},
+	},
+}
+
+var ClaudeCodeListFiles = CleanRoomToolSchema{
+	Name:        "list_files",
+	Description: "List files and directories at the specified path.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"path": map[string]interface{}{
+				"type":        "string",
+				"description": "The directory path to list (defaults to current directory).",
+			},
+		},
+		"required": []string{},
+	},
+}
+
 var GeminiShell = CleanRoomToolSchema{
 	Name:        "shell",
 	Description: "Execute a shell script",
@@ -126,6 +202,19 @@ func MapCleanRoomParams(toolName string, rawArgs []byte) (map[string]interface{}
 		unified["command"] = cmd
 	} else if script, ok := args["script"].(string); ok {
 		unified["command"] = script
+	}
+
+	// Edit Normalization (Claude Code edit tool)
+	if oldString, ok := args["old_string"].(string); ok {
+		unified["find"] = oldString
+	}
+	if newString, ok := args["new_string"].(string); ok {
+		unified["replace"] = newString
+	}
+
+	// Search Normalization (Claude Code search_files uses "pattern" instead of "query")
+	if pattern, ok := args["pattern"].(string); ok {
+		unified["query"] = pattern
 	}
 
 	return unified, nil

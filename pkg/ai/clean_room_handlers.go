@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -60,13 +61,6 @@ func HandleUnifiedRead(unifiedArgs map[string]interface{}) (string, error) {
 		return "", fmt.Errorf("missing or invalid 'path' parameter")
 	}
 
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return "", fmt.Errorf("error reading file %s: %v", path, err)
-	}
-
-	lines := strings.Split(string(content), "\n")
-
 	offset := 0
 	if o, ok := unifiedArgs["offset"].(float64); ok {
 		offset = int(o)
@@ -75,7 +69,7 @@ func HandleUnifiedRead(unifiedArgs map[string]interface{}) (string, error) {
 		offset = 0
 	}
 
-	limit := len(lines)
+	limit := 0 // 0 means read all lines from offset
 	if l, ok := unifiedArgs["limit"].(float64); ok {
 		limit = int(l)
 	}
@@ -83,20 +77,48 @@ func HandleUnifiedRead(unifiedArgs map[string]interface{}) (string, error) {
 		limit = 0
 	}
 
-	start := offset
-	if start >= len(lines) {
-		return "", fmt.Errorf("offset %d is beyond end of file (%d lines)", start, len(lines))
+	// Stream the file line‑by‑line instead of loading entire file into memory
+	file, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("error reading file %s: %v", path, err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var result []string
+	lineNum := 0
+	linesRead := 0
+
+	for scanner.Scan() {
+		// Skip lines until we reach the offset
+		if lineNum < offset {
+			lineNum++
+			continue
+		}
+
+		// Add lines up to the limit (or read all if limit is 0)
+		result = append(result, scanner.Text())
+		linesRead++
+		lineNum++
+
+		// Stop if we've read enough lines (when limit is specified)
+		if limit > 0 && linesRead >= limit {
+			break
+		}
 	}
 
-	end := start + limit
-	if end > len(lines) {
-		end = len(lines)
-	}
-	if end < start {
-		end = start
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("error scanning file %s: %v", path, err)
 	}
 
-	return strings.Join(lines[start:end], "\n"), nil
+	if len(result) == 0 {
+		if offset >= lineNum {
+			return "", fmt.Errorf("offset %d is beyond end of file (%d lines)", offset, lineNum)
+		}
+		return "", nil
+	}
+
+	return strings.Join(result, "\n"), nil
 }
 
 func HandleUnifiedCommand(unifiedArgs map[string]interface{}) (string, error) {
