@@ -17,7 +17,9 @@
 		"prepublishOnly": "npm run clean && npm run build"
 	},
 	"dependencies": {
-		"@mariozechner/pi-ai": "^0.66.0"
+		"@mariozechner/pi-ai": "^0.66.0",
+		"concurrently": "10.0.3",
+		"vite": "8.0.16"
 	},
 	"keywords": [
 		"ai",
@@ -39,6 +41,6 @@
 	"devDependencies": {
 		"@types/node": "^24.3.0",
 		"typescript": "^5.7.3",
-		"vitest": "^3.2.4"
+		"vitest": "4.1.8"
 	}
 }

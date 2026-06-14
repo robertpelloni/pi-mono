@@ -36,3 +36,6 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Assimilate Codex Desktop & Codex CLI (Submodule analysis, feature porting).
 - [x] Assimilate Gemini-CLI (Submodule analysis, feature porting).
 - [x] Assimilate Hermes Desktop (Submodule analysis, feature porting).
+
+## Infrastructure & Tooling
+- [ ] Pre-commit hook blocked: 781 TS type-checking errors across packages/agent, packages/ai, packages/coding-agent, packages/tui. Use `HUSKY=0 git commit` for Go-only commits. Main categories: TS5097 (.ts import extensions, 260), TS7006 (implicit any, 220), TS2345 (type mismatch, 87), TS2307 (missing module, 66), TS2339 (missing property, 45), TS2305 (missing export, 30). GitHub issues disabled on this repo — track locally.
