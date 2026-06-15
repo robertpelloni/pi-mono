@@ -3,12 +3,30 @@
 # Get list of staged files before running check
 STAGED_FILES=$(git diff --cached --name-only)
 
-# Run the check script (formatting, linting, and type checking)
-echo "Running formatting, linting, and type checking..."
-npm run check
-if [ $? -ne 0 ]; then
-  echo "❌ Checks failed. Please fix the errors before committing."
-  exit 1
+# Determine if any non-Go files are staged
+RUN_FULL_CHECK=0
+for file in $STAGED_FILES; do
+  case "$file" in
+    *.go|go.mod|go.sum) ;; # Go file or go.mod/go.sum, skip
+    .husky/*) ;; # Husky hooks are shell scripts, skip
+    *) RUN_FULL_CHECK=1; break ;;
+  esac
+done
+
+if [ $RUN_FULL_CHECK -eq 1 ]; then
+  echo "Running formatting, linting, and type checking..."
+  npm run check
+  if [ $? -ne 0 ]; then
+    echo "❌ Checks failed. Please fix the errors before committing."
+    exit 1
+  fi
+else
+  echo "Only Go files changed; running go tests..."
+  go test ./... -count=1
+  if [ $? -ne 0 ]; then
+    echo "❌ Go tests failed. Please fix the test failures before committing."
+    exit 1
+  fi
 fi
 
 RUN_BROWSER_SMOKE=0
