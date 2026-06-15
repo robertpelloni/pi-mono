@@ -21,6 +21,8 @@ import (
 
 // AgentUIModel represents the Bubbletea state for the interactive AI agent interface.
 type AgentUIModel struct {
+    // prevLines stores the previously rendered lines for diffing
+    prevLines []string
 	eventsChan    chan agent.AgentEvent
 	sessionEvents chan agentsession.AgentSessionEvent
 	conversation  strings.Builder
@@ -487,7 +489,7 @@ func (m *AgentUIModel) applyCompletion() {
 // View renders the current state of the model.
 func (m *AgentUIModel) View() string {
 	if m.quitting {
-		return "Goodbye!\n"
+		return RenderAtomic("Goodbye!\n")
 	}
 
 	status := m.statusLine
@@ -515,32 +517,44 @@ func (m *AgentUIModel) View() string {
 		))
 	}
 
-	content := fmt.Sprintf(
-		"%s\n%s\n%s\n\n%s",
-		header,
-		m.viewport.View(),
-		footer,
-		m.textarea.View(),
-	)
+	// Build a slice of lines for diff rendering.
+	var lines []string
+	if header != "" {
+		lines = append(lines, header)
+	}
+	// Split viewport content into lines.
+	for _, l := range strings.Split(m.viewport.View(), "\n") {
+		lines = append(lines, l)
+	}
+	if footer != "" {
+		lines = append(lines, footer)
+	}
+	// Add a blank line before the textarea for visual separation.
+	lines = append(lines, "")
+	for _, l := range strings.Split(m.textarea.View(), "\n") {
+		lines = append(lines, l)
+	}
 
 	if m.showCompletions {
-		var b strings.Builder
-		b.WriteString("\n" + StyleCompletionHeader.Render(" Completions: ") + "\n")
+		lines = append(lines, "")
+		lines = append(lines, StyleCompletionHeader.Render(" Completions: "))
 		for i, c := range m.completions {
 			if i == m.completionIndex {
-				b.WriteString(StyleCompletionSelected.Render("> " + c) + "\n")
+				lines = append(lines, StyleCompletionSelected.Render("> " + c))
 			} else {
-				b.WriteString(StyleCompletionItem.Render("  " + c) + "\n")
+				lines = append(lines, StyleCompletionItem.Render("  " + c))
 			}
 			if i > 10 {
-				b.WriteString(StyleSystem.Render("  ...") + "\n")
+				lines = append(lines, StyleSystem.Render("  ..."))
 				break
 			}
 		}
-		content += b.String()
 	}
 
-	return content
+	// Compute diff and update prevLines.
+	output := SimpleDiff(m.prevLines, lines, m.viewport.Width)
+	m.prevLines = lines
+	return output
 }
 
 func formatContextUsage(u *agentsession.ContextUsage) string {
