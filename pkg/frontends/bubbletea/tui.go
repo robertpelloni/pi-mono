@@ -28,6 +28,7 @@ type AgentUIModel struct {
 	conversation  strings.Builder
 	viewport      viewport.Model
 	textarea      textarea.Model
+	editor        *EditorComponent
 	agent         *agent.Agent
 	agentSession  *agentsession.AgentSession
 	slashRegistry *slashcommands.Registry
@@ -42,9 +43,9 @@ type AgentUIModel struct {
 	cronjobCount   int
 
 	// Autocompletion state
-	showCompletions bool
-	completions     []string
-	completionIndex int
+	showCompletions  bool
+	completions      []string
+	completionIndex  int
 	completionPrefix string // text before the cursor that triggered completion
 }
 
@@ -85,6 +86,7 @@ func InitialModel(ag *agent.Agent, eventsChan chan agent.AgentEvent, slashReg *s
 		eventsChan:    eventsChan,
 		viewport:      vp,
 		textarea:      ta,
+		editor:        NewEditor(&ta),
 		agent:         ag,
 		slashRegistry: slashReg,
 		spinner:       s,
@@ -529,11 +531,9 @@ func (m *AgentUIModel) View() string {
 	if footer != "" {
 		lines = append(lines, footer)
 	}
-	// Add a blank line before the textarea for visual separation.
+	// Add a blank line before the editor for visual separation.
 	lines = append(lines, "")
-	for _, l := range strings.Split(m.textarea.View(), "\n") {
-		lines = append(lines, l)
-	}
+	lines = append(lines, m.editor.Render(m.viewport.Width)...)
 
 	if m.showCompletions {
 		lines = append(lines, "")
