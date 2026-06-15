@@ -42,6 +42,7 @@ type AgentUIModel struct {
 	spinner       spinner.Model
 	subagentActive bool
 	cronjobCount   int
+	renderMarkdown bool
 
 	// Autocompletion state
 	showCompletions  bool
@@ -223,6 +224,8 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.agentSession != nil {
 				m.agentSession.NewSession()
 			}
+		case tea.KeyCtrlM:
+			m.renderMarkdown = !m.renderMarkdown
 		case tea.KeyCtrlC:
 			m.quitting = true
 			return m, tea.Quit
@@ -549,8 +552,13 @@ func (m *AgentUIModel) View() string {
 		lines = append(lines, header)
 	}
 	// Split viewport content into lines.
-	for _, l := range strings.Split(m.viewport.View(), "\n") {
-		lines = append(lines, l)
+	if m.renderMarkdown {
+		md := NewMarkdown(m.viewport.View(), "")
+		lines = append(lines, md.Render(m.viewport.Width)...)
+	} else {
+		for _, l := range strings.Split(m.viewport.View(), "\n") {
+			lines = append(lines, l)
+		}
 	}
 	if footer != "" {
 		lines = append(lines, footer)
