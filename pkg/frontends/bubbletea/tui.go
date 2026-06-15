@@ -29,6 +29,7 @@ type AgentUIModel struct {
 	viewport      viewport.Model
 	textarea      textarea.Model
 	editor        *EditorComponent
+	overlayStack  *OverlayStack
 	agent         *agent.Agent
 	agentSession  *agentsession.AgentSession
 	slashRegistry *slashcommands.Registry
@@ -87,6 +88,7 @@ func InitialModel(ag *agent.Agent, eventsChan chan agent.AgentEvent, slashReg *s
 		viewport:      vp,
 		textarea:      ta,
 		editor:        NewEditor(&ta),
+		overlayStack:  NewOverlayStack(),
 		agent:         ag,
 		slashRegistry: slashReg,
 		spinner:       s,
@@ -146,6 +148,21 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.isGenerating {
 		m.spinner, spCmd = m.spinner.Update(msg)
+	}
+
+	// Handle overlay messages.
+	if overlayMsg, ok := msg.(OverlayMsg); ok {
+		switch overlayMsg.Type {
+		case OverlayShow:
+			m.overlayStack.ShowOverlay(overlayMsg.Content, overlayMsg.Options)
+			return m, nil
+		case OverlayClose:
+			m.overlayStack.CloseOverlay(overlayMsg.Handle)
+			return m, nil
+		case OverlayCloseTop:
+			m.overlayStack.CloseTop()
+			return m, nil
+		}
 	}
 
 	if m.showCompletions {
@@ -253,9 +270,16 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				})
 			}
 		case tea.KeyEscape:
-			// Abort current generation
-			if m.isGenerating && m.agentSession != nil {
+			// Close overlay if present; otherwise abort generation
+			if m.overlayStack != nil && m.overlayStack.HasOverlays() {
+				m.overlayStack.CloseTop()
+			} else if m.isGenerating && m.agentSession != nil {
 				m.agentSession.Abort()
+			}
+		case tea.KeyRunes:
+			if msg.String() == "?" {
+				help := "Help:\n- Ctrl+S: Send\n- Ctrl+C: Quit\n- Ctrl+P/N: Model navigation\n- /: Slash commands\n- @: File completions\nPress Esc to close."
+				m.overlayStack.ShowOverlay(help, OverlayOptions{Title: "Help", Closeable: true})
 			}
 		}
 
@@ -552,6 +576,12 @@ func (m *AgentUIModel) View() string {
 				break
 			}
 		}
+	}
+
+	// Render overlays on top.
+	if m.overlayStack != nil && m.overlayStack.HasOverlays() {
+		overlayLines := m.overlayStack.Render(m.viewport.Width, m.viewport.Height)
+		lines = append(lines, overlayLines...)
 	}
 
 	// Compute diff and update prevLines.
