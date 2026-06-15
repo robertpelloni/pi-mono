@@ -1,6 +1,9 @@
 {
 	"extends": "./tsconfig.base.json",
 	"compilerOptions": {
+		"allowImportingTsExtensions": true,
+		"noImplicitAny": false,
+		"skipLibCheck": true,
 		"noEmit": true,
 		"paths": {
 			"*": ["./*"],

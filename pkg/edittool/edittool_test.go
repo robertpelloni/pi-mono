@@ -1,11 +1,42 @@
 package edittool
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/badlogic/pi-mono/pkg/agent"
 	"github.com/badlogic/pi-mono/pkg/editdiff"
 )
+
+func TestEditTool_MultipleDisjointEdits(t *testing.T) {
+	// Create a temp dir
+	dir := t.TempDir()
+	filePath := filepath.Join(dir, "multi.txt")
+	content := "line1\nline2\nline3\nline4\nline5\n"
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to write test file: %v", err)
+	}
+
+	// Prepare edits: replace "line2\n" with "LINE2\n", "line4\n" with "LINE4\n"
+	edits := []editdiff.Edit{
+		{OldText: "line2\n", NewText: "LINE2\n"},
+		{OldText: "line4\n", NewText: "LINE4\n"},
+	}
+
+	// Call ApplyEditsToNormalizedContent directly
+	normalized := editdiff.NormalizeToLF(content)
+	result, err := editdiff.ApplyEditsToNormalizedContent(normalized, edits, filePath)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Verify final content matches expected
+	expected := "line1\nLINE2\nline3\nLINE4\nline5\n"
+	if result.NewContent != expected {
+		t.Errorf("New content mismatch:\nGot:\n%q\nExpected:\n%q", result.NewContent, expected)
+	}
+}
 
 func TestCreateEditTool(t *testing.T) {
 	tool := CreateEditTool(".")
