@@ -531,6 +531,9 @@ func (m *AgentUIModel) View() string {
 	if footer != "" {
 		lines = append(lines, footer)
 	}
+	if m.isGenerating {
+		lines = append(lines, m.spinner.View())
+	}
 	// Add a blank line before the editor for visual separation.
 	lines = append(lines, "")
 	lines = append(lines, m.editor.Render(m.viewport.Width)...)
