@@ -40,5 +40,4 @@ plans/
 collect.sh
 
 # Jules AI session logs (auto-generated, not needed in repo)
-.jules/sessions/
 pi-agent
