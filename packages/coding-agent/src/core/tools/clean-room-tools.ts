@@ -44,7 +44,7 @@ export function createOpenInterpreterComputerUseTool(): AgentTool<typeof openInt
 			const output = await handleOpenInterpreterComputerUse(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(_args, theme, context) {
+		renderCall(args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("computer"))} (${args.action})`);
 			return text;
@@ -117,7 +117,7 @@ export function createHermesMemoryTool(): AgentTool<typeof hermesMemorySchema> {
 			const output = await handleHermesMemory(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(_args, theme, context) {
+		renderCall(args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("memory"))} (${args.key})`);
 			return text;
@@ -142,7 +142,7 @@ export function createClineExecuteCommandTool(): AgentTool<typeof clineExecuteCo
 			const output = await handleClineExecuteCommand(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(_args, theme, context) {
+		renderCall(args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("execute_command"))} (${args.command})`);
 			return text;
@@ -167,7 +167,7 @@ export function createClineWriteToFileTool(): AgentTool<typeof clineWriteToFileS
 			const output = await handleClineWriteToFile(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(_args, theme, context) {
+		renderCall(args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("write_to_file"))} (${args.path})`);
 			return text;
@@ -217,7 +217,7 @@ export function createClineListCodeDefinitionNamesTool(): AgentTool<typeof cline
 			const output = await handleClineListCodeDefinitionNames(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(_args, theme, context) {
+		renderCall(args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("list_code_definition_names"))} (${args.path})`);
 			return text;
@@ -242,7 +242,7 @@ export function createClineBrowserActionTool(): AgentTool<typeof clineBrowserAct
 			const output = await handleClineBrowserAction(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(_args, theme, context) {
+		renderCall(args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("browser_action"))} (${args.action})`);
 			return text;
