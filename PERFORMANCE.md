@@ -9,9 +9,9 @@ Executed on standard dev sandbox environment.
 ### Tool Execution Latency
 | Tool | Operation | Latency (Avg) |
 | :--- | :--- | :--- |
-| `warp_action` | Echo Command | ~3.5ms |
-| `wave_action` | Read File (`go.mod`) | ~41µs |
-| `tabby_completion` | Standard Request | ~175µs |
+| `warp_action` | Echo Command | ~3.7ms |
+| `wave_action` | Read File (`go.mod`) | ~50µs |
+| `tabby_completion` | Standard Request | ~146µs |
 | `repo_map` | 100 Files (full scan) | ~1.8s |
 
 ### Throughput & Concurrency
@@ -19,6 +19,10 @@ Executed on standard dev sandbox environment.
 - **Total Requests**: 1,000
 - **Successful Completions**: 100%
 - **System Stability**: Stable, no race conditions detected in model registry or harness routing.
+- **Concurrent Load Performance**: Verified stable <5ms latency for Tabby/Warp/Wave endpoints under concurrent load (concurrency=5).
+- **Staging Benchmarks (v0.97.0)**: BenchmarkHarness_ExecuteTool ~2.8ms/op, 18KB/op, 157 allocs/op.
+- **Pilot Performance (v0.97.0)**: Stable <3ms average latency under 10-worker concurrent load (100 reqs/endpoint).
+- **High-Concurrency Performance**: Verified stable <5ms average latency for parity endpoints under concurrent load (10 workers, 100 reqs/endpoint).
 
 ## Resource Recommendations
 

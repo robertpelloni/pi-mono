@@ -33,7 +33,10 @@ After any change to the harness or APIs:
 - Run the E2E parity suite: `go test -v ./pkg/server/... -run TestServer_E2E`
 - Perform manual black-box verification using `scripts/verify-parity.sh`.
 
-## 5. Submodule Protocol
+## 5. Recovery Procedures
+If the agent enters a FAILED state, follow the protocols defined in [RECOVERY.md](RECOVERY.md).
+
+## 6. Submodule Protocol
 When assimilating new tools:
 1. Add the repo as a temporary submodule.
 2. Document all features in `SUBMODULE_INVENTORY.md`.

@@ -90,15 +90,15 @@ func (r *Registry) HandleTabbyCompletion(ctx context.Context, req *TabbyCompleti
 	prompt := ""
 	if req.DebugOptions != nil && req.DebugOptions.RawPrompt != "" {
 		prompt = req.DebugOptions.RawPrompt
+	} else if req.Mode == "next_edit_suggestion" && req.Segments != nil && req.Segments.EditHistory != nil {
+		history := req.Segments.EditHistory
+		prompt = fmt.Sprintf("Original:\n%s\n\nDiff:\n%s\n\nCurrent:\n%s\n\nNext edit:",
+			history.OriginalCode, history.EditsDiff, history.CurrentVersion)
 	} else if req.Segments != nil {
 		// FIM (Fill-In-the-Middle) prompt construction
 		// Tabby uses specific markers like <pre>, <mid>, <end> depending on the model template.
 		// For parity, we use a generic FIM structure if not specified.
 		prompt = fmt.Sprintf("<PRE> %s <SUF> %s <MID>", req.Segments.Prefix, req.Segments.Suffix)
-	} else if req.Mode == "next_edit_suggestion" && req.Segments != nil && req.Segments.EditHistory != nil {
-		history := req.Segments.EditHistory
-		prompt = fmt.Sprintf("Original:\n%s\n\nDiff:\n%s\n\nCurrent:\n%s\n\nNext edit:",
-			history.OriginalCode, history.EditsDiff, history.CurrentVersion)
 	}
 
 	if prompt == "" {
