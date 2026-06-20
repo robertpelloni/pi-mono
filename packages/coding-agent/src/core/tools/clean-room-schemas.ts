@@ -186,3 +186,38 @@ export const clineBrowserActionSchema = t.Object({
 	coordinate: t.Optional(t.String()),
 	text: t.Optional(t.String()),
 });
+
+export const openCodeApplyPatchSchema = t.Object({
+	patchText: t.String({ description: "Apply a patch to files. The patch format is similar to unified diffs." }),
+});
+
+export const openCodeMultiEditSchema = t.Object({
+	params: t.Object(
+		{
+			filePath: t.String(),
+			edits: t.Array(
+				t.Object({ oldString: t.String(), newString: t.String(), replaceAll: t.Optional(t.Boolean()) }),
+			),
+		},
+		{ description: "Apply multiple find-and-replace edits to a file." },
+	),
+});
+
+export const geminiRunShellCommandSchema = t.Object({
+	command: t.String({ description: "The shell command to execute." }),
+});
+
+export const geminiReplaceSchema = t.Object({
+	file_path: t.String({ description: "The path to the file to modify." }),
+	old_string: t.String({ description: "The exact string to find." }),
+	new_string: t.String({ description: "The replacement string." }),
+	allow_multiple: t.Optional(t.Boolean({ description: "Replace all occurrences." })),
+});
+
+export const ampDiffSchema = z.object({
+	file_path: z.string().describe("Path to the file to review."),
+});
+
+export const ampReviewSchema = z.object({
+	diff_id: z.string().describe("ID of the diff to review."),
+});

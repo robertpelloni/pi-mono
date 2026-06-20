@@ -6,8 +6,14 @@ import {
 	handleClineExecuteCommand,
 	handleClineListCodeDefinitionNames,
 	handleClineWriteToFile,
+	handleGeminiReplace,
+	handleGeminiRunShellCommand,
 	handleHermesMemory,
+	handleOpenCodeApplyPatch,
+	handleOpenCodeMultiEdit,
 	handleOpenInterpreterComputerUse,
+	handleAmpDiff,
+	handleAmpReview,
 } from "./clean-room-handlers.js";
 import {
 	clineAskFollowupSchema,
@@ -15,8 +21,14 @@ import {
 	clineExecuteCommandSchema,
 	clineListCodeDefinitionNamesSchema,
 	clineWriteToFileSchema,
+	geminiReplaceSchema,
+	geminiRunShellCommandSchema,
 	hermesMemorySchema,
+	openCodeApplyPatchSchema,
+	openCodeMultiEditSchema,
 	openInterpreterComputerUseSchema,
+	ampDiffSchema,
+	ampReviewSchema,
 } from "./clean-room-schemas.js";
 import { wrapToolDefinition } from "./tool-definition-wrapper.js";
 
@@ -32,7 +44,7 @@ export function createOpenInterpreterComputerUseTool(): AgentTool<typeof openInt
 			const output = await handleOpenInterpreterComputerUse(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(args, theme, context) {
+		renderCall(_args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("computer"))} (${args.action})`);
 			return text;
@@ -40,6 +52,54 @@ export function createOpenInterpreterComputerUseTool(): AgentTool<typeof openInt
 		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("Computer action executed.");
+			return text;
+		},
+	});
+}
+
+export function createAmpDiffTool(): AgentTool<typeof ampDiffSchema> {
+	return wrapToolDefinition({
+		name: "amp_diff",
+		label: "amp_diff",
+		description: "Review and stage changes directly in Amp.",
+		promptSnippet: "Use amp_diff",
+		promptGuidelines: [],
+		parameters: ampDiffSchema,
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
+			const output = await handleAmpDiff(args);
+			return { content: [{ type: "text", text: output }], details: {} };
+		},
+		renderCall(_args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			text.setText(`${theme.fg("toolTitle", theme.bold("amp_diff"))}`);
+			return text;
+		},
+		renderResult(_result, _options, _theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			return text;
+		},
+	});
+}
+
+export function createAmpReviewTool(): AgentTool<typeof ampReviewSchema> {
+	return wrapToolDefinition({
+		name: "amp_review",
+		label: "amp_review",
+		description: "Claude Opus 4.8 makes tighter changes and checks its own work.",
+		promptSnippet: "Use amp_review",
+		promptGuidelines: [],
+		parameters: ampReviewSchema,
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
+			const output = await handleAmpReview(args);
+			return { content: [{ type: "text", text: output }], details: {} };
+		},
+		renderCall(_args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			text.setText(`${theme.fg("toolTitle", theme.bold("amp_review"))}`);
+			return text;
+		},
+		renderResult(_result, _options, _theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			return text;
 		},
 	});
@@ -57,7 +117,7 @@ export function createHermesMemoryTool(): AgentTool<typeof hermesMemorySchema> {
 			const output = await handleHermesMemory(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(args, theme, context) {
+		renderCall(_args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("memory"))} (${args.key})`);
 			return text;
@@ -82,7 +142,7 @@ export function createClineExecuteCommandTool(): AgentTool<typeof clineExecuteCo
 			const output = await handleClineExecuteCommand(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(args, theme, context) {
+		renderCall(_args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("execute_command"))} (${args.command})`);
 			return text;
@@ -107,7 +167,7 @@ export function createClineWriteToFileTool(): AgentTool<typeof clineWriteToFileS
 			const output = await handleClineWriteToFile(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(args, theme, context) {
+		renderCall(_args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("write_to_file"))} (${args.path})`);
 			return text;
@@ -157,7 +217,7 @@ export function createClineListCodeDefinitionNamesTool(): AgentTool<typeof cline
 			const output = await handleClineListCodeDefinitionNames(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(args, theme, context) {
+		renderCall(_args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("list_code_definition_names"))} (${args.path})`);
 			return text;
@@ -182,7 +242,7 @@ export function createClineBrowserActionTool(): AgentTool<typeof clineBrowserAct
 			const output = await handleClineBrowserAction(args);
 			return { content: [{ type: "text", text: output }], details: {} };
 		},
-		renderCall(args, theme, context) {
+		renderCall(_args, theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText(`${theme.fg("toolTitle", theme.bold("browser_action"))} (${args.action})`);
 			return text;
@@ -190,6 +250,102 @@ export function createClineBrowserActionTool(): AgentTool<typeof clineBrowserAct
 		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("Browser action complete.");
+			return text;
+		},
+	});
+}
+
+export function createOpenCodeApplyPatchTool(): AgentTool<typeof openCodeApplyPatchSchema> {
+	return wrapToolDefinition({
+		name: "apply_patch",
+		label: "apply_patch",
+		description: "Apply a patch to files. The patch format is similar to unified diffs.",
+		promptSnippet: "Use apply_patch",
+		promptGuidelines: [],
+		parameters: openCodeApplyPatchSchema,
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
+			const output = await handleOpenCodeApplyPatch(args);
+			return { content: [{ type: "text", text: output }], details: {} };
+		},
+		renderCall(_args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			text.setText(`${theme.fg("toolTitle", theme.bold("apply_patch"))}`);
+			return text;
+		},
+		renderResult(_result, _options, _theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			return text;
+		},
+	});
+}
+
+export function createOpenCodeMultiEditTool(): AgentTool<typeof openCodeMultiEditSchema> {
+	return wrapToolDefinition({
+		name: "multiedit",
+		label: "multiedit",
+		description: "Apply multiple find-and-replace edits to a file.",
+		promptSnippet: "Use multiedit",
+		promptGuidelines: [],
+		parameters: openCodeMultiEditSchema,
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
+			const output = await handleOpenCodeMultiEdit(args);
+			return { content: [{ type: "text", text: output }], details: {} };
+		},
+		renderCall(_args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			text.setText(`${theme.fg("toolTitle", theme.bold("multiedit"))}`);
+			return text;
+		},
+		renderResult(_result, _options, _theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			return text;
+		},
+	});
+}
+
+export function createGeminiRunShellCommandTool(): AgentTool<typeof geminiRunShellCommandSchema> {
+	return wrapToolDefinition({
+		name: "run_shell_command",
+		label: "run_shell_command",
+		description: "Executes a shell command or script.",
+		promptSnippet: "Use run_shell_command",
+		promptGuidelines: [],
+		parameters: geminiRunShellCommandSchema,
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
+			const output = await handleGeminiRunShellCommand(args);
+			return { content: [{ type: "text", text: output }], details: {} };
+		},
+		renderCall(_args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			text.setText(`${theme.fg("toolTitle", theme.bold("run_shell_command"))}`);
+			return text;
+		},
+		renderResult(_result, _options, _theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			return text;
+		},
+	});
+}
+
+export function createGeminiReplaceTool(): AgentTool<typeof geminiReplaceSchema> {
+	return wrapToolDefinition({
+		name: "replace",
+		label: "replace",
+		description: "Replaces text within a file.",
+		promptSnippet: "Use replace",
+		promptGuidelines: [],
+		parameters: geminiReplaceSchema,
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
+			const output = await handleGeminiReplace(args);
+			return { content: [{ type: "text", text: output }], details: {} };
+		},
+		renderCall(_args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			text.setText(`${theme.fg("toolTitle", theme.bold("replace"))}`);
+			return text;
+		},
+		renderResult(_result, _options, _theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			return text;
 		},
 	});

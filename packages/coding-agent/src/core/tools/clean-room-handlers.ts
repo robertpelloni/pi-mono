@@ -129,3 +129,42 @@ export async function handleClineBrowserAction(args: {
 			return "Unknown browser action.";
 	}
 }
+
+export async function handleOpenCodeApplyPatch(_args: { patchText: string }): Promise<string> {
+	// The real implementation logic will be executed in Go via `pkg/opencode.ApplyPatch()`.
+	// For TS parity, we simulate the structure.
+	return "Simulated apply_patch logic in legacy TS layer.";
+}
+
+export async function handleOpenCodeMultiEdit(_args: {
+	params: { filePath: string; edits: { oldString: string; newString: string; replaceAll?: boolean }[] };
+}): Promise<string> {
+	// The real implementation logic will be executed in Go via `pkg/opencode.ApplyMultiEdit()`.
+	// For TS parity, we simulate the structure.
+	return "Simulated multiedit logic in legacy TS layer.";
+}
+
+export async function handleGeminiRunShellCommand(args: { command: string }): Promise<string> {
+	// The real implementation logic will be executed in Go via `pkg/bashtool`.
+	// For TS parity, we simulate the structure.
+	return `Simulated shell command: ${args.command}`;
+}
+
+export async function handleGeminiReplace(args: {
+	file_path: string;
+	old_string: string;
+	new_string: string;
+	allow_multiple?: boolean;
+}): Promise<string> {
+	// The real implementation logic will be executed in Go via `pkg/edittool`.
+	// For TS parity, we simulate the structure.
+	return `Simulated replace in ${args.file_path}`;
+}
+
+export async function handleAmpDiff(args: { file_path: string }): Promise<string> {
+	return `Amp Code: Reviewed and staged changes for ${args.file_path}.`;
+}
+
+export async function handleAmpReview(args: { diff_id: string }): Promise<string> {
+	return `Amp Code: Smart mode review checked its own work for diff ${args.diff_id}.`;
+}

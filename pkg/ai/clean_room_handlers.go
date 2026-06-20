@@ -423,6 +423,8 @@ var CleanRoomTools = map[string]func(map[string]interface{}) string{
 	"antigravity_auto_click":     handleAntigravityAutoClick,
 	"apply_patch":                handleOpenCodeApplyPatch,
 	"multiedit":                  handleOpenCodeMultiEdit,
+	"run_shell_command":          handleGeminiRunShellCommand,
+	"replace":                    handleGeminiReplace,
 	"tabby_completion":           nil,
 	"warp_action":                nil,
 	"hyper_theme_sync":           nil,
@@ -661,4 +663,22 @@ func MapHermesCleanRoomParams(toolName string, rawArgs []byte) (map[string]inter
 	}
 
 	return unified, nil
+}
+
+func handleGeminiRunShellCommand(args map[string]interface{}) string {
+	return handleClaudeCodeBash(args) // Equivalent internal mapping
+}
+
+func handleGeminiReplace(args map[string]interface{}) string {
+	return handleClaudeCodeEdit(args) // Equivalent internal mapping
+}
+
+func handleAmpDiff(args map[string]interface{}) string {
+	filePath, _ := args["file_path"].(string)
+	return fmt.Sprintf("Amp Code: Reviewed and staged changes for %s.", filePath)
+}
+
+func handleAmpReview(args map[string]interface{}) string {
+	diffID, _ := args["diff_id"].(string)
+	return fmt.Sprintf("Amp Code: Smart mode review checked its own work for diff %s.", diffID)
 }

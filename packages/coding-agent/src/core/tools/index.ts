@@ -112,8 +112,14 @@ import {
 	createClineExecuteCommandTool,
 	createClineListCodeDefinitionNamesTool,
 	createClineWriteToFileTool,
+	createGeminiReplaceTool,
+	createGeminiRunShellCommandTool,
 	createHermesMemoryTool,
+	createOpenCodeApplyPatchTool,
+	createOpenCodeMultiEditTool,
 	createOpenInterpreterComputerUseTool,
+	createAmpDiffTool,
+	createAmpReviewTool,
 } from "./clean-room-tools.js";
 
 // Note: clean room tools do not have separate tool definition exports in the current implementation,
@@ -140,6 +146,12 @@ export const allTools = {
 	clineAskFollowup: createClineAskFollowupTool(),
 	clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
 	clineBrowserAction: createClineBrowserActionTool(),
+	openCodeApplyPatch: createOpenCodeApplyPatchTool(),
+	openCodeMultiEdit: createOpenCodeMultiEditTool(),
+	geminiRunShellCommand: createGeminiRunShellCommandTool(),
+	geminiReplace: createGeminiReplaceTool(),
+	ampDiff: createAmpDiffTool(),
+	ampReview: createAmpReviewTool(),
 };
 
 export const allToolDefinitions = {
@@ -158,6 +170,12 @@ export const allToolDefinitions = {
 	clineAskFollowup: createClineAskFollowupTool(),
 	clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
 	clineBrowserAction: createClineBrowserActionTool(),
+	openCodeApplyPatch: createOpenCodeApplyPatchTool(),
+	openCodeMultiEdit: createOpenCodeMultiEditTool(),
+	geminiRunShellCommand: createGeminiRunShellCommandTool(),
+	geminiReplace: createGeminiReplaceTool(),
+	ampDiff: createAmpDiffTool(),
+	ampReview: createAmpReviewTool(),
 };
 
 export type ToolName = keyof typeof allTools;
@@ -202,6 +220,12 @@ export function createAllToolDefinitions(cwd: string, options?: ToolsOptions): R
 		clineAskFollowup: createClineAskFollowupTool(),
 		clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
 		clineBrowserAction: createClineBrowserActionTool(),
+		openCodeApplyPatch: createOpenCodeApplyPatchTool(),
+		openCodeMultiEdit: createOpenCodeMultiEditTool(),
+		geminiRunShellCommand: createGeminiRunShellCommandTool(),
+		geminiReplace: createGeminiReplaceTool(),
+		ampDiff: createAmpDiffTool(),
+		ampReview: createAmpReviewTool(),
 	};
 }
 
@@ -235,5 +259,11 @@ export function createAllTools(cwd: string, options?: ToolsOptions): Record<Tool
 		clineAskFollowup: createClineAskFollowupTool(),
 		clineListCodeDefinitionNames: createClineListCodeDefinitionNamesTool(),
 		clineBrowserAction: createClineBrowserActionTool(),
+		openCodeApplyPatch: createOpenCodeApplyPatchTool(),
+		openCodeMultiEdit: createOpenCodeMultiEditTool(),
+		geminiRunShellCommand: createGeminiRunShellCommandTool(),
+		geminiReplace: createGeminiReplaceTool(),
+		ampDiff: createAmpDiffTool(),
+		ampReview: createAmpReviewTool(),
 	};
 }

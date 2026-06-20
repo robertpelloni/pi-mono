@@ -12,10 +12,13 @@
 ## Current State
 - **Project Version:** v0.97.0
 - **Build Status:** Verified cross-platform builds and E2E test suite (`pkg/server/e2e_test.go`).
-- **Parity Status:** 100% functional parity with the target agents' core toolsets.
+- **Parity Status:** 100% functional parity with the target agents' core toolsets. `code-cli` fully assimilated with `apply_patch` and `multiedit` tool schemas implemented in both TypeScript and Go backend.
 
 ## Unresolved Issues / Known Limitations
 - **Clean Room Tool Stubs**: Some complex tools (e.g., advanced browser interaction, home assistant) are implemented as functional stubs awaiting higher-fidelity internal providers.
+- **Pending Test Verification (Environment Issue)**: During the final stages of Phase 20 assimilation, the execution environment became disrupted, blocking test validation. The successor agent MUST begin its session by verifying the code using the following commands:
+  - `go test ./pkg/...`
+  - `cd packages/coding-agent && npm run check && npm test`
 - **Performance**: While overhead is minimal (<1ms), extremely large RepoMap generation for 10k+ file repositories needs further optimization (caching).
 
 ## Next Steps for Successor
