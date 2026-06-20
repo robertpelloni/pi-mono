@@ -224,8 +224,8 @@ func handleHermesMemory(args map[string]interface{}) string {
 
 func handleHermesBrowserNavigate(args map[string]interface{}) string {
 	url, ok := args["url"].(string)
-	if !ok {
-		return "Error: missing 'url' parameter"
+	if !ok || url == "" {
+		return "Error: missing or empty 'url' parameter"
 	}
 
 	cmd := exec.Command("lynx", "-dump", url)
