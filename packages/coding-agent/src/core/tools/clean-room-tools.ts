@@ -1,6 +1,8 @@
 import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { Text } from "@mariozechner/pi-tui";
 import {
+	handleAmpDiff,
+	handleAmpReview,
 	handleClineAskFollowup,
 	handleClineBrowserAction,
 	handleClineExecuteCommand,
@@ -12,10 +14,10 @@ import {
 	handleOpenCodeApplyPatch,
 	handleOpenCodeMultiEdit,
 	handleOpenInterpreterComputerUse,
-	handleAmpDiff,
-	handleAmpReview,
 } from "./clean-room-handlers.js";
 import {
+	ampDiffSchema,
+	ampReviewSchema,
 	clineAskFollowupSchema,
 	clineBrowserActionSchema,
 	clineExecuteCommandSchema,
@@ -27,8 +29,6 @@ import {
 	openCodeApplyPatchSchema,
 	openCodeMultiEditSchema,
 	openInterpreterComputerUseSchema,
-	ampDiffSchema,
-	ampReviewSchema,
 } from "./clean-room-schemas.js";
 import { wrapToolDefinition } from "./tool-definition-wrapper.js";
 

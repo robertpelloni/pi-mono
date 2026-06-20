@@ -214,10 +214,10 @@ export const geminiReplaceSchema = t.Object({
 	allow_multiple: t.Optional(t.Boolean({ description: "Replace all occurrences." })),
 });
 
-export const ampDiffSchema = z.object({
-	file_path: z.string().describe("Path to the file to review."),
+export const ampDiffSchema = t.Object({
+	file_path: t.String({ description: "Path to the file to review." }),
 });
 
-export const ampReviewSchema = z.object({
-	diff_id: z.string().describe("ID of the diff to review."),
+export const ampReviewSchema = t.Object({
+	diff_id: t.String({ description: "ID of the diff to review." }),
 });

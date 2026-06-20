@@ -107,6 +107,8 @@ import { createWriteTool, createWriteToolDefinition, writeTool, writeToolDefinit
 export type Tool = AgentTool<any>;
 
 import {
+	createAmpDiffTool,
+	createAmpReviewTool,
 	createClineAskFollowupTool,
 	createClineBrowserActionTool,
 	createClineExecuteCommandTool,
@@ -118,8 +120,6 @@ import {
 	createOpenCodeApplyPatchTool,
 	createOpenCodeMultiEditTool,
 	createOpenInterpreterComputerUseTool,
-	createAmpDiffTool,
-	createAmpReviewTool,
 } from "./clean-room-tools.js";
 
 // Note: clean room tools do not have separate tool definition exports in the current implementation,

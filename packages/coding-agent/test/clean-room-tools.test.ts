@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { handleOpenCodeApplyPatch, handleOpenCodeMultiEdit, handleAmpDiff, handleAmpReview } from "../src/core/tools/clean-room-handlers.js";
+import {
+	handleAmpDiff,
+	handleAmpReview,
+	handleOpenCodeApplyPatch,
+	handleOpenCodeMultiEdit,
+	handleGeminiRunShellCommand,
+	handleGeminiReplace,
+} from "../src/core/tools/clean-room-handlers.js";
 
 describe("Clean Room Tools Parity", () => {
 	it("handleOpenCodeApplyPatch should return simulated success message", async () => {
