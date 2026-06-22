@@ -168,11 +168,3 @@ export async function handleAmpDiff(args: { file_path: string }): Promise<string
 export async function handleAmpReview(args: { diff_id: string }): Promise<string> {
 	return `Amp Code: Smart mode review checked its own work for diff ${args.diff_id}.`;
 }
-
-export async function handleAuggieSearch(args: { query: string }): Promise<string> {
-	return `Auggie CLI: Indexed and searched context for query: "${args.query}"`;
-}
-
-export async function handleAuggieAsk(args: { contextQuery: string; question: string }): Promise<string> {
-	return `Auggie CLI: Searched context for "${args.contextQuery}" and asked: "${args.question}"`;
-}

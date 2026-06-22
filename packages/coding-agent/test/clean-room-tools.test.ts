@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
 	handleAmpDiff,
 	handleAmpReview,
-	handleAuggieAsk,
-	handleAuggieSearch,
 	handleGeminiReplace,
 	handleGeminiRunShellCommand,
 	handleOpenCodeApplyPatch,
@@ -39,15 +37,5 @@ describe("Clean Room Tools Parity", () => {
 	it("handleAmpReview should return simulated success message", async () => {
 		const res = await handleAmpReview({ diff_id: "123" });
 		expect(res).toBe("Amp Code: Smart mode review checked its own work for diff 123.");
-	});
-
-	it("handleAuggieSearch should return simulated success message", async () => {
-		const res = await handleAuggieSearch({ query: "test-query" });
-		expect(res).toBe('Auggie CLI: Indexed and searched context for query: "test-query"');
-	});
-
-	it("handleAuggieAsk should return simulated success message", async () => {
-		const res = await handleAuggieAsk({ contextQuery: "context", question: "question" });
-		expect(res).toBe('Auggie CLI: Searched context for "context" and asked: "question"');
 	});
 });

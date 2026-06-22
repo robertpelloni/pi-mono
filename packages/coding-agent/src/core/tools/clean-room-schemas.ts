@@ -221,12 +221,3 @@ export const ampDiffSchema = t.Object({
 export const ampReviewSchema = t.Object({
 	diff_id: t.String({ description: "ID of the diff to review." }),
 });
-
-export const auggieSearchSchema = t.Object({
-	query: t.String({ description: "The search query to index and match against." }),
-});
-
-export const auggieAskSchema = t.Object({
-	contextQuery: t.String({ description: "The query used to retrieve context files." }),
-	question: t.String({ description: "The question to ask about the retrieved context." }),
-});

@@ -109,8 +109,6 @@ export type Tool = AgentTool<any>;
 import {
 	createAmpDiffTool,
 	createAmpReviewTool,
-	createAuggieAskTool,
-	createAuggieSearchTool,
 	createClineAskFollowupTool,
 	createClineBrowserActionTool,
 	createClineExecuteCommandTool,
@@ -154,8 +152,6 @@ export const allTools = {
 	geminiReplace: createGeminiReplaceTool(),
 	ampDiff: createAmpDiffTool(),
 	ampReview: createAmpReviewTool(),
-	auggieSearch: createAuggieSearchTool(),
-	auggieAsk: createAuggieAskTool(),
 };
 
 export const allToolDefinitions = {
@@ -180,8 +176,6 @@ export const allToolDefinitions = {
 	geminiReplace: createGeminiReplaceTool(),
 	ampDiff: createAmpDiffTool(),
 	ampReview: createAmpReviewTool(),
-	auggieSearch: createAuggieSearchTool(),
-	auggieAsk: createAuggieAskTool(),
 };
 
 export type ToolName = keyof typeof allTools;
@@ -232,8 +226,6 @@ export function createAllToolDefinitions(cwd: string, options?: ToolsOptions): R
 		geminiReplace: createGeminiReplaceTool(),
 		ampDiff: createAmpDiffTool(),
 		ampReview: createAmpReviewTool(),
-		auggieSearch: createAuggieSearchTool(),
-		auggieAsk: createAuggieAskTool(),
 	};
 }
 
@@ -273,7 +265,5 @@ export function createAllTools(cwd: string, options?: ToolsOptions): Record<Tool
 		geminiReplace: createGeminiReplaceTool(),
 		ampDiff: createAmpDiffTool(),
 		ampReview: createAmpReviewTool(),
-		auggieSearch: createAuggieSearchTool(),
-		auggieAsk: createAuggieAskTool(),
 	};
 }

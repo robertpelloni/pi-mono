@@ -3,8 +3,6 @@ import { Text } from "@mariozechner/pi-tui";
 import {
 	handleAmpDiff,
 	handleAmpReview,
-	handleAuggieAsk,
-	handleAuggieSearch,
 	handleClineAskFollowup,
 	handleClineBrowserAction,
 	handleClineExecuteCommand,
@@ -20,8 +18,6 @@ import {
 import {
 	ampDiffSchema,
 	ampReviewSchema,
-	auggieAskSchema,
-	auggieSearchSchema,
 	clineAskFollowupSchema,
 	clineBrowserActionSchema,
 	clineExecuteCommandSchema,
@@ -56,54 +52,6 @@ export function createOpenInterpreterComputerUseTool(): AgentTool<typeof openInt
 		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("Computer action executed.");
-			return text;
-		},
-	});
-}
-
-export function createAuggieSearchTool(): AgentTool<typeof auggieSearchSchema> {
-	return wrapToolDefinition({
-		name: "auggie_search",
-		label: "auggie_search",
-		description: "Indexes the context and searches for a specific query within the codebase.",
-		promptSnippet: "Use auggie_search",
-		promptGuidelines: [],
-		parameters: auggieSearchSchema,
-		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
-			const output = await handleAuggieSearch(args);
-			return { content: [{ type: "text", text: output }], details: {} };
-		},
-		renderCall(_args, theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			text.setText(`${theme.fg("toolTitle", theme.bold("auggie_search"))}`);
-			return text;
-		},
-		renderResult(_result, _options, _theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			return text;
-		},
-	});
-}
-
-export function createAuggieAskTool(): AgentTool<typeof auggieAskSchema> {
-	return wrapToolDefinition({
-		name: "auggie_ask",
-		label: "auggie_ask",
-		description: "Asks a question regarding the given context query.",
-		promptSnippet: "Use auggie_ask",
-		promptGuidelines: [],
-		parameters: auggieAskSchema,
-		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
-			const output = await handleAuggieAsk(args);
-			return { content: [{ type: "text", text: output }], details: {} };
-		},
-		renderCall(_args, theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			text.setText(`${theme.fg("toolTitle", theme.bold("auggie_ask"))}`);
-			return text;
-		},
-		renderResult(_result, _options, _theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			return text;
 		},
 	});
