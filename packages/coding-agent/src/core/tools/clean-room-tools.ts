@@ -14,6 +14,8 @@ import {
 	handleOpenCodeApplyPatch,
 	handleOpenCodeMultiEdit,
 	handleOpenInterpreterComputerUse,
+	handleFactoryReview,
+	handleFactoryReadinessReport,
 } from "./clean-room-handlers.js";
 import {
 	ampDiffSchema,
@@ -29,6 +31,8 @@ import {
 	openCodeApplyPatchSchema,
 	openCodeMultiEditSchema,
 	openInterpreterComputerUseSchema,
+	factoryReviewSchema,
+	factoryReadinessReportSchema,
 } from "./clean-room-schemas.js";
 import { wrapToolDefinition } from "./tool-definition-wrapper.js";
 
@@ -52,6 +56,54 @@ export function createOpenInterpreterComputerUseTool(): AgentTool<typeof openInt
 		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("Computer action executed.");
+			return text;
+		},
+	});
+}
+
+export function createFactoryReviewTool(): AgentTool<typeof factoryReviewSchema> {
+	return wrapToolDefinition({
+		name: "factory_review",
+		label: "factory_review",
+		description: "Analyze local code changes with AI-powered review workflows.",
+		promptSnippet: "Use factory_review",
+		promptGuidelines: [],
+		parameters: factoryReviewSchema,
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
+			const output = await handleFactoryReview(args);
+			return { content: [{ type: "text", text: output }], details: {} };
+		},
+		renderCall(_args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			text.setText(`${theme.fg("toolTitle", theme.bold("factory_review"))}`);
+			return text;
+		},
+		renderResult(_result, _options, _theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			return text;
+		},
+	});
+}
+
+export function createFactoryReadinessReportTool(): AgentTool<typeof factoryReadinessReportSchema> {
+	return wrapToolDefinition({
+		name: "factory_readiness_report",
+		label: "factory_readiness_report",
+		description: "Evaluate the repository against the Autonomy Maturity Model.",
+		promptSnippet: "Use factory_readiness_report",
+		promptGuidelines: [],
+		parameters: factoryReadinessReportSchema,
+		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
+			const output = await handleFactoryReadinessReport(args);
+			return { content: [{ type: "text", text: output }], details: {} };
+		},
+		renderCall(_args, theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
+			text.setText(`${theme.fg("toolTitle", theme.bold("factory_readiness_report"))}`);
+			return text;
+		},
+		renderResult(_result, _options, _theme, context) {
+			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			return text;
 		},
 	});

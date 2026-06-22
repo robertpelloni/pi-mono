@@ -221,3 +221,12 @@ export const ampDiffSchema = t.Object({
 export const ampReviewSchema = t.Object({
 	diff_id: t.String({ description: "ID of the diff to review." }),
 });
+
+export const factoryReviewSchema = t.Object({
+	review_type: t.String({ description: "Presets: base_branch, uncommitted_changes, commit, or custom." }),
+	target: t.Optional(t.String({ description: "The branch name or commit hash to analyze." })),
+});
+
+export const factoryReadinessReportSchema = t.Object({
+	directory: t.Optional(t.String({ description: "The local repository path to evaluate against the Autonomy Maturity Model." })),
+});

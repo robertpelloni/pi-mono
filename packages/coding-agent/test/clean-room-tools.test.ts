@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
 	handleAmpDiff,
 	handleAmpReview,
+	handleFactoryReadinessReport,
+	handleFactoryReview,
 	handleGeminiReplace,
 	handleGeminiRunShellCommand,
 	handleOpenCodeApplyPatch,
@@ -37,5 +39,15 @@ describe("Clean Room Tools Parity", () => {
 	it("handleAmpReview should return simulated success message", async () => {
 		const res = await handleAmpReview({ diff_id: "123" });
 		expect(res).toBe("Amp Code: Smart mode review checked its own work for diff 123.");
+	});
+
+	it("handleFactoryReview should return simulated success message", async () => {
+		const res = await handleFactoryReview({ review_type: "base_branch", target: "main" });
+		expect(res).toBe("Factory Droid: Performed base_branch review against target: main");
+	});
+
+	it("handleFactoryReadinessReport should return simulated success message", async () => {
+		const res = await handleFactoryReadinessReport({ directory: "./src" });
+		expect(res).toBe("Factory Droid: Evaluated repository readiness and Autonomy Maturity Model for directory: ./src");
 	});
 });

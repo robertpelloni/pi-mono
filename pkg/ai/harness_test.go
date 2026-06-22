@@ -88,6 +88,33 @@ func TestHarness_AmpAction(t *testing.T) {
 			t.Errorf("unexpected response: %s", resp)
 		}
 	})
+
+	t.Run("Factory Action - Review", func(t *testing.T) {
+		args := map[string]interface{}{
+			"review_type": "base_branch",
+			"target":      "main",
+		}
+		resp, err := h.ExecuteTool(ctx, "factory_review", args)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if !strings.Contains(resp, "Performed base_branch review against target: main") {
+			t.Errorf("unexpected response: %s", resp)
+		}
+	})
+
+	t.Run("Factory Action - Readiness Report", func(t *testing.T) {
+		args := map[string]interface{}{
+			"directory": "./src",
+		}
+		resp, err := h.ExecuteTool(ctx, "factory_readiness_report", args)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if !strings.Contains(resp, "directory: ./src") {
+			t.Errorf("unexpected response: %s", resp)
+		}
+	})
 }
 
 func TestHarness_TabbyNextEdit(t *testing.T) {

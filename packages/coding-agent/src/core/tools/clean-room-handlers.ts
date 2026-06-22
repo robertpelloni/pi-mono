@@ -168,3 +168,11 @@ export async function handleAmpDiff(args: { file_path: string }): Promise<string
 export async function handleAmpReview(args: { diff_id: string }): Promise<string> {
 	return `Amp Code: Smart mode review checked its own work for diff ${args.diff_id}.`;
 }
+
+export async function handleFactoryReview(args: { review_type: string; target?: string }): Promise<string> {
+	return `Factory Droid: Performed ${args.review_type} review against target: ${args.target || "local workspace"}`;
+}
+
+export async function handleFactoryReadinessReport(args: { directory?: string }): Promise<string> {
+	return `Factory Droid: Evaluated repository readiness and Autonomy Maturity Model for directory: ${args.directory || "."}`;
+}

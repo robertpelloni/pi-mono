@@ -724,6 +724,39 @@ var AmpReview = CleanRoomToolSchema{
 	},
 }
 
+var FactoryReview = CleanRoomToolSchema{
+	Name:        "factory_review",
+	Description: "Analyze local code changes with AI-powered review workflows.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"review_type": map[string]interface{}{
+				"type":        "string",
+				"description": "Presets: base_branch, uncommitted_changes, commit, or custom.",
+			},
+			"target": map[string]interface{}{
+				"type":        "string",
+				"description": "The branch name or commit hash to analyze.",
+			},
+		},
+		"required": []string{"review_type"},
+	},
+}
+
+var FactoryReadinessReport = CleanRoomToolSchema{
+	Name:        "factory_readiness_report",
+	Description: "Evaluate the repository against the Autonomy Maturity Model.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"directory": map[string]interface{}{
+				"type":        "string",
+				"description": "The local repository path to evaluate against the Autonomy Maturity Model.",
+			},
+		},
+	},
+}
+
 var TabbyCompletion = CleanRoomToolSchema{
 	Name:        "tabby_completion",
 	Description: "Get code completions from the Tabby-compatible engine.",
