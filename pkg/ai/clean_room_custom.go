@@ -140,5 +140,9 @@ func init() {
     CleanRoomTools["write_file"] = handleClaudeCodeWriteFile
     CleanRoomTools["edit"] = handleClaudeCodeEdit
     CleanRoomTools["list_files"] = handleClaudeCodeListFiles
+    CleanRoomTools["amp_diff"] = handleAmpDiff
+    CleanRoomTools["amp_review"] = handleAmpReview
+    CleanRoomTools["factory_review"] = handleFactoryReview
+    CleanRoomTools["factory_readiness_report"] = handleFactoryReadinessReport
     // search_files already points to handleHermesSearchFiles, which now supports Claude's "pattern".
 }
