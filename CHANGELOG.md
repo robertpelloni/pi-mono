@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.99.0] - 2026-06-25
+### Added
+- **Submodule Assimilation**: Assimmilated Amp Code CLI, Auggie CLI, and Factory CLI. Abstracted tool schemas (`amp_diff`, `amp_review`, `auggie_search`, `auggie_ask`, `factory_review`, `factory_readiness_report`) into native TypeScript bindings and parallel Go clean-room structs.
+- **Upstream Synchronization**: Merged all upstream `jules` features and branches, establishing a unified source of truth and resolving submodules.
+
 ## [0.98.0] - 2026-06-14
 ### Added
 - **Claude Code Parity**: Added Claude Code tool schemas (write_file, edit, search_files, list_files) and handlers registered via `CleanRoomTools`. Claude-specific parameter names (`old_string`, `new_string`, `pattern`) are normalized via `MapCleanRoomParams`.

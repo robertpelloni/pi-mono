@@ -419,7 +419,6 @@ func diffLines(oldLines, newLines []string) []diffPart {
 
 	// Reverse
 	for i := len(reversed) - 1; i >= 0; i-- {
-		reversed[i].lines = reversed[i].lines // already set
 		parts = append(parts, reversed[i])
 	}
 
