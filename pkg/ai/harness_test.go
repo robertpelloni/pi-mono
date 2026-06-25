@@ -166,3 +166,41 @@ func TestHarness_WaveAction(t *testing.T) {
 		}
 	})
 }
+
+func TestHarness_HandleUnifiedRequest(t *testing.T) {
+	reg := NewRegistry()
+	h := NewHarness(reg)
+	ctx := context.Background()
+
+	t.Run("Valid JSON Args", func(t *testing.T) {
+		rawArgs := []byte(`{"config": "{\"colors\": {\"black\": \"#000\"}}"}`)
+		resp, err := h.HandleUnifiedRequest(ctx, "hyper_theme_sync", rawArgs)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !strings.Contains(resp, "initialized") {
+			t.Errorf("expected success message, got: %s", resp)
+		}
+	})
+
+	t.Run("Invalid JSON Args", func(t *testing.T) {
+		rawArgs := []byte(`{"config": invalid json}`)
+		_, err := h.HandleUnifiedRequest(ctx, "hyper_theme_sync", rawArgs)
+		if err == nil {
+			t.Fatal("expected error for invalid json, got nil")
+		}
+		if !strings.Contains(err.Error(), "failed to unmarshal") {
+			t.Errorf("expected unmarshal error, got: %v", err)
+		}
+	})
+
+	t.Run("Unknown Tool", func(t *testing.T) {
+		_, err := h.ExecuteTool(ctx, "unknown_tool", map[string]interface{}{})
+		if err == nil {
+			t.Fatal("expected error for unknown tool, got nil")
+		}
+		if !strings.Contains(err.Error(), "unknown") {
+			t.Errorf("expected unknown tool error, got: %v", err)
+		}
+	})
+}
