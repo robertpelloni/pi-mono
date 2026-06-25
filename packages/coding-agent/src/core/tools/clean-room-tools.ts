@@ -8,14 +8,14 @@ import {
 	handleClineExecuteCommand,
 	handleClineListCodeDefinitionNames,
 	handleClineWriteToFile,
+	handleFactoryReadinessReport,
+	handleFactoryReview,
 	handleGeminiReplace,
 	handleGeminiRunShellCommand,
 	handleHermesMemory,
 	handleOpenCodeApplyPatch,
 	handleOpenCodeMultiEdit,
 	handleOpenInterpreterComputerUse,
-	handleFactoryReview,
-	handleFactoryReadinessReport,
 } from "./clean-room-handlers.js";
 import {
 	ampDiffSchema,
@@ -25,14 +25,14 @@ import {
 	clineExecuteCommandSchema,
 	clineListCodeDefinitionNamesSchema,
 	clineWriteToFileSchema,
+	factoryReadinessReportSchema,
+	factoryReviewSchema,
 	geminiReplaceSchema,
 	geminiRunShellCommandSchema,
 	hermesMemorySchema,
 	openCodeApplyPatchSchema,
 	openCodeMultiEditSchema,
 	openInterpreterComputerUseSchema,
-	factoryReviewSchema,
-	factoryReadinessReportSchema,
 } from "./clean-room-schemas.js";
 import { wrapToolDefinition } from "./tool-definition-wrapper.js";
 

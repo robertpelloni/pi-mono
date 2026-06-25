@@ -228,5 +228,7 @@ export const factoryReviewSchema = t.Object({
 });
 
 export const factoryReadinessReportSchema = t.Object({
-	directory: t.Optional(t.String({ description: "The local repository path to evaluate against the Autonomy Maturity Model." })),
+	directory: t.Optional(
+		t.String({ description: "The local repository path to evaluate against the Autonomy Maturity Model." }),
+	),
 });

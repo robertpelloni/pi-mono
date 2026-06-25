@@ -48,6 +48,8 @@ describe("Clean Room Tools Parity", () => {
 
 	it("handleFactoryReadinessReport should return simulated success message", async () => {
 		const res = await handleFactoryReadinessReport({ directory: "./src" });
-		expect(res).toBe("Factory Droid: Evaluated repository readiness and Autonomy Maturity Model for directory: ./src");
+		expect(res).toBe(
+			"Factory Droid: Evaluated repository readiness and Autonomy Maturity Model for directory: ./src",
+		);
 	});
 });
