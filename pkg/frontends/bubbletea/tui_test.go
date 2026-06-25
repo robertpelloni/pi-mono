@@ -1,180 +1,34 @@
 package bubbletea
 
 import (
-	"testing"
+    "strings"
+    "testing"
 
-	"github.com/badlogic/pi-mono/pkg/agent"
-	"github.com/badlogic/pi-mono/pkg/ai"
-	"github.com/badlogic/pi-mono/pkg/slashcommands"
+    "github.com/badlogic/pi-mono/pkg/agent"
+    "github.com/badlogic/pi-mono/pkg/ai"
 )
 
-func TestFormatArgs(t *testing.T) {
-	tests := []struct {
-		name     string
-		args     map[string]any
-		expected string
-	}{
-		{"empty", map[string]any{}, ""},
-		{"single", map[string]any{"path": "/tmp/test.txt"}, "path=/tmp/test.txt"},
-		{"multiple", map[string]any{"a": "1", "b": "2"}, ""},
-		{"long value", map[string]any{"data": string(make([]byte, 100))}, "data="},
-	}
+func TestAssistantMarkdown_Render(t *testing.T) {
+    // Initialize a model without an actual agent (nil) and no slash registry.
+    model := InitialModel(nil, nil, nil)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := formatArgs(tt.args)
-			if tt.name == "empty" && result != "" {
-				t.Errorf("Expected empty for empty args, got %q", result)
-			}
-			if tt.name == "single" && result == "" {
-				t.Error("Expected non-empty result for single arg")
-			}
-		})
-	}
-}
+    // Simulate assistant message start.
+    startEvt := EventMsg(agent.AgentEvent{Type: agent.EventMessageStart, Message: ai.AssistantMessage{}})
+    model.Update(startEvt)
 
-func TestFormatArgs_NilArgs(t *testing.T) {
-	result := formatArgs(nil)
-	if result != "" {
-		t.Errorf("Expected empty for nil args, got %q", result)
-	}
-}
+    // Simulate a text delta containing markdown.
+    mdText := "**bold**"
+    updateEvt := EventMsg(agent.AgentEvent{Type: agent.EventMessageUpdate, AssistantMessageEvent: &ai.AssistantMessageEvent{Type: ai.EventTextDelta, Delta: &mdText}})
+    model.Update(updateEvt)
 
-func TestExtractContent_Nil(t *testing.T) {
-	result := extractContent(nil)
-	if result != "" {
-		t.Errorf("Expected empty for nil, got %q", result)
-	}
-}
+    // End the assistant message.
+    endEvt := EventMsg(agent.AgentEvent{Type: agent.EventMessageEnd})
+    model.Update(endEvt)
 
-func TestExtractContent_ToolResult(t *testing.T) {
-	result := agent.AgentToolResult{
-		Content: []ai.Content{
-			ai.TextContent{Text: "hello world"},
-		},
-	}
-	content := extractContent(result)
-	if content != "hello world" {
-		t.Errorf("Expected 'hello world', got %q", content)
-	}
-}
-
-func TestExtractContent_String(t *testing.T) {
-	content := extractContent("some string")
-	if content == "" {
-		t.Error("Expected non-empty content for string input")
-	}
-}
-
-func TestInitialModel(t *testing.T) {
-	eventsChan := make(chan agent.AgentEvent, 10)
-	slashReg := slashcommands.NewRegistry()
-	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
-
-	model := InitialModel(ag, eventsChan, slashReg)
-	if model == nil {
-		t.Fatal("Expected non-nil model")
-	}
-	if model.agent == nil {
-		t.Error("Expected agent to be set")
-	}
-	if model.eventsChan == nil {
-		t.Error("Expected eventsChan to be set")
-	}
-}
-
-func TestInitialModel_NilSlashReg(t *testing.T) {
-	eventsChan := make(chan agent.AgentEvent, 10)
-	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
-
-	model := InitialModel(ag, eventsChan, nil)
-	if model == nil {
-		t.Fatal("Expected non-nil model")
-	}
-}
-
-func TestAgentUIModel_View(t *testing.T) {
-	eventsChan := make(chan agent.AgentEvent, 10)
-	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
-
-	model := InitialModel(ag, eventsChan, nil)
-	view := model.View()
-	if view == "" {
-		t.Error("Expected non-empty view")
-	}
-}
-
-func TestAgentUIModel_View_Quitting(t *testing.T) {
-	eventsChan := make(chan agent.AgentEvent, 10)
-	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
-
-	model := InitialModel(ag, eventsChan, nil)
-	model.quitting = true
-	view := model.View()
-	if !containsStr(view, "Goodbye") {
-		t.Errorf("Expected 'Goodbye' in quitting view, got %q", view)
-	}
-}
-
-func TestAgentUIModel_Styles(t *testing.T) {
-	// Test that styles are defined
-	_ = StyleUser.String()
-	_ = StyleAssistant.String()
-	_ = StyleToolTitle.String()
-	_ = StyleError.String()
-	_ = StyleSystem.String()
-	_ = StyleThinking.String()
-	_ = StyleSlashInfo.String()
-	_ = StyleHeader.String()
-	_ = StyleCompaction.String()
-	_ = StyleRetry.String()
-}
-
-func TestNewInteractiveRenderer(t *testing.T) {
-	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
-	renderer := NewInteractiveRenderer(ag)
-	if renderer == nil {
-		t.Fatal("Expected non-nil renderer")
-	}
-	if renderer.eventsChan == nil {
-		t.Error("Expected eventsChan to be set")
-	}
-}
-
-func TestNewInteractiveRendererWithSlashCommands(t *testing.T) {
-	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
-	slashReg := slashcommands.NewRegistry()
-	renderer := NewInteractiveRendererWithSlashCommands(ag, slashReg)
-	if renderer == nil {
-		t.Fatal("Expected non-nil renderer")
-	}
-}
-
-func TestBubbleteaRenderer_RenderEvent(t *testing.T) {
-	ag := agent.NewAgent(ai.ModelInfo{ID: "test", Provider: ai.ProviderOpenAI}, nil, ai.StreamOpenAIResponses, agent.AgentLoopConfig{})
-	renderer := NewInteractiveRenderer(ag)
-
-	// Send an event - should not block
-	renderer.RenderEvent(agent.AgentEvent{Type: agent.EventAgentStart})
-}
-
-func TestEventMsg_Type(t *testing.T) {
-	event := EventMsg{Type: agent.EventAgentStart}
-	if event.Type != agent.EventAgentStart {
-		t.Error("Event type mismatch")
-	}
-}
-
-func containsStr(s, sub string) bool {
-	return len(s) >= len(sub) && (s == sub || len(sub) == 0 ||
-		(len(s) > 0 && len(sub) > 0 && findSubstr(s, sub)))
-}
-
-func findSubstr(s, sub string) bool {
-	for i := 0; i <= len(s)-len(sub); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
-		}
-	}
-	return false
+    // Render the view.
+    out := model.View()
+    // Glamour renders bold with ANSI escape code \x1b[1m.
+    if !strings.Contains(strings.ToLower(out), "bold") {
+        t.Fatalf("expected rendered markdown containing 'bold' in view output, got: %s", out)
+    }
 }

@@ -22,7 +22,15 @@ Returns the current status and version of the server.
 
 ### Chat Stream
 `POST /api/chat`
-Starts a streaming AI conversation.
+Starts a streaming AI conversation using native Server-Sent Events (SSE).
+
+**Example (cURL):**
+```bash
+curl -N -X POST http://localhost:8080/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello, Pi!", "sessionId": "optional-id"}'
+```
+
 **Payload:**
 ```json
 {
@@ -30,7 +38,7 @@ Starts a streaming AI conversation.
   "message": "User prompt"
 }
 ```
-**Response:** SSE (Server-Sent Events) stream of `AgentEvent` objects.
+**Response:** SSE stream of `AgentEvent` objects. For detailed integration logic, see [API_GUIDELINES.md](API_GUIDELINES.md).
 
 ### List Sessions
 `GET /api/sessions`
@@ -40,7 +48,21 @@ Returns a list of active session IDs.
 
 ### Tabby Completion (v1)
 `POST /v1/completions`
-Provides compatibility with Tabby-compatible IDE extensions. Supports standard code completion and next-edit suggestions.
+Provides compatibility with Tabby-compatible IDE extensions. Supports standard code completion and Fill-In-the-Middle (FIM).
+
+**Example (cURL):**
+```bash
+curl -X POST http://localhost:8080/v1/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "segments": {
+      "prefix": "func main() {",
+      "suffix": "}"
+    },
+    "language": "go"
+  }'
+```
+
 **Payload:** Matches Tabby's `CompletionRequest` schema.
 **Response:** Matches Tabby's `CompletionResponse` schema.
 
@@ -62,6 +84,19 @@ Predictive editing based on git diffs and current file segments.
 ### Warp Action
 `POST /api/warp/action`
 Executes an agentic action using the Warp-compatible `AIAgentActionType` schema. Supported types: `RequestCommandOutput`, `ReadFiles`, `Grep`, `FileGlob`, `CallMCPTool`, `UseComputer`.
+
+**Example (cURL):**
+```bash
+curl -X POST http://localhost:8080/api/warp/action \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "RequestCommandOutput",
+    "params": {
+      "command": "hostname"
+    }
+  }'
+```
+
 **Payload:**
 ```json
 {
@@ -74,19 +109,40 @@ Executes an agentic action using the Warp-compatible `AIAgentActionType` schema.
 **Response:** Warp-compatible `ActionResponse`.
 
 ### Hyper Theme Sync
-`POST /api/hyper/theme` (Note: internal routing via `hyper_theme_sync` tool)
-Synchronizes the terminal theme with a Hyper-compatible configuration.
+`POST /api/hyper/theme`
+Synchronizes the terminal theme with a Hyper-compatible configuration. This affects the TUI's color palette and styling in real-time.
+
+**Example (cURL):**
+```bash
+curl -X POST http://localhost:8080/api/hyper/theme \
+  -H "Content-Type: application/json" \
+  -d '{"config": "{\"config\": {\"colors\": {\"black\": \"#000000\"}}}"}'
+```
+
 **Payload:**
 ```json
 {
   "config": "{ \"config\": { \"colors\": { \"black\": \"#000000\", ... } } }"
 }
 ```
-**Response:** Success message confirming initialization.
+**Response:** `{"message": "Hyper theme synchronization initialized"}`
 
 ### Wave Action
 `POST /api/wave/action`
 Executes an agentic action using the Wave-compatible `aiusechat` schema. Supported types: `readfile`, `writefile`, `term`, `web`, `screenshot`.
+
+**Example (cURL):**
+```bash
+curl -X POST http://localhost:8080/api/wave/action \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "readfile",
+    "params": {
+      "path": "go.mod"
+    }
+  }'
+```
+
 **Payload:**
 ```json
 {
@@ -100,7 +156,7 @@ Executes an agentic action using the Wave-compatible `aiusechat` schema. Support
 
 ## Unified Tool Harness
 
-The server also supports a wide range of assimilated tools via its internal harness. These can be invoked by agents or via specialized adapters.
+The server also supports a wide range of assimilated tools via its internal harness. These can be invoked by agents or via specialized adapters. For a detailed specification of all available tools, see [TOOLS.md](TOOLS.md).
 
 ### Available Parity Tools
 - `antigravity_auto_click`: Scans for and clicks common VS Code AI buttons.
