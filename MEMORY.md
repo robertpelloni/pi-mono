@@ -17,5 +17,3 @@
 - **Unified Tool Harness (`pkg/ai/harness.go`)**: Manages routing of Tabby, Warp, and Wave API requests to native handlers.
 - **RepoMap (`pkg/repomap`)**: Internalized symbol extraction and ranking for optimized context usage.
 - **Terminal Parity**: Go TUI supports OSC 8/133 sequences for modern terminal feature matching.
-- **Security Logic**: `pkg/ai/security.go` implements prefix-overlap protected path validation using `filepath.Rel`.
-- **Binary Naming**: The project core is consolidated into the `pi` binary (from `cmd/pi`), deprecating the `pi-agent` and `pi-server` names for a unified interface.

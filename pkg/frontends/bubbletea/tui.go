@@ -11,6 +11,7 @@ import (
 	"github.com/badlogic/pi-mono/pkg/ai"
 	"github.com/badlogic/pi-mono/pkg/agentregistry"
 	"github.com/badlogic/pi-mono/pkg/slashcommands"
+	"github.com/badlogic/pi-mono/pkg/util"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -48,11 +49,6 @@ type AgentUIModel struct {
 	completions      []string
 	completionIndex  int
 	completionPrefix string // text before the cursor that triggered completion
-	autocompleteProviders []AutocompleteProvider
-	// Markdown rendering for assistant messages
-	markdownComponents []*Markdown
-	assistantBuffer strings.Builder
-	inAssistantMessage bool
 }
 
 // EventMsg is a wrapper to send AgentEvent instances into the Bubbletea Update loop.
@@ -89,15 +85,14 @@ func InitialModel(ag *agent.Agent, eventsChan chan agent.AgentEvent, slashReg *s
 	vp.SetContent("Welcome to the Pi Go Agent CLI! Type your prompt below.")
 
 	return &AgentUIModel{
-	eventsChan:    eventsChan,
-	viewport:      vp,
-	textarea:      ta,
-	editor:        NewEditor(&ta),
-	overlayStack:  NewOverlayStack(),
-	agent:         ag,
-	slashRegistry: slashReg,
-	spinner:       s,
-	autocompleteProviders: []AutocompleteProvider{NewSlashProvider(slashReg), NewFileProvider()},
+		eventsChan:    eventsChan,
+		viewport:      vp,
+		textarea:      ta,
+		editor:        NewEditor(&ta),
+		overlayStack:  NewOverlayStack(),
+		agent:         ag,
+		slashRegistry: slashReg,
+		spinner:       s,
 	}
 }
 
@@ -358,11 +353,7 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case agent.EventMessageStart:
 			if event.Message != nil {
 				if event.Message.GetRole() == ai.RoleAssistant {
-					// Start a new assistant message with markdown rendering.
-					m.inAssistantMessage = true
-					m.assistantBuffer.Reset()
-					md := NewMarkdown("", "dark")
-					m.markdownComponents = append(m.markdownComponents, md)
+					m.conversation.WriteString(StyleAssistant.Render("\n[Assistant]: "))
 				}
 			}
 		case agent.EventMessageUpdate:
@@ -374,17 +365,7 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						if strings.HasPrefix(text, "Thought:") || strings.Contains(m.conversation.String(), "Thought:") {
 							m.statusLine = "Reasoning (ReAct)..."
 						}
-						if m.inAssistantMessage {
-							// Accumulate into buffer and update the current markdown component.
-							m.assistantBuffer.WriteString(text)
-							if len(m.markdownComponents) > 0 {
-								last := m.markdownComponents[len(m.markdownComponents)-1]
-								last.SetSource(m.assistantBuffer.String())
-							}
-						} else {
-							// Fallback: write to conversation if not in assistant message (shouldn't happen).
-							m.conversation.WriteString(text)
-						}
+						m.conversation.WriteString(text)
 					}
 				case ai.EventThinkingStart:
 					m.conversation.WriteString(StyleThinking.Render("\n[Thinking] "))
@@ -395,8 +376,6 @@ func (m *AgentUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		case agent.EventMessageEnd:
-			m.inAssistantMessage = false
-			// Optional: add blank line for spacing.
 			m.conversation.WriteString("\n")
 		case agent.EventToolExecutionStart:
 			m.activeTool = event.ToolName
@@ -454,23 +433,49 @@ func (m *AgentUIModel) updateCompletions() {
 		return
 	}
 
-	// Iterate over registered autocomplete providers.
-	for _, provider := range m.autocompleteProviders {
-		if provider.Trigger(val, cursorPos) {
-			comps := provider.Complete(val, cursorPos)
-			if len(comps) > 0 {
-				m.showCompletions = true
-				m.completions = comps
-				m.completionPrefix = provider.Prefix()
-				if m.completionIndex >= len(m.completions) {
-					m.completionIndex = 0
+	// Simple trigger: '/' at start
+	if strings.HasPrefix(val, "/") && !strings.Contains(val[:cursorPos], " ") {
+		m.showCompletions = true
+		prefix := val[1:cursorPos]
+		m.completionPrefix = "/"
+		m.completions = []string{}
+		if m.slashRegistry != nil {
+			for _, cmd := range m.slashRegistry.ListCommands() {
+				if strings.HasPrefix(cmd, prefix) {
+					m.completions = append(m.completions, "/"+cmd)
 				}
-				return
 			}
 		}
+		if len(m.completions) == 0 {
+			m.showCompletions = false
+		} else if m.completionIndex >= len(m.completions) {
+			m.completionIndex = 0
+		}
+		return
 	}
 
-	// No provider matched or no completions.
+	// Trigger: '@' for files
+	lastAt := strings.LastIndex(val[:cursorPos], "@")
+	if lastAt != -1 && (lastAt == 0 || val[lastAt-1] == ' ') {
+		prefix := val[lastAt+1 : cursorPos]
+		m.showCompletions = true
+		m.completionPrefix = "@"
+		// In a real app we'd debounce this or use a cache
+		files := util.ListFilesRecursively(".", 100) // limit to 100
+		m.completions = []string{}
+		for _, f := range files {
+			if strings.Contains(strings.ToLower(f), strings.ToLower(prefix)) {
+				m.completions = append(m.completions, "@"+f)
+			}
+		}
+		if len(m.completions) == 0 {
+			m.showCompletions = false
+		} else if m.completionIndex >= len(m.completions) {
+			m.completionIndex = 0
+		}
+		return
+	}
+
 	m.showCompletions = false
 }
 
@@ -553,10 +558,6 @@ func (m *AgentUIModel) View() string {
 	} else {
 		for _, l := range strings.Split(m.viewport.View(), "\n") {
 			lines = append(lines, l)
-		}
-		// Render any assistant markdown components.
-		for _, md := range m.markdownComponents {
-			lines = append(lines, md.Render(m.viewport.Width)...)
 		}
 	}
 	if footer != "" {

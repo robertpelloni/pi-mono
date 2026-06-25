@@ -47,8 +47,6 @@
 		"@mariozechner/jiti": "^2.6.5",
 		"@mariozechner/pi-coding-agent": "^0.30.2",
 		"get-east-asian-width": "^1.4.0",
-		"js-yaml": "^4.2.0",
-		"minimatch": "^9.0.9",
 		"vite": "8.0.16"
 	},
 	"overrides": {

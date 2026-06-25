@@ -6,7 +6,7 @@ Pi Agent provides 1:1 API compatibility with several major AI coding tools and t
 Pi supports the Tabby v1 completion and next-edit suggestion APIs.
 
 ### Configuration
-1. Start the Pi server: `./pi server --port 8080`
+1. Start the Pi server: `./pi-agent server --port 8080`
 2. In your IDE (VS Code, IntelliJ), locate the Tabby extension settings.
 3. Set the **Server URL** to: `http://localhost:8080`
 4. Pi will now handle code completions and Fill-In-the-Middle (FIM) requests using its unified model registry.
@@ -56,21 +56,6 @@ Pi's **Unified Tool Harness** (`pkg/ai/harness.go`) performs the following trans
 
 ---
 
-## Configuration & Environment
-Pi's toolset relies on several environment variables and system-level prerequisites for full functionality.
-
-### Security & Path Restrictions
-- **`PI_ALLOWED_ROOT`**: (Optional) Define the root directory for all file operations. Tools will validate paths against this root to prevent directory traversal.
-- **`PI_AGENT_DIR`**: Set the base directory for persistent state (default `~/.pi`).
-
-### System Prerequisites
-To support the full range of assimilated actions, the following tools should be installed on the host:
-- **`ripgrep` (rg)**: Required for Warp's `Grep` and Wave's search actions.
-- **`lynx`**: Required for Wave's `web` and search actions.
-- **`xdotool`**: Required for Warp's `UseComputer` and OpenInterpreter parity.
-- **`scrot`**: Required for the `screenshot` tool in Wave and Warp.
-
 ## Troubleshooting
 - **No Models Error**: Ensure you have registered at least one model in the registry (see `DEPLOY.md`).
 - **Permission Denied**: Some tools (like `bash` or `writefile`) require appropriate system permissions for the user running the Pi server.
-- **Path Traversal Error**: If you receive a "security violation" error, ensure your tool's path parameters are relative to the project root or within the `/tmp/` directory.

@@ -285,10 +285,7 @@ func TestFormatProviderError(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", srv.URL, nil)
 	client := &http.Client{}
-	httpResp, err := client.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	httpResp, _ := client.Do(req)
 	defer httpResp.Body.Close()
 
 	errMsg := formatProviderError("OpenAI", httpResp)

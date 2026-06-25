@@ -48,35 +48,14 @@ func (m *ModelInfo) Stream(ctx context.Context, aiCtx Context, options any) (Ass
 	return provider.Stream(ctx, *m, aiCtx, options), nil
 }
 
-// GetDefaultModel returns the default model from the registry based on a deterministic policy.
+// GetDefaultModel returns the default model from the registry.
 func (r *Registry) GetDefaultModel() *ModelInfo {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-
-	if r.defaultModelID != "" {
-		for _, providerModels := range r.models {
-			if model, exists := providerModels[r.defaultModelID]; exists {
-				return &model
-			}
-		}
-	}
-
-	// Fallback to first available model from OpenAI or Anthropic
-	priorityProviders := []Provider{ProviderOpenAI, ProviderAnthropic}
-	for _, p := range priorityProviders {
-		if models, exists := r.models[p]; exists {
-			for _, m := range models {
-				model := m
-				return &model
-			}
-		}
-	}
-
-	// Last fallback: first available model
+	// Simple stub for parity tools - in a real implementation this would be configurable.
 	for _, providerModels := range r.models {
 		for _, model := range providerModels {
-			m := model
-			return &m
+			return &model
 		}
 	}
 	return nil
