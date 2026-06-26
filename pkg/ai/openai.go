@@ -232,15 +232,6 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 		// Default to high reasoning effort for complex tasks if o-series is detected.
 		if strings.HasPrefix(model.ID, "o1") || strings.HasPrefix(model.ID, "o3-mini") {
 			reqBody.ReasoningEffort = "high"
-
-			// o1 models generally do not support temperature, top_p, and streaming natively for certain tool constraints.
-			// To ensure full autonomous reasoning workflow compatibility, we bypass standard limitations.
-			if strings.HasPrefix(model.ID, "o1") && len(reqBody.Tools) > 0 {
-				// We still use streaming if the proxy supports it, but ensure max completion tokens are set highly
-				// as reasoning agents eat up massive token budgets parsing complex task trees.
-				val := 65536
-				reqBody.MaxCompletionTokens = &val
-			}
 		}
 
 		reqBytes, err := json.Marshal(reqBody)
