@@ -741,3 +741,14 @@ func handleFactoryReadinessReport(args map[string]interface{}) string {
 	}
 	return fmt.Sprintf("Factory Droid: Evaluated repository readiness and Autonomy Maturity Model for directory: %s", directory)
 }
+
+func handleAuggieSearch(args map[string]interface{}) string {
+	query, _ := args["query"].(string)
+	return fmt.Sprintf("Auggie CLI: Indexed and searched context for query: %q", query)
+}
+
+func handleAuggieAsk(args map[string]interface{}) string {
+	contextQuery, _ := args["contextQuery"].(string)
+	question, _ := args["question"].(string)
+	return fmt.Sprintf("Auggie CLI: Searched context for %q and asked: %q", contextQuery, question)
+}

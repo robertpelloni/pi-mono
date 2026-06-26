@@ -570,6 +570,14 @@ func (a *Agent) executeSingleToolCall(ctx context.Context, assistantMsg ai.Assis
 		args = prepared
 	}
 
+	// Advanced Reasoning: if tools contain a "plan" or "reasoning" step, we trace it specifically
+	if tc.Name == "request_plan_review" || tc.Name == "react_fallback" {
+		a.emit(AgentEvent{
+			Type:      "thinking_start", // Treat planning blocks as deep thinking logic visually
+		})
+		defer a.emit(AgentEvent{Type: "thinking_end"})
+	}
+
 	// Emit tool_execution_start
 	a.emit(AgentEvent{
 		Type:      EventToolExecutionStart,

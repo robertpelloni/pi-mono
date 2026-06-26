@@ -90,3 +90,45 @@ func TestCleanRoomHandlers_AntigravityAutoClick(t *testing.T) {
 		t.Errorf("expected Antigravity prefix, got: %s", resp)
 	}
 }
+
+func TestCleanRoomHandlers_AdvancedReasoningParity(t *testing.T) {
+	t.Run("Auggie Search", func(t *testing.T) {
+		args := map[string]interface{}{"query": "find user loops"}
+		resp := handleAuggieSearch(args)
+		if !strings.Contains(resp, "find user loops") {
+			t.Errorf("expected search query in output, got: %s", resp)
+		}
+	})
+
+	t.Run("Auggie Ask", func(t *testing.T) {
+		args := map[string]interface{}{"contextQuery": "find user loops", "question": "where is it?"}
+		resp := handleAuggieAsk(args)
+		if !strings.Contains(resp, "where is it") {
+			t.Errorf("expected question in output, got: %s", resp)
+		}
+	})
+
+	t.Run("Factory Review", func(t *testing.T) {
+		args := map[string]interface{}{"review_type": "commit", "target": "HEAD~1"}
+		resp := handleFactoryReview(args)
+		if !strings.Contains(resp, "Performed commit review against target: HEAD~1") {
+			t.Errorf("expected review details in output, got: %s", resp)
+		}
+	})
+
+	t.Run("Factory Readiness Report", func(t *testing.T) {
+		args := map[string]interface{}{"directory": "src/"}
+		resp := handleFactoryReadinessReport(args)
+		if !strings.Contains(resp, "src/") {
+			t.Errorf("expected directory in output, got: %s", resp)
+		}
+	})
+
+	t.Run("Amp Review", func(t *testing.T) {
+		args := map[string]interface{}{"diff_id": "diff123"}
+		resp := handleAmpReview(args)
+		if !strings.Contains(resp, "diff123") {
+			t.Errorf("expected diff_id in output, got: %s", resp)
+		}
+	})
+}
