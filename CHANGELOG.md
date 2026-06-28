@@ -1,3 +1,8 @@
+## [0.97.1] - 2026-07-06
+### Added
+- **Phase 20 Completion**: Finalized Extended Assimilation of Claude Desktop, Claude Code, Codex Desktop, Codex CLI, Gemini CLI and Hermes Desktop tools directly into native Go clean room schemas.
+- **Security Hardening**: Re-audited `safePath` and applied latest Govulncheck recommendations through go mod tidy bumps.
+
 # Project Changelog (Go Port & Monorepo Submodules)
 
 ## [Unreleased]
