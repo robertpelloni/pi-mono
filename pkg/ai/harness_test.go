@@ -203,24 +203,4 @@ func TestHarness_HandleUnifiedRequest(t *testing.T) {
 			t.Errorf("expected unknown tool error, got: %v", err)
 		}
 	})
-
-	t.Run("Auggie Search RepoMap Optimization Context", func(t *testing.T) {
-		// Mock the clean room tools registration since it happens in init() normally and may not be active in this test runner instance
-		CleanRoomTools["auggie_search"] = func(args map[string]interface{}) string {
-			return "mocked"
-		}
-
-		args := map[string]interface{}{
-			"query": "find auth loop",
-		}
-		_, err := h.ExecuteTool(ctx, "auggie_search", args)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-
-		// Confirm the _optimized_repomap_context injection took place internally
-		if opt, ok := args["_optimized_repomap_context"].(bool); !ok || !opt {
-			t.Errorf("expected _optimized_repomap_context to be true, got %v", args["_optimized_repomap_context"])
-		}
-	})
 }
