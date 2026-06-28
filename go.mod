@@ -1,6 +1,6 @@
 module github.com/badlogic/pi-mono
 
-go 1.24.3
+go 1.24.12
 
 require (
 	github.com/charmbracelet/bubbles v1.0.0
