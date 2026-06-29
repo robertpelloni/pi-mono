@@ -14,8 +14,8 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Remove all submodules from the repository.
 
 ## Documentation & Maintenance
-- [ ] Synchronize `VISION.md` with the finalized Go architecture.
-- [ ] Update `DEPLOY.md` with cross-platform binary instructions.
+- [x] Synchronize `VISION.md` with the finalized Go architecture.
+- [x] Update `DEPLOY.md` with cross-platform binary instructions.
 - [x] Audit `IDEAS.md` for post-assimilation pivot opportunities. (Implemented Git Auto-Commit & Themes)
 
 # Crucial Code Review Fixes (Completed)
