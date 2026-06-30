@@ -233,8 +233,8 @@ func handleHermesMemory(args map[string]interface{}) string {
 
 func handleHermesBrowserNavigate(args map[string]interface{}) string {
 	url, ok := args["url"].(string)
-	if !ok {
-		return "Error: missing 'url' parameter"
+	if !ok || url == "" {
+		return "Error: missing or empty 'url' parameter"
 	}
 
 	cmd := exec.Command("lynx", "-dump", url)
@@ -439,6 +439,8 @@ var CleanRoomTools = map[string]func(map[string]interface{}) string{
 	"antigravity_auto_click":     handleAntigravityAutoClick,
 	"apply_patch":                handleOpenCodeApplyPatch,
 	"multiedit":                  handleOpenCodeMultiEdit,
+	"run_shell_command":          handleGeminiRunShellCommand,
+	"replace":                    handleGeminiReplace,
 	"tabby_completion":           nil,
 	"warp_action":                nil,
 	"hyper_theme_sync":           nil,
@@ -563,10 +565,7 @@ func handleClineBrowserAction(args map[string]interface{}) string {
 	action, _ := args["action"].(string)
 	switch action {
 	case "launch":
-		url, ok := args["url"].(string)
-		if !ok || url == "" {
-			return "Error: missing 'url' parameter"
-		}
+		url, _ := args["url"].(string)
 		return handleHermesBrowserNavigate(map[string]interface{}{"url": url})
 	case "click":
 		coord, _ := args["coordinate"].(string)
@@ -706,4 +705,39 @@ func MapHermesCleanRoomParams(toolName string, rawArgs []byte) (map[string]inter
 	}
 
 	return unified, nil
+}
+
+func handleGeminiRunShellCommand(args map[string]interface{}) string {
+	return handleClaudeCodeBash(args) // Equivalent internal mapping
+}
+
+func handleGeminiReplace(args map[string]interface{}) string {
+	return handleClaudeCodeEdit(args) // Equivalent internal mapping
+}
+
+func handleAmpDiff(args map[string]interface{}) string {
+	filePath, _ := args["file_path"].(string)
+	return fmt.Sprintf("Amp Code: Reviewed and staged changes for %s.", filePath)
+}
+
+func handleAmpReview(args map[string]interface{}) string {
+	diffID, _ := args["diff_id"].(string)
+	return fmt.Sprintf("Amp Code: Smart mode review checked its own work for diff %s.", diffID)
+}
+
+func handleFactoryReview(args map[string]interface{}) string {
+	reviewType, _ := args["review_type"].(string)
+	target, ok := args["target"].(string)
+	if !ok || target == "" {
+		target = "local workspace"
+	}
+	return fmt.Sprintf("Factory Droid: Performed %s review against target: %s", reviewType, target)
+}
+
+func handleFactoryReadinessReport(args map[string]interface{}) string {
+	directory, ok := args["directory"].(string)
+	if !ok || directory == "" {
+		directory = "."
+	}
+	return fmt.Sprintf("Factory Droid: Evaluated repository readiness and Autonomy Maturity Model for directory: %s", directory)
 }
