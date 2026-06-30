@@ -65,9 +65,6 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/wave/action", s.handleWaveAction())
 	s.mux.HandleFunc("/api/hyper/theme", s.handleHyperTheme())
 
-	// System Monitoring Endpoints
-	s.mux.HandleFunc("/system/status", s.handleSystemStatus())
-
 	// Serve static files
 	fileServer := http.FileServer(http.Dir(s.staticDir))
 	s.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -280,38 +277,5 @@ func (s *Server) handleWarpAction() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
-	}
-}
-
-func (s *Server) handleSystemStatus() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		type SubmoduleStatus struct {
-			Name   string `json:"name"`
-			Status string `json:"status"`
-		}
-
-		type SystemStatus struct {
-			Version    string            `json:"version"`
-			Status     string            `json:"status"`
-			Submodules []SubmoduleStatus `json:"submodules"`
-		}
-
-		// Mocked status based on the finalized submodule state for UI rendering
-		status := SystemStatus{
-			Version: pkg.Version,
-			Status:  "Healthy",
-			Submodules: []SubmoduleStatus{
-				{Name: "pi-mono", Status: "Syncing"},
-				{Name: "assimilated", Status: "100%"},
-			},
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(status)
 	}
 }

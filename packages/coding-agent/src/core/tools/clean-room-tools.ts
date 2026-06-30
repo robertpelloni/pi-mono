@@ -1,37 +1,21 @@
 import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { Text } from "@mariozechner/pi-tui";
 import {
-	handleAmpDiff,
-	handleAmpReview,
 	handleClineAskFollowup,
 	handleClineBrowserAction,
 	handleClineExecuteCommand,
 	handleClineListCodeDefinitionNames,
 	handleClineWriteToFile,
-	handleFactoryReadinessReport,
-	handleFactoryReview,
-	handleGeminiReplace,
-	handleGeminiRunShellCommand,
 	handleHermesMemory,
-	handleOpenCodeApplyPatch,
-	handleOpenCodeMultiEdit,
 	handleOpenInterpreterComputerUse,
 } from "./clean-room-handlers.js";
 import {
-	ampDiffSchema,
-	ampReviewSchema,
 	clineAskFollowupSchema,
 	clineBrowserActionSchema,
 	clineExecuteCommandSchema,
 	clineListCodeDefinitionNamesSchema,
 	clineWriteToFileSchema,
-	factoryReadinessReportSchema,
-	factoryReviewSchema,
-	geminiReplaceSchema,
-	geminiRunShellCommandSchema,
 	hermesMemorySchema,
-	openCodeApplyPatchSchema,
-	openCodeMultiEditSchema,
 	openInterpreterComputerUseSchema,
 } from "./clean-room-schemas.js";
 import { wrapToolDefinition } from "./tool-definition-wrapper.js";
@@ -56,102 +40,6 @@ export function createOpenInterpreterComputerUseTool(): AgentTool<typeof openInt
 		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("Computer action executed.");
-			return text;
-		},
-	});
-}
-
-export function createFactoryReviewTool(): AgentTool<typeof factoryReviewSchema> {
-	return wrapToolDefinition({
-		name: "factory_review",
-		label: "factory_review",
-		description: "Analyze local code changes with AI-powered review workflows.",
-		promptSnippet: "Use factory_review",
-		promptGuidelines: [],
-		parameters: factoryReviewSchema,
-		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
-			const output = await handleFactoryReview(args);
-			return { content: [{ type: "text", text: output }], details: {} };
-		},
-		renderCall(_args, theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			text.setText(`${theme.fg("toolTitle", theme.bold("factory_review"))}`);
-			return text;
-		},
-		renderResult(_result, _options, _theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			return text;
-		},
-	});
-}
-
-export function createFactoryReadinessReportTool(): AgentTool<typeof factoryReadinessReportSchema> {
-	return wrapToolDefinition({
-		name: "factory_readiness_report",
-		label: "factory_readiness_report",
-		description: "Evaluate the repository against the Autonomy Maturity Model.",
-		promptSnippet: "Use factory_readiness_report",
-		promptGuidelines: [],
-		parameters: factoryReadinessReportSchema,
-		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
-			const output = await handleFactoryReadinessReport(args);
-			return { content: [{ type: "text", text: output }], details: {} };
-		},
-		renderCall(_args, theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			text.setText(`${theme.fg("toolTitle", theme.bold("factory_readiness_report"))}`);
-			return text;
-		},
-		renderResult(_result, _options, _theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			return text;
-		},
-	});
-}
-
-export function createAmpDiffTool(): AgentTool<typeof ampDiffSchema> {
-	return wrapToolDefinition({
-		name: "amp_diff",
-		label: "amp_diff",
-		description: "Review and stage changes directly in Amp.",
-		promptSnippet: "Use amp_diff",
-		promptGuidelines: [],
-		parameters: ampDiffSchema,
-		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
-			const output = await handleAmpDiff(args);
-			return { content: [{ type: "text", text: output }], details: {} };
-		},
-		renderCall(_args, theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			text.setText(`${theme.fg("toolTitle", theme.bold("amp_diff"))}`);
-			return text;
-		},
-		renderResult(_result, _options, _theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			return text;
-		},
-	});
-}
-
-export function createAmpReviewTool(): AgentTool<typeof ampReviewSchema> {
-	return wrapToolDefinition({
-		name: "amp_review",
-		label: "amp_review",
-		description: "Claude Opus 4.8 makes tighter changes and checks its own work.",
-		promptSnippet: "Use amp_review",
-		promptGuidelines: [],
-		parameters: ampReviewSchema,
-		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
-			const output = await handleAmpReview(args);
-			return { content: [{ type: "text", text: output }], details: {} };
-		},
-		renderCall(_args, theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			text.setText(`${theme.fg("toolTitle", theme.bold("amp_review"))}`);
-			return text;
-		},
-		renderResult(_result, _options, _theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			return text;
 		},
 	});
@@ -302,102 +190,6 @@ export function createClineBrowserActionTool(): AgentTool<typeof clineBrowserAct
 		renderResult(_result, _options, _theme, context) {
 			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			text.setText("Browser action complete.");
-			return text;
-		},
-	});
-}
-
-export function createOpenCodeApplyPatchTool(): AgentTool<typeof openCodeApplyPatchSchema> {
-	return wrapToolDefinition({
-		name: "apply_patch",
-		label: "apply_patch",
-		description: "Apply a patch to files. The patch format is similar to unified diffs.",
-		promptSnippet: "Use apply_patch",
-		promptGuidelines: [],
-		parameters: openCodeApplyPatchSchema,
-		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
-			const output = await handleOpenCodeApplyPatch(args);
-			return { content: [{ type: "text", text: output }], details: {} };
-		},
-		renderCall(_args, theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			text.setText(`${theme.fg("toolTitle", theme.bold("apply_patch"))}`);
-			return text;
-		},
-		renderResult(_result, _options, _theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			return text;
-		},
-	});
-}
-
-export function createOpenCodeMultiEditTool(): AgentTool<typeof openCodeMultiEditSchema> {
-	return wrapToolDefinition({
-		name: "multiedit",
-		label: "multiedit",
-		description: "Apply multiple find-and-replace edits to a file.",
-		promptSnippet: "Use multiedit",
-		promptGuidelines: [],
-		parameters: openCodeMultiEditSchema,
-		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
-			const output = await handleOpenCodeMultiEdit(args);
-			return { content: [{ type: "text", text: output }], details: {} };
-		},
-		renderCall(_args, theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			text.setText(`${theme.fg("toolTitle", theme.bold("multiedit"))}`);
-			return text;
-		},
-		renderResult(_result, _options, _theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			return text;
-		},
-	});
-}
-
-export function createGeminiRunShellCommandTool(): AgentTool<typeof geminiRunShellCommandSchema> {
-	return wrapToolDefinition({
-		name: "run_shell_command",
-		label: "run_shell_command",
-		description: "Executes a shell command or script.",
-		promptSnippet: "Use run_shell_command",
-		promptGuidelines: [],
-		parameters: geminiRunShellCommandSchema,
-		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
-			const output = await handleGeminiRunShellCommand(args);
-			return { content: [{ type: "text", text: output }], details: {} };
-		},
-		renderCall(_args, theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			text.setText(`${theme.fg("toolTitle", theme.bold("run_shell_command"))}`);
-			return text;
-		},
-		renderResult(_result, _options, _theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			return text;
-		},
-	});
-}
-
-export function createGeminiReplaceTool(): AgentTool<typeof geminiReplaceSchema> {
-	return wrapToolDefinition({
-		name: "replace",
-		label: "replace",
-		description: "Replaces text within a file.",
-		promptSnippet: "Use replace",
-		promptGuidelines: [],
-		parameters: geminiReplaceSchema,
-		async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
-			const output = await handleGeminiReplace(args);
-			return { content: [{ type: "text", text: output }], details: {} };
-		},
-		renderCall(_args, theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
-			text.setText(`${theme.fg("toolTitle", theme.bold("replace"))}`);
-			return text;
-		},
-		renderResult(_result, _options, _theme, context) {
-			const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
 			return text;
 		},
 	});

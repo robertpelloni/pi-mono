@@ -95,8 +95,6 @@ type openAIRequest struct {
 	Messages []openAIMessage `json:"messages"`
 	Stream   bool            `json:"stream"`
 	Tools    []openAITool    `json:"tools,omitempty"`
-	ReasoningEffort string          `json:"reasoning_effort,omitempty"`
-	MaxCompletionTokens *int       `json:"max_completion_tokens,omitempty"`
 }
 
 type openAIStreamChunk struct {
@@ -150,13 +148,7 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 
 		// 1. Map System Prompt
 		if aiCtx.SystemPrompt != nil && *aiCtx.SystemPrompt != "" {
-			// o1/o3-mini models generally reject the 'system' role or strictly enforce developer roles.
-			// To be safe across the board for generic reasoning agents, we check the model ID.
-			if strings.HasPrefix(model.ID, "o1") || strings.HasPrefix(model.ID, "o3-mini") {
-				reqMessages = append(reqMessages, openAIMessage{Role: "developer", Content: *aiCtx.SystemPrompt})
-			} else {
-				reqMessages = append(reqMessages, openAIMessage{Role: "system", Content: *aiCtx.SystemPrompt})
-			}
+			reqMessages = append(reqMessages, openAIMessage{Role: "system", Content: *aiCtx.SystemPrompt})
 		}
 
 		// 2. Map Messages
@@ -227,11 +219,6 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 			Messages: reqMessages,
 			Stream:   true,
 			Tools:    reqTools,
-		}
-
-		// Default to high reasoning effort for complex tasks if o-series is detected.
-		if strings.HasPrefix(model.ID, "o1") || strings.HasPrefix(model.ID, "o3-mini") {
-			reqBody.ReasoningEffort = "high"
 		}
 
 		reqBytes, err := json.Marshal(reqBody)

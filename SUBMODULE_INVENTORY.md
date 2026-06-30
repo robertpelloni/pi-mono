@@ -20,10 +20,8 @@ This document tracks the features, functionality, and assimilation status of ext
 | `hyper` | **Assimilated** | Extensible terminal, plugin system, themes, web-tech based UI. | Hyper's plugin and theme architecture is used to enhance Pi's Go-based extension system. Parity theme configuration (colors, fonts, padding) is supported via the theme system. |
 | `wave` | **Assimilated** | AI-native terminal, Wysh (Wave Shell), block-based UI, integrated AI chat and tool loop. | Wave's `aiusechat` toolset (readfile, writefile, term, web, screenshot) is fully implemented via `HandleWaveAction` in `pkg/ai/wave.go`. The `wave_action` tool is registered in the CleanRoomTools harness. Wysh shell integration covered via unified `HandleUnifiedCommand`. |
 | `claude-desktop` | **Assimilated** | Native desktop app with Claude AI, code generation, file management, project context, MCP/ACP support. | Claude Desktop uses the same clean-room tools as Claude Code: `read_file`, `bash`, `write_file`, `edit`, `search_files`, `list_files`. Handlers registered in `CleanRoomTools` map via `init()` in `pkg/ai/clean_room_custom.go`. |
-| `auggie` | **Assimilated** | Agentic coding CLI, custom slash commands via markdown, prompt enhancement, deep codebase indexing (`DirectContext`), search and ask tools. | Auggie context retrieval translated into `auggie_search` and `auggie_ask` Clean Room schemas. Markdown slash command architecture natively supported by Pi's interactive modes. |
-| `factory` | **Assimilated** | Droid agent integration. Terminal, browser, and desktop automation via plugins. Support for /review and /readiness-report schemas and PR integration. | Handlers for `/review` and `/readiness-report` extracted and mapped into Pi's `factory_review` and `factory_readiness_report` schemas. |
 | `claude-code` | **Assimilated** | CLI-based coding agent with tool loop, file operations (read/write/edit), bash execution, search, project awareness. | Claude Code tool schemas (`ClaudeCodeRead`, `ClaudeCodeBash`, `ClaudeCodeWriteFile`, `ClaudeCodeEdit`, `ClaudeCodeSearchFiles`, `ClaudeCodeListFiles`) defined in `pkg/ai/clean_room_tools.go`. Handlers registered in `CleanRoomTools` map via `init()` in `pkg/ai/clean_room_custom.go`. Parameter mapping via `MapCleanRoomParams`. |
-| `codex-cli` | **Assimilated** | OpenAI Codex CLI — Rust-based coding agent with patch, multi-edit, auto-drive, auto-review. | Codex tools (`apply_patch`, `multiedit`) implemented as clean-room parity handlers (`handleOpenCodeApplyPatch`, `handleOpenCodeMultiEdit`) delegating to the `opencode` Rust library. Registered in `CleanRoomTools` map. Fully mapped to both Go backend and TS frontend. |
+| `codex-cli` | **Assimilated** | OpenAI Codex CLI — Rust-based coding agent with patch, multi-edit, auto-drive, auto-review. | Codex tools (`apply_patch`, `multiedit`) implemented as clean-room parity handlers (`handleOpenCodeApplyPatch`, `handleOpenCodeMultiEdit`) delegating to the `opencode` Rust library. Registered in `CleanRoomTools` map. |
 | `gemini-cli` | **Assimilated** | Google Gemini CLI — shell execution, file read/write, search, list operations. | Gemini tools share the same clean-room tool names (`read_file`, `bash`, `write_file`, `edit`, `search_files`, `list_files`) and handlers as Claude Code. `GeminiShell` schema provides the `shell` tool for Gemini-specific script execution. |
 
 ## Detailed Assimilation Progress
@@ -86,17 +84,3 @@ This document tracks the features, functionality, and assimilation status of ext
 - **Wysh Integration:** Analyzing Wave's shell (Wysh) for potential command-line parity in Pi.
 
 *(Inventory updated during Phase 20: Extended Assimilation)*
-
-### Codex CLI (`submodules/code-cli`)
-- **Patch & Multi-Edit Tools:** Integrated `apply_patch` and `multiedit` cleanly into both the TypeScript schema structures and Go runtime.
-- **Repository Assimilated:** Submodule mapping and exploration complete.
-
-### Auggie CLI (`submodules/auggie`)
-- **Context Indexing:** Auggie's `DirectContext` and search queries are translated into Pi's `auggie_search` and `auggie_ask` clean room tools to support LLMs expecting this exact interface.
-- **Slash Commands:** Auggie's `.augment/commands/` markdown-based prompt logic inherently maps to Pi's existing `.pi/instructions/` and slash-command extensibility logic.
-- **Repository Assimilated:** Parity achieved in both Go and TS layers.
-
-### Factory CLI (`submodules/factory`)
-- **Action Extensibility:** Analyzed the core plugins (Droid control, incident response, code review workflows).
-- **Tool Assimilation:** Abstracted `/review` into `factory_review` tool schema and `/readiness-report` into `factory_readiness_report` tool schema.
-- **Repository Assimilated:** Schema mapping complete. Submodule removed.

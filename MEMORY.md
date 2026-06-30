@@ -3,7 +3,7 @@
 ## Architectural Observations
 - The project has successfully moved from a TS monorepo to a unified Go project.
 - A **Unified Tool Harness** (`pkg/ai/harness.go`) manages the routing of assimilated tool schemas (Tabby, Warp) to native Go implementations.
-- External Integrations served as temporary "clean room" references to achieve tool parity with existing agents (Aider, Cline, Hermes, etc.).
+- Submodules served as temporary "clean room" references to achieve tool parity with existing agents (Aider, Cline, Hermes, etc.).
 - `pkg/ai/clean_room_handlers.go` and `pkg/ai/clean_room_tools.go` are the core of our parity effort, mapping specific schemas to internal implementations.
 
 ## Design Preferences
@@ -19,5 +19,3 @@
 - **Terminal Parity**: Go TUI supports OSC 8/133 sequences for modern terminal feature matching.
 - **Security Logic**: `pkg/ai/security.go` implements prefix-overlap protected path validation using `filepath.Rel`.
 - **Binary Naming**: The project core is consolidated into the `pi` binary (from `cmd/pi`), deprecating the `pi-agent` and `pi-server` names for a unified interface.
-
-- Phase 20 (Extended Assimilation) tools (Claude Code, Gemini, etc.) have been integrated directly into the core runtime.

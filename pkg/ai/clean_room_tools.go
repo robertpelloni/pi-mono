@@ -173,35 +173,6 @@ var GeminiShell = CleanRoomToolSchema{
 	},
 }
 
-var GeminiRunShellCommand = CleanRoomToolSchema{
-	Name:        "run_shell_command",
-	Description: "Executes a shell command or script.",
-	InputSchema: map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"command": map[string]interface{}{
-				"type":        "string",
-				"description": "The shell command to execute.",
-			},
-		},
-		"required": []string{"command"},
-	},
-}
-
-var GeminiReplace = CleanRoomToolSchema{
-	Name:        "replace",
-	Description: "Replaces text within a file.",
-	InputSchema: map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"file_path":  map[string]interface{}{"type": "string"},
-			"old_string": map[string]interface{}{"type": "string"},
-			"new_string": map[string]interface{}{"type": "string"},
-		},
-		"required": []string{"file_path", "old_string", "new_string"},
-	},
-}
-
 // MapCleanRoomParams maps the various incoming parameter names back to a unified internal parameter set.
 // For example, file_path, uri, filename -> path. command, cmd, script -> command.
 func MapCleanRoomParams(toolName string, rawArgs []byte) (map[string]interface{}, error) {
@@ -691,69 +662,6 @@ var HyperThemeSync = CleanRoomToolSchema{
 			"config": map[string]interface{}{"type": "string"},
 		},
 		"required": []string{"config"},
-	},
-}
-
-var AmpDiff = CleanRoomToolSchema{
-	Name:        "amp_diff",
-	Description: "Review and stage changes directly in Amp.",
-	InputSchema: map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"file_path": map[string]interface{}{
-				"type":        "string",
-				"description": "Path to the file to review.",
-			},
-		},
-		"required": []string{"file_path"},
-	},
-}
-
-var AmpReview = CleanRoomToolSchema{
-	Name:        "amp_review",
-	Description: "Claude Opus 4.8 makes tighter changes and checks its own work.",
-	InputSchema: map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"diff_id": map[string]interface{}{
-				"type":        "string",
-				"description": "ID of the diff to review.",
-			},
-		},
-		"required": []string{"diff_id"},
-	},
-}
-
-var FactoryReview = CleanRoomToolSchema{
-	Name:        "factory_review",
-	Description: "Analyze local code changes with AI-powered review workflows.",
-	InputSchema: map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"review_type": map[string]interface{}{
-				"type":        "string",
-				"description": "Presets: base_branch, uncommitted_changes, commit, or custom.",
-			},
-			"target": map[string]interface{}{
-				"type":        "string",
-				"description": "The branch name or commit hash to analyze.",
-			},
-		},
-		"required": []string{"review_type"},
-	},
-}
-
-var FactoryReadinessReport = CleanRoomToolSchema{
-	Name:        "factory_readiness_report",
-	Description: "Evaluate the repository against the Autonomy Maturity Model.",
-	InputSchema: map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"directory": map[string]interface{}{
-				"type":        "string",
-				"description": "The local repository path to evaluate against the Autonomy Maturity Model.",
-			},
-		},
 	},
 }
 

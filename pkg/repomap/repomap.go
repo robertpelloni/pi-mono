@@ -121,39 +121,18 @@ func Generate(options Options) (Result, error) {
 			return nil
 		}
 		rel = filepath.ToSlash(rel)
-
-		// Check cache
-		modTime := info.ModTime()
-		cached, ok := getCachedFile(path, modTime)
-		var symbols []Symbol
-		var identifiers map[string]int
-
-		if ok {
-			symbols = cached.Symbols
-			identifiers = cached.Identifiers
-		} else {
-			contentBytes, err := os.ReadFile(path)
-			if err != nil {
-				return nil
-			}
-			content := string(contentBytes)
-			symbols = extractSymbols(content)
-			identifiers = extractIdentifiers(content)
-
-			// Store in cache
-			setCachedFile(path, FileCacheEntry{
-				ModTime:     modTime,
-				Symbols:     symbols,
-				Identifiers: identifiers,
-			})
+		contentBytes, err := os.ReadFile(path)
+		if err != nil {
+			return nil
 		}
-
+		content := string(contentBytes)
+		symbols := extractSymbols(content)
 		files = append(files, fileData{
 			Entry: Entry{
 				Path:    rel,
 				Symbols: symbols,
 			},
-			Identifiers: identifiers,
+			Identifiers: extractIdentifiers(content),
 		})
 		return nil
 	})

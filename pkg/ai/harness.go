@@ -20,13 +20,6 @@ func NewHarness(r *Registry) *Harness {
 func (h *Harness) ExecuteTool(ctx context.Context, toolName string, args map[string]interface{}) (string, error) {
 	// First, check for registered clean-room handlers
 	if handler, exists := CleanRoomTools[toolName]; exists && handler != nil {
-		// Advanced Context Reasoning: if this is a context query/ask tool, dynamically augment with repomap optimization
-		if toolName == "auggie_search" || toolName == "auggie_ask" || toolName == "search_files" {
-			// Extract queries and pass through the context caching map
-			if query, ok := args["query"].(string); ok && query != "" {
-				args["_optimized_repomap_context"] = true
-			}
-		}
 		return handler(args), nil
 	}
 
