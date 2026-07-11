@@ -21,9 +21,8 @@ func TestHandleClineBrowserAction(t *testing.T) {
 				"action": "launch",
 				"url":    "https://example.com",
 			},
-			// lynx may not be installed on CI, but the handler tries it; we just check it runs.
-			// We'll mark as no-error expectation because it tries execution regardless.
-			contains: "Error",
+			// If lynx is installed, we get Example Domain. If not, we get Error.
+			// We'll handle this custom logic in the test loop.
 		},
 		{
 			name: "launch with empty URL still attempts navigation",
@@ -31,7 +30,7 @@ func TestHandleClineBrowserAction(t *testing.T) {
 				"action": "launch",
 				"url":    "",
 			},
-			contains: "Error",
+			// Same as above, handle custom in the test loop.
 		},
 		{
 			name: "click action returns coordinate string",
@@ -109,6 +108,21 @@ func TestHandleClineBrowserAction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := handleClineBrowserAction(tt.args)
+
+			// Special case for lynx since it might actually succeed on machines where it is installed.
+			if tt.name == "launch with URL delegates to lynx" {
+				if !strings.Contains(result, "Example Domain") && !strings.Contains(result, "Error") {
+					t.Errorf("expected result to either succeed with Example Domain or fail with Error, got %q", result)
+				}
+				return
+			}
+			if tt.name == "launch with empty URL still attempts navigation" {
+				if !strings.Contains(result, "Error") {
+					t.Errorf("expected empty URL launch to return an Error, got %q", result)
+				}
+				return
+			}
+
 			if tt.want != "" && result != tt.want {
 				t.Errorf("got %q, want %q", result, tt.want)
 			}

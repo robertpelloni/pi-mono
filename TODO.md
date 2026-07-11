@@ -14,8 +14,8 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Remove all submodules from the repository.
 
 ## Documentation & Maintenance
-- [ ] Synchronize `VISION.md` with the finalized Go architecture.
-- [ ] Update `DEPLOY.md` with cross-platform binary instructions.
+- [x] Synchronize `VISION.md` with the finalized Go architecture.
+- [x] Update `DEPLOY.md` with cross-platform binary instructions.
 - [x] Audit `IDEAS.md` for post-assimilation pivot opportunities. (Implemented Git Auto-Commit & Themes)
 
 # Crucial Code Review Fixes (Completed)
@@ -36,6 +36,8 @@ This document contains individual features, bug fixes, and other fine details th
 - [x] Assimilate Codex Desktop & Codex CLI (Submodule analysis, feature porting).
 - [x] Assimilate Gemini-CLI (Submodule analysis, feature porting).
 - [x] Assimilate Hermes Desktop (Submodule analysis, feature porting).
+- [x] Assimilate Auggie CLI (Submodule analysis, feature porting).
+- [x] Assimilate Factory CLI (Submodule analysis, feature porting).
 
 ## Infrastructure & Tooling
 - [ ] Pre‑commit hook blocked: 363 TS type‑checking errors remain after tsconfig tweaks. Main categories: TS5097 (.ts import extensions, 260), TS7006 (implicit any, 220), TS2345 (type mismatch, 87), TS2307 (missing module, 66), TS2339 (missing property, 45), TS2305 (missing export, 30). See `TODO-TS-ISSUES.md` for a full breakdown. Use `HUSKY=0 git commit` for Go‑only commits. GitHub issues disabled on this repo — track locally.
