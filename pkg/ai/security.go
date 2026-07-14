@@ -14,6 +14,12 @@ func validatePath(path string) (string, error) {
 		return "", err
 	}
 
+	// Reject Unix-style absolute paths on Windows (e.g., /etc/passwd)
+	// On Windows, filepath.IsAbs returns false for paths starting with '/'
+	if len(path) > 0 && path[0] == '/' && len(absCwd) > 1 && absCwd[1] == ':' {
+		return "", fmt.Errorf("security violation: path %s is outside project root %s", path, absCwd)
+	}
+
 	// Resolve the absolute path of the target
 	var absPath string
 	if filepath.IsAbs(path) {

@@ -3,17 +3,22 @@
 This document contains major long-term structural plans for the project.
 
 ## Current State
+
 - The project has successfully transitioned from a multi-package TypeScript monorepo to a unified, high-performance Go application.
 - We have completed the "Total Assimilation" cycle, extracting and integrating features from 11+ major AI agent projects.
 - Submodules have been fully assimilated and removed to maintain a streamlined, single-source-of-truth codebase.
+- Repository synchronized with upstream (`earendil-works/pi`). Upstream is TypeScript-only; our Go port maintains independent architecture.
+- Phase B UI enhancements completed: editor component, markdown rendering, overlay stack, spinner, autocomplete with fuzzy matching.
 
 ## Long-term Goals
-1.  **Unified Go Architecture:** Maintain and optimize the integrated Go ultra-project.
-2.  **Clean Room Tool Parity:** Continue ensuring 1:1 compatibility with internal tools from official CLIs (Claude Code, Copilot, etc.) as they evolve.
-3.  **Advanced Frontend Ecosystem:** Develop native terminal and desktop frontends that leverage the unified Go backend.
-4.  **Community Plugin Hub:** Build out the Go-based extension system to support a wide range of community-contributed capabilities.
+
+1. **Unified Go Architecture:** Maintain and optimize the integrated Go ultra-project.
+2. **Clean Room Tool Parity:** Continue ensuring 1:1 compatibility with internal tools from official CLIs (Claude Code, Copilot, etc.) as they evolve.
+3. **Advanced Frontend Ecosystem:** Develop native terminal and desktop frontends that leverage the unified Go backend.
+4. **Community Plugin Hub:** Build out the Go-based extension system to support a wide range of community-contributed capabilities.
 
 ## Roadmap Steps
+
 - [x] Phase 1-5: Initialization and systematic porting of core packages (AI, Agent, TUI, Coding-Agent) to Go.
 - [x] Phase 6-9: Analysis and assimilation of external submodules (Aider, Open Interpreter, Cline, etc.).
 - [x] Phase 10-12: Native Web UI serving and bi-directional API integration in Go.
@@ -26,3 +31,5 @@ This document contains major long-term structural plans for the project.
 - [x] Phase 19: Ultimate LLM Harness - Core routing engine and Tabby/Warp assimilation.
 - [x] Robust CI/CD & Unit Testing: Integrated Go 1.24+ CI pipeline and expanded test coverage.
 - [x] Phase 20: Extended Assimilation - Claude Desktop, Claude Code, Codex Desktop, Codex CLI. Next up: Gemini-CLI and Hermes Desktop.
+- [x] Phase B: UI Enhancements - Editor component, markdown rendering (per-message), overlay stack (with help overlay), spinner during generation, autocomplete providers with fuzzy matching.
+- [ ] Phase C: Advanced features - Session management, workspace integration, per-message markdown rendering refinement.
