@@ -1,6 +1,21 @@
 # Project Changelog (Go Port & Monorepo Submodules)
 
 ## [Unreleased]
+### Added
+- **Phase 22 Initiation**: Began foundational architecture for the Schema Flattening Engine, targeting `MapCleanRoomParams` recursion to eliminate structural technical debt in legacy nested tool schemas.
+
+## [1.0.0] - 2026-08-01
+### Added
+- **Community Plugin Hub**: Introduced the Phase 21 extension system (`pkg/plugins`) allowing dynamic runtime registration of third-party tools via the `PluginManager`. Features a robust lifecycle API (`Init`, `Validate`, `GetTools`, `HandleToolCall`).
+- **Harness Live Routing**: Added the `/harness` HTTP endpoint to the web server, allowing external clients to trigger the Unified Tool Harness directly for testing and integration.
+- **Golden-File URL Validation**: Added a deterministic golden-file test matrix (`TestValidateURL_Golden`) to enforce `http/https` protocol requirements and reject relative or `file://` schema injection attempts on `browser_action`.
+- **Concurrency Test Suite**: Implemented `TestParityMatrix_ConcurrentExecution` to validate the fidelity of Claude Code and Gemini routing schemas under heavy concurrent load.
+
+### Fixed
+- **Path Traversal Vulnerabilities**: Hardened the `validatePath` security boundary. Re-engineered `os.TempDir()` relative path checks to prevent test-workspace escapes.
+- **Internal Wrapper Overrides**: Explicitly enforced `safePath` logic to be piped down into all IO file operations within `Claude Code`, `Amp`, and `Hermes` tool handlers.
+- **Harness Error Masking**: Fixed an issue where the unified harness would swallow actual execution errors from the plugin manager, now correctly returning the raw plugin errors to the LLM for self-correction.
+- **Tracked Binary Removal**: Cleaned the git tree of inadvertently tracked compiled binaries (`pi`).
 
 ## [0.98.0] - 2026-06-14
 ### Added

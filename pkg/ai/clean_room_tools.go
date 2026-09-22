@@ -173,6 +173,20 @@ var GeminiShell = CleanRoomToolSchema{
 	},
 }
 
+// FlattenParams recursively flattens a nested map[string]interface{} into a single-level map.
+// If a nested map is encountered (like Warp's 'params' or Tabby's 'segments'), its keys are hoisted
+// to the root. If key collisions occur, the deeper nested key takes precedence to extract explicit payloads.
+func FlattenParams(input map[string]interface{}, output map[string]interface{}) {
+	for k, v := range input {
+		switch child := v.(type) {
+		case map[string]interface{}:
+			FlattenParams(child, output)
+		default:
+			output[k] = v
+		}
+	}
+}
+
 // MapCleanRoomParams maps the various incoming parameter names back to a unified internal parameter set.
 // For example, file_path, uri, filename -> path. command, cmd, script -> command.
 func MapCleanRoomParams(toolName string, rawArgs []byte) (map[string]interface{}, error) {
@@ -183,10 +197,8 @@ func MapCleanRoomParams(toolName string, rawArgs []byte) (map[string]interface{}
 
 	unified := make(map[string]interface{})
 
-	// Copy over original args first
-	for k, v := range args {
-		unified[k] = v
-	}
+	// Phase 22 Schema Flattening Engine: recursively hoist all nested structures.
+	FlattenParams(args, unified)
 
 	// Read Normalization
 	if path, ok := args["file_path"].(string); ok {
@@ -706,5 +718,56 @@ var ClineBrowserAction = CleanRoomToolSchema{
 			},
 		},
 		"required": []string{"action"},
+	},
+}
+
+// Amp Tool Schemas
+
+var AmpReadFile = CleanRoomToolSchema{
+	Name:        "Amp_ReadFile",
+	Description: "Reads the content of the specified file in the workspace.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"path": map[string]interface{}{
+				"type":        "string",
+				"description": "The path of the file to read.",
+			},
+		},
+		"required": []string{"path"},
+	},
+}
+
+var AmpWriteFile = CleanRoomToolSchema{
+	Name:        "Amp_WriteFile",
+	Description: "Write content to a specified file.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"path": map[string]interface{}{
+				"type":        "string",
+				"description": "The path to the file.",
+			},
+			"content": map[string]interface{}{
+				"type":        "string",
+				"description": "The content to write.",
+			},
+		},
+		"required": []string{"path", "content"},
+	},
+}
+
+var AmpRunCommand = CleanRoomToolSchema{
+	Name:        "Amp_RunCommand",
+	Description: "Run a shell command in the workspace.",
+	InputSchema: map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"cmd": map[string]interface{}{
+				"type":        "string",
+				"description": "The command to run.",
+			},
+		},
+		"required": []string{"cmd"},
 	},
 }

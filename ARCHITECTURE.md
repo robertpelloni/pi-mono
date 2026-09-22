@@ -8,7 +8,10 @@ Pi is designed as a unified, high-performance Go application that provides both 
 ## Key Components
 
 ### 1. Unified Tool Harness (`pkg/ai/harness.go`)
-The central engine for tool execution. It receives tool requests from multiple sources (Native Agent, Tabby, Warp, Wave) and routes them to optimized Go handlers. It handles schema translation, ensuring that a request in Warp's format is correctly mapped to Pi's internal `read_file` or `bash` implementation.
+The central engine for tool execution. It receives tool requests from multiple sources (Native Agent, Tabby, Warp, Wave, Claude Code, Gemini) and routes them to optimized Go handlers. It handles schema translation, ensuring that a request in any format is correctly mapped to Pi's internal implementations. It also delegates unhandled requests to the fallback `PluginManager`.
+
+### 1a. Community Plugin Hub (`pkg/plugins/plugin.go`)
+A dynamic extension framework wired directly into the Unified Tool Harness. It allows third-party extensions to register themselves at runtime by implementing the `Plugin` interface (with `Init`, `Validate`, and `HandleToolCall` lifecycle hooks), providing an infinitely expandable tool ecosystem safely separated from core logic.
 
 ### 2. Model Registry (`pkg/ai/models_registry.go` & `pkg/ai/registry_ext.go`)
 A thread-safe, session-aware registry for managing AI models and providers.

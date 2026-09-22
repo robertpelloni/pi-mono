@@ -257,3 +257,19 @@ type ModelInfo struct {
 	Headers       map[string]string        `json:"headers,omitempty"`
 	Compat        *OpenAICompletionsCompat `json:"compat,omitempty"`
 }
+
+type ClaudeCodeRequest struct {
+	Action string `json:"action"`
+}
+
+type CodexCLIRequest struct {
+	Command string `json:"command"`
+}
+
+type GeminiAssistRequest struct {
+	Prompt string `json:"prompt"`
+}
+
+type ClaudeDesktopRequest struct {
+	Event string `json:"event"`
+}

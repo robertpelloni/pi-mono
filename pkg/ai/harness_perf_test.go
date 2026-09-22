@@ -7,11 +7,12 @@ import (
 	"time"
 )
 
-func BenchmarkHarness_ExecuteTool(b *testing.B) {
+func BenchmarkHarness_WarpAction(b *testing.B) {
 	reg := &Registry{}
 	h := NewHarness(reg)
 	ctx := context.Background()
 
+	// Nested schema testing FlattenParams efficiency
 	args := map[string]interface{}{
 		"type": "RequestCommandOutput",
 		"params": map[string]interface{}{
@@ -22,6 +23,42 @@ func BenchmarkHarness_ExecuteTool(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := h.ExecuteTool(ctx, "warp_action", args)
+		if err != nil {
+			b.Fatalf("unexpected error: %v", err)
+		}
+	}
+}
+
+func BenchmarkHarness_ClaudeCodeAction(b *testing.B) {
+	reg := &Registry{}
+	h := NewHarness(reg)
+	ctx := context.Background()
+
+	// Flat schema
+	args := map[string]interface{}{
+		"action": "mock_claude_action",
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := h.ExecuteTool(ctx, "claude_code", args)
+		if err != nil {
+			b.Fatalf("unexpected error: %v", err)
+		}
+	}
+}
+
+func BenchmarkHarness_PluginFallback(b *testing.B) {
+	reg := &Registry{}
+	h := NewHarness(reg)
+	ctx := context.Background()
+
+	// Test the fallback latency to the Community Plugin Hub
+	args := map[string]interface{}{}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := h.ExecuteTool(ctx, "get_current_time", args)
 		if err != nil {
 			b.Fatalf("unexpected error: %v", err)
 		}

@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -88,5 +89,64 @@ func TestCleanRoomHandlers_AntigravityAutoClick(t *testing.T) {
 	resp := handleAntigravityAutoClick(args)
 	if !strings.Contains(resp, "Antigravity") {
 		t.Errorf("expected Antigravity prefix, got: %s", resp)
+	}
+}
+
+// TestCleanRoomParity_ClaudeCode checks tool request routing parity for Claude Code actions.
+func TestCleanRoomParity_ClaudeCode(t *testing.T) {
+	// Documentation on Discrepancy:
+	// Claude Code's native agent sends specialized "edit_file" actions mapped to its internal codebase representation.
+	// Our parity layer implements "edit" but natively maps Claude Code's unified actions through the action registry.
+	// This test asserts the schema mapping translates these actions to a successful stub status for LLM consumption.
+
+	r := NewRegistry()
+	req := ClaudeCodeRequest{Action: "analyze"}
+	resp, err := r.HandleClaudeCodeAction(context.Background(), &req)
+
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
+	if status, ok := resp["status"].(string); !ok || status != "success" {
+		t.Errorf("expected status 'success', got %v", status)
+	}
+}
+
+// TestCleanRoomParity_CodexCLI checks tool request routing parity for Codex CLI commands.
+func TestCleanRoomParity_CodexCLI(t *testing.T) {
+	// Documentation on Discrepancy:
+	// Codex CLI natively executes commands on the host directly and pipes stderr.
+	// Our assimilation captures the command via CodexCLIRequest but abstracts it into the unified "success" model
+	// to prevent arbitrary host execution during standard routing unless specifically requested.
+
+	r := NewRegistry()
+	req := CodexCLIRequest{Command: "ls -la"}
+	resp, err := r.HandleCodexCLIAction(context.Background(), &req)
+
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
+	if status, ok := resp["status"].(string); !ok || status != "success" {
+		t.Errorf("expected status 'success', got %v", status)
+	}
+}
+
+// TestCleanRoomParity_GeminiAnalyze checks tool request routing parity for Gemini multi-tool use.
+func TestCleanRoomParity_GeminiAnalyze(t *testing.T) {
+	// Documentation on Discrepancy:
+	// Gemini uses a multi-tool loop (e.g. `multi_tool_use`) where it strings together file analyses.
+	// We handle this recursively via our prompt abstraction instead of forcing it directly into the schema.
+
+	r := NewRegistry()
+	req := GeminiAssistRequest{Prompt: "analyze main.go"}
+	resp, err := r.HandleGeminiAssistAction(context.Background(), &req)
+
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
+	if status, ok := resp["status"].(string); !ok || status != "success" {
+		t.Errorf("expected status 'success', got %v", status)
 	}
 }

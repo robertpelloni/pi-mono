@@ -64,6 +64,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/warp/action", s.handleWarpAction())
 	s.mux.HandleFunc("/api/wave/action", s.handleWaveAction())
 	s.mux.HandleFunc("/api/hyper/theme", s.handleHyperTheme())
+	s.mux.HandleFunc("/harness", s.handleUnifiedHarness())
 
 	// Serve static files
 	fileServer := http.FileServer(http.Dir(s.staticDir))
@@ -200,6 +201,34 @@ func (s *Server) handleTabbyCompletions() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+func (s *Server) handleUnifiedHarness() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			Tool string                 `json:"tool"`
+			Args map[string]interface{} `json:"args"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		h := ai.NewHarness(s.registry)
+		resp, err := h.ExecuteTool(r.Context(), req.Tool, req.Args)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"result": resp})
 	}
 }
 

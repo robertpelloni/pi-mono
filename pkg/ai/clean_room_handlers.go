@@ -231,16 +231,40 @@ func handleHermesMemory(args map[string]interface{}) string {
 	return "Memory saved successfully for key: " + key
 }
 
+// validateURL ensures that the provided string is a well-formed, absolute HTTP/HTTPS URL.
+func validateURL(rawURL string) (string, error) {
+	if rawURL == "" {
+		return "", fmt.Errorf("URL cannot be empty")
+	}
+
+	// Basic protocol enforcement
+	if !strings.HasPrefix(rawURL, "http://") && !strings.HasPrefix(rawURL, "https://") {
+		return "", fmt.Errorf("security violation: URL must begin with http:// or https://")
+	}
+
+	// Prevent arbitrary file URI schemes
+	if strings.HasPrefix(rawURL, "file://") {
+		return "", fmt.Errorf("security violation: file:// schema is forbidden in browser actions")
+	}
+
+	return rawURL, nil
+}
+
 func handleHermesBrowserNavigate(args map[string]interface{}) string {
-	url, ok := args["url"].(string)
+	rawURL, ok := args["url"].(string)
 	if !ok {
 		return "Error: missing 'url' parameter"
 	}
 
-	cmd := exec.Command("lynx", "-dump", url)
+	safeURL, err := validateURL(rawURL)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+
+	cmd := exec.Command("lynx", "-dump", safeURL)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Sprintf("Error navigating to %s: %v\nOutput: %s", url, err, string(out))
+		return fmt.Sprintf("Error navigating to %s: %v\nOutput: %s", safeURL, err, string(out))
 	}
 
 	return string(out)
@@ -515,6 +539,11 @@ func handleClineWriteToFile(args map[string]interface{}) string {
 	return out
 }
 
+// doWrite executes the underlying OS file write. It assumes safePath has already been validated.
+func doWrite(safePath, content string) error {
+	return os.WriteFile(safePath, []byte(content), 0644)
+}
+
 func handleHermesWriteFile(args map[string]interface{}) (string, error) {
 	path, ok := args["file_path"].(string)
 	if !ok {
@@ -524,10 +553,10 @@ func handleHermesWriteFile(args map[string]interface{}) (string, error) {
 
 	safePath, err := validatePath(path)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("security violation: %v", err)
 	}
 
-	err = os.WriteFile(safePath, []byte(content), 0644)
+	err = doWrite(safePath, content)
 	if err != nil {
 		return "", err
 	}
@@ -544,7 +573,7 @@ func handleClineListCodeDefinitionNames(args map[string]interface{}) string {
 
 	safePath, err := validatePath(path)
 	if err != nil {
-		return "Error: " + err.Error()
+		return fmt.Sprintf("Error: security violation: %v", err)
 	}
 
 	input := greptool.GrepToolInput{
@@ -703,4 +732,68 @@ func MapHermesCleanRoomParams(toolName string, rawArgs []byte) (map[string]inter
 	}
 
 	return unified, nil
+}
+
+func (r *Registry) HandleClaudeCodeTool(args map[string]interface{}) string {
+	raw, _ := json.Marshal(args)
+	var req ClaudeCodeRequest
+	if err := json.Unmarshal(raw, &req); err != nil {
+		return "Error unmarshaling Claude Code action: " + err.Error()
+	}
+
+	resp, err := r.HandleClaudeCodeAction(context.Background(), &req)
+	if err != nil {
+		return "Error executing Claude Code action: " + err.Error()
+	}
+
+	respRaw, _ := json.MarshalIndent(resp, "", "  ")
+	return string(respRaw)
+}
+
+func (r *Registry) HandleCodexCLITool(args map[string]interface{}) string {
+	raw, _ := json.Marshal(args)
+	var req CodexCLIRequest
+	if err := json.Unmarshal(raw, &req); err != nil {
+		return "Error unmarshaling Codex CLI action: " + err.Error()
+	}
+
+	resp, err := r.HandleCodexCLIAction(context.Background(), &req)
+	if err != nil {
+		return "Error executing Codex CLI action: " + err.Error()
+	}
+
+	respRaw, _ := json.MarshalIndent(resp, "", "  ")
+	return string(respRaw)
+}
+
+func (r *Registry) HandleGeminiAssistTool(args map[string]interface{}) string {
+	raw, _ := json.Marshal(args)
+	var req GeminiAssistRequest
+	if err := json.Unmarshal(raw, &req); err != nil {
+		return "Error unmarshaling Gemini Assist action: " + err.Error()
+	}
+
+	resp, err := r.HandleGeminiAssistAction(context.Background(), &req)
+	if err != nil {
+		return "Error executing Gemini Assist action: " + err.Error()
+	}
+
+	respRaw, _ := json.MarshalIndent(resp, "", "  ")
+	return string(respRaw)
+}
+
+func (r *Registry) HandleClaudeDesktopTool(args map[string]interface{}) string {
+	raw, _ := json.Marshal(args)
+	var req ClaudeDesktopRequest
+	if err := json.Unmarshal(raw, &req); err != nil {
+		return "Error unmarshaling Claude Desktop action: " + err.Error()
+	}
+
+	resp, err := r.HandleClaudeDesktopAction(context.Background(), &req)
+	if err != nil {
+		return "Error executing Claude Desktop action: " + err.Error()
+	}
+
+	respRaw, _ := json.MarshalIndent(resp, "", "  ")
+	return string(respRaw)
 }

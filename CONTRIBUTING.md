@@ -1,47 +1,23 @@
-# Contributing to pi
+# Contributing Guide
 
-Thanks for wanting to contribute! This guide exists to save both of us time.
+Welcome! We are currently transitioning to a Unified Go architecture.
 
-## The One Rule
+## Workflow Guidelines
+1. Do not push intermediate or broken states to `main`.
+2. All tools and external LLM schemas must maintain 1:1 parity with their clean-room specifications. Check `docs/parity_schema_discrepancies.md`.
+3. Adhere to test parity constraints by adding tests to `pkg/ai` or `pkg/tools` alongside new implementations.
 
-**You must understand your code.** If you can't explain what your changes do and how they interact with the rest of the system, your PR will be closed.
+## Community Plugin Hub
 
-Using AI to write code is fine. You can gain understanding by interrogating an agent with access to the codebase until you grasp all edge cases and effects of your changes. What's not fine is submitting agent-generated slop without that understanding.
+We encourage building new agent capabilities via the Community Plugin Hub (`pkg/plugins`) rather than cluttering the core Unified Harness.
 
-If you use an agent, run it from the `pi-mono` root directory so it picks up `AGENTS.md` automatically. Your agent must follow the rules and guidelines in that file.
-
-## First-Time Contributors
-
-We use an approval gate for new contributors:
-
-1. Open an issue describing what you want to change and why
-2. Keep it concise (if it doesn't fit on one screen, it's too long)
-3. Write in your own voice, at least for the intro
-4. A maintainer will comment `lgtm` if approved
-5. Once approved, you can submit PRs
-
-This exists because AI makes it trivial to generate plausible-looking but low-quality contributions. The issue step lets us filter early.
-
-## Before Submitting a PR
-
-```bash
-# For Go changes
-go vet ./...
-go test ./...
-
-# For Legacy TS changes
-npm run check  # must pass with no errors
-./test.sh      # must pass
-```
-
-Do not edit `CHANGELOG.md`. Changelog entries are added by maintainers.
-
-If you're adding a new provider to `pkg/ai` (Go) or `packages/ai` (TS), see `AGENTS.md` for required tests.
-
-## Philosophy
-
-pi's core is minimal. If your feature doesn't belong in the core, it should be an extension. PRs that bloat the core will likely be rejected.
-
-## Questions?
-
-Open an issue or ask on [Discord](https://discord.com/invite/nKXTsAcmbT).
+To contribute a plugin:
+1. Create your plugin struct in `pkg/plugins/your_plugin.go`.
+2. Implement the `plugins.Plugin` interface:
+   - `Name() string`
+   - `Init(ctx context.Context) error`
+   - `Validate() error` (Verify prerequisites, like installed binaries)
+   - `GetTools() map[string]interface{}` (Return exact JSON schemas)
+   - `HandleToolCall(ctx, toolName, args) (string, error)`
+3. Register your plugin in `plugins.NewManager()` (`pkg/plugins/plugin.go`).
+4. Add lifecycle tests to ensure it passes `Validate()` in standard environments.

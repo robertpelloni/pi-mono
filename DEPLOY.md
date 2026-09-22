@@ -3,10 +3,11 @@
 This guide covers the deployment of the **Ultimate LLM Harness**, a high-performance Go-based AI agent backend.
 
 ## Prerequisites
-- Go 1.24.3 or higher
-- Ripgrep (`rg`) for advanced search tools
-- Lynx (`lynx`) for text-based browser navigation
-- Xdotool (`xdotool`) for Linux computer-use tools
+- **Go**: 1.24.3 or higher
+- **Ripgrep (`rg`)**: Required for advanced search operations via `greptool` and `findtool`.
+- **Lynx (`lynx`)**: Required for `browser_action` and web search tooling (Hermes/Cline parity).
+- **Xdotool (`xdotool`)**: Required for simulated mouse/keyboard inputs via `computer` tooling (Linux only).
+- **Scrot (`scrot`)**: Required for native screen capture via `screenshot` actions (Linux only).
 
 ## Building from Source
 To build the native Go binary for your current platform:

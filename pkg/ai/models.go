@@ -13,6 +13,12 @@ func CalculateCost(model ModelInfo, usage *Usage) UsageCost {
 	return usage.Cost
 }
 
+// SupportsReasoning API flags models that accept reasoning parameters (like reasoning_effort or max_completion_tokens).
+func SupportsReasoning(model ModelInfo) bool {
+	id := strings.ToLower(model.ID)
+	return strings.HasPrefix(id, "o1") || strings.HasPrefix(id, "o3") || strings.Contains(id, "o1-") || strings.Contains(id, "o3-")
+}
+
 // SupportsXHigh checks if a model supports the "xhigh" reasoning level.
 // Supported today:
 // - GPT-5.2 / GPT-5.3 / GPT-5.4 model families

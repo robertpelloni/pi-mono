@@ -22,7 +22,17 @@ This document contains major long-term structural plans for the project.
 - [x] Phase 15: Community Plugin Features Integration (e.g. pi-plannotator, react_fallback).
 - [x] Phase 16: Total Assimilation Cleanup - Removal of all submodules.
 - [x] Phase 17: Native GUI Frontends (Desktop/Mobile).
-- [x] Phase 18: Enhanced Autonomous Reasoning (o1/o3-mini optimized workflows).
+- [x] Phase 18: Enhanced Autonomous Reasoning
+  - Integrated full compatibility for OpenAI's `o1` and `o3-mini` families.
+  - Implemented dynamic mapping of `SystemPrompt` to the `developer` role.
+  - Implemented `max_completion_tokens` allocation and dynamic `reasoning_effort` mapping based on user-defined thinking constraints.
 - [x] Phase 19: Ultimate LLM Harness - Core routing engine and Tabby/Warp assimilation.
 - [x] Robust CI/CD & Unit Testing: Integrated Go 1.24+ CI pipeline and expanded test coverage.
 - [x] Phase 20: Extended Assimilation - Claude Desktop, Claude Code, Codex Desktop, Codex CLI, Gemini-CLI, and Hermes Desktop.
+- [ ] Phase 21: Community Plugin Hub
+  - Build out the Go-based extension system (`pkg/plugins`) to support community-contributed capabilities.
+  - Establish dynamic tool registration and `Validate()` pre-flight lifecycle hooks.
+  - Implement external dependency resolvers (e.g., verifying `gofmt` or `npm` are installed before registering a plugin).
+  - Add native IPC (gRPC or unix sockets) to allow plugins written in other languages to interface with the Go harness.
+- [ ] Phase 22: Schema Flattening Engine
+  - Refactor `MapCleanRoomParams` to recursively flatten nested structures (like Tabby `segments` or Warp `params`) to eliminate hardcoded switch statements in the execution harness.

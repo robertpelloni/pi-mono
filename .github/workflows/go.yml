@@ -27,3 +27,8 @@ jobs:
 
     - name: Test
       run: go test -v $(go list ./... | grep -v 'submodules')
+
+    - name: Run Security and Path Validation Tests
+      run: |
+        echo "Executing explicit security audits for tool schemas..."
+        go test -v ./pkg/ai -run "^(TestValidatePath|TestValidateURL_Golden|TestHandleClineBrowserAction|TestParityMatrix_SafePathEnforcement)$"

@@ -2,7 +2,7 @@ package ai
 
 import (
     "fmt"
-    "io/ioutil"
+    "os"
     "strings"
 )
 
@@ -19,6 +19,11 @@ func handleClaudeCodeRead(args map[string]interface{}) string {
             return "Error: missing 'file_path' parameter"
         }
     }
+
+	safePath, err := validatePath(path)
+	if err != nil {
+		return "Error: security violation: " + err.Error()
+	}
     // offset and limit may be float64 (from JSON) or int.
     var offset, limit float64
     if o, ok := args["offset"].(float64); ok {
@@ -33,7 +38,7 @@ func handleClaudeCodeRead(args map[string]interface{}) string {
     }
     // Build unified args for HandleUnifiedRead (expects float values).
     unified := map[string]interface{}{
-        "path":   path,
+        "path":   safePath,
         "offset": offset,
         "limit":  limit,
     }
@@ -76,11 +81,18 @@ func handleClaudeCodeWriteFile(args map[string]interface{}) string {
     if !ok {
         return "Error: missing 'content' parameter"
     }
-    out, err := handleHermesWriteFile(map[string]interface{}{"file_path": path, "content": content})
+
+	safePath, err := validatePath(path)
+	if err != nil {
+		return "Error: security violation: " + err.Error()
+	}
+
+	// Call the internal secure wrapper explicitly
+	err = doWrite(safePath, content)
     if err != nil {
         return "Error: " + err.Error()
     }
-    return out
+    return "File written successfully"
 }
 
 // handleClaudeCodeEdit implements the edit tool for Claude Code (find & replace).
@@ -98,7 +110,13 @@ func handleClaudeCodeEdit(args map[string]interface{}) string {
     if !ok1 || !ok2 {
         return "Error: missing 'old_string' or 'new_string' parameter"
     }
-    data, err := ioutil.ReadFile(filePath)
+
+	safePath, err := validatePath(filePath)
+	if err != nil {
+		return "Error: security violation: " + err.Error()
+	}
+
+	data, err := os.ReadFile(safePath)
     if err != nil {
         return "Error reading file: " + err.Error()
     }
@@ -106,7 +124,7 @@ func handleClaudeCodeEdit(args map[string]interface{}) string {
         return "Error: could not find the specified text to replace"
     }
     updated := strings.Replace(string(data), oldStr, newStr, 1)
-    if err := ioutil.WriteFile(filePath, []byte(updated), 0644); err != nil {
+	if err := os.WriteFile(safePath, []byte(updated), 0644); err != nil {
         return "Error writing file: " + err.Error()
     }
     return "Edit applied successfully"
@@ -118,7 +136,13 @@ func handleClaudeCodeListFiles(args map[string]interface{}) string {
     if p, ok := args["path"].(string); ok && p != "" {
         dirPath = p
     }
-    entries, err := ioutil.ReadDir(dirPath)
+
+	safePath, err := validatePath(dirPath)
+	if err != nil {
+		return "Error: security violation: " + err.Error()
+	}
+
+	entries, err := os.ReadDir(safePath)
     if err != nil {
         return "Error: " + err.Error()
     }
@@ -140,5 +164,65 @@ func init() {
     CleanRoomTools["write_file"] = handleClaudeCodeWriteFile
     CleanRoomTools["edit"] = handleClaudeCodeEdit
     CleanRoomTools["list_files"] = handleClaudeCodeListFiles
+    CleanRoomTools["Amp_ReadFile"] = handleAmpReadFile
+    CleanRoomTools["Amp_WriteFile"] = handleAmpWriteFile
+    CleanRoomTools["Amp_RunCommand"] = handleAmpRunCommand
     // search_files already points to handleHermesSearchFiles, which now supports Claude's "pattern".
+}
+
+// handleAmpReadFile implements the Amp_ReadFile tool.
+func handleAmpReadFile(args map[string]interface{}) string {
+	path, ok := args["path"].(string)
+	if !ok {
+		return "Error: missing 'path' parameter"
+	}
+
+	safePath, err := validatePath(path)
+	if err != nil {
+		return "Error: security violation: " + err.Error()
+	}
+
+	out, err := HandleUnifiedRead(map[string]interface{}{"path": safePath, "offset": float64(0), "limit": float64(0)})
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+	return out
+}
+
+// handleAmpWriteFile implements the Amp_WriteFile tool.
+func handleAmpWriteFile(args map[string]interface{}) string {
+	path, ok := args["path"].(string)
+	if !ok {
+		return "Error: missing 'path' parameter"
+	}
+	content, ok := args["content"].(string)
+	if !ok {
+		return "Error: missing 'content' parameter"
+	}
+
+	safePath, err := validatePath(path)
+	if err != nil {
+		return "Error: security violation: " + err.Error()
+	}
+
+	err = doWrite(safePath, content)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+	return "File written successfully"
+}
+
+// handleAmpRunCommand implements the Amp_RunCommand tool.
+func handleAmpRunCommand(args map[string]interface{}) string {
+	cmd, ok := args["cmd"].(string)
+	if !ok {
+		return "Error: missing 'cmd' parameter"
+	}
+
+	unified := map[string]interface{}{"command": cmd}
+	out, err := HandleUnifiedCommand(unified)
+	if err != nil {
+		return fmt.Sprintf("Error: %v\nOutput: %s", err, out)
+	}
+	return out
 }

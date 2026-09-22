@@ -27,15 +27,24 @@ func validatePath(path string) (string, error) {
 		return "", err
 	}
 
-	// Allow temporary system paths for specific tools
-	tempDir := os.TempDir()
-	relTemp, err := filepath.Rel(tempDir, absPath)
-	if err == nil && !strings.HasPrefix(relTemp, "..") {
-		return absPath, nil
-	}
-
+	// Prevent generic traversal out of the active project root
 	rel, err := filepath.Rel(absCwd, absPath)
+
+	// Exception: If the user specifically passed a path inside the system temporary directory,
+	// ensure it's not being used to escape a workspace that also happens to be in TempDir.
+	// Only allow absolute temporary paths if they don't break relative isolation rules.
 	if err != nil || strings.HasPrefix(rel, "..") {
+		// If it's outside the workspace, strictly check if it's a direct absolute temp path mapping
+		tempDir := os.TempDir()
+		relTemp, errTemp := filepath.Rel(tempDir, absPath)
+		if errTemp == nil && !strings.HasPrefix(relTemp, "..") {
+			// Only allow if the workspace itself isn't housed in TempDir. If it is, the traversal was malicious.
+			relRootToTemp, _ := filepath.Rel(tempDir, absCwd)
+			if !strings.HasPrefix(relRootToTemp, "..") {
+				return "", fmt.Errorf("security violation: path %s is outside project root %s", path, absCwd)
+			}
+			return absPath, nil
+		}
 		return "", fmt.Errorf("security violation: path %s is outside project root %s", path, absCwd)
 	}
 
