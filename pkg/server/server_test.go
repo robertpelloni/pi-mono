@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/badlogic/pi-mono/pkg/agentsession"
 )
@@ -54,5 +55,42 @@ func TestListSessionsEndpoint(t *testing.T) {
 	json.NewDecoder(rr.Body).Decode(&resp)
 	if _, ok := resp["sessions"]; !ok {
 		t.Errorf("expected sessions list in response")
+	}
+}
+
+func TestSystemStatusEndpoint(t *testing.T) {
+	s := NewServer("", agentsession.AgentSessionConfig{})
+	req, _ := http.NewRequest("GET", "/system/status", nil)
+	rr := httptest.NewRecorder()
+
+	s.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status OK, got %v", rr.Code)
+	}
+
+	var resp map[string]interface{}
+	json.NewDecoder(rr.Body).Decode(&resp)
+	if resp["status"] != "Healthy" {
+		t.Errorf("expected Healthy status, got %v", resp["status"])
+	}
+}
+
+func TestSystemShutdownEndpoint(t *testing.T) {
+	s := NewServer("", agentsession.AgentSessionConfig{})
+	req, _ := http.NewRequest("POST", "/system/shutdown", nil)
+	rr := httptest.NewRecorder()
+
+	s.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status OK, got %v", rr.Code)
+	}
+
+	select {
+	case <-s.ShutdownChan():
+		// Success: shutdown notification received
+	case <-time.After(500 * time.Millisecond):
+		t.Errorf("expected shutdown signal to be emitted")
 	}
 }
