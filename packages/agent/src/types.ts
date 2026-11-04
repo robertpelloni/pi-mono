@@ -34,6 +34,9 @@ export type StreamFn = (
  */
 export type ToolExecutionMode = "sequential" | "parallel";
 
+/** Queue mode for message steering and follow-ups */
+export type QueueMode = "all" | "one-at-a-time";
+
 /** A single tool call content block emitted by an assistant message. */
 export type AgentToolCall = Extract<AssistantMessage["content"][number], { type: "toolCall" }>;
 

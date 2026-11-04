@@ -4,8 +4,8 @@ import {
 	type Model,
 	streamSimple,
 	type UserMessage,
-} from "@earendil-works/pi-ai";
-import { runAgentLoop } from "../agent-loop.ts";
+} from "@mariozechner/pi-ai";
+import { runAgentLoop } from "../agent-loop.js";
 import type {
 	AgentContext,
 	AgentEvent,
@@ -15,12 +15,12 @@ import type {
 	QueueMode,
 	StreamFn,
 	ThinkingLevel,
-} from "../types.ts";
-import { collectEntriesForBranchSummary, generateBranchSummary } from "./compaction/branch-summarization.ts";
-import { compact, DEFAULT_COMPACTION_SETTINGS, prepareCompaction } from "./compaction/compaction.ts";
-import { convertToLlm } from "./messages.ts";
-import { formatPromptTemplateInvocation } from "./prompt-templates.ts";
-import { formatSkillInvocation } from "./skills.ts";
+} from "../types.js";
+import { collectEntriesForBranchSummary, generateBranchSummary } from "./compaction/branch-summarization.js";
+import { compact, DEFAULT_COMPACTION_SETTINGS, prepareCompaction } from "./compaction/compaction.js";
+import { convertToLlm } from "./messages.js";
+import { formatPromptTemplateInvocation } from "./prompt-templates.js";
+import { formatSkillInvocation } from "./skills.js";
 import type {
 	AbortResult,
 	AgentHarnessEvent,
@@ -37,8 +37,8 @@ import type {
 	PromptTemplate,
 	Session,
 	Skill,
-} from "./types.ts";
-import { AgentHarnessError, BranchSummaryError, CompactionError, SessionError, toError } from "./types.ts";
+} from "./types.js";
+import { AgentHarnessError, BranchSummaryError, CompactionError, SessionError, toError } from "./types.js";
 
 function createUserMessage(text: string, images?: ImageContent[]): UserMessage {
 	const content: Array<{ type: "text"; text: string } | ImageContent> = [{ type: "text", text }];
@@ -388,8 +388,8 @@ export class AgentHarness<
 				maxRetries: requestOptions.maxRetries,
 				maxRetryDelayMs: requestOptions.maxRetryDelayMs,
 				metadata: requestOptions.metadata,
-				onPayload: async (payload) => await this.emitBeforeProviderPayload(model, payload),
-				onResponse: async (response) => {
+				onPayload: async (payload: any) => await this.emitBeforeProviderPayload(model, payload),
+				onResponse: async (response: any) => {
 					const headers = { ...(response.headers as Record<string, string>) };
 					await this.emitOwn(
 						{ type: "after_provider_response", status: response.status, headers },
@@ -463,7 +463,7 @@ export class AgentHarness<
 					model: nextTurnState.model,
 					thinkingLevel: nextTurnState.thinkingLevel,
 				};
-			},
+			} as any,
 			getSteeringMessages: async () => this.drainQueuedMessages(this.steerQueue, this.steeringQueueMode),
 			getFollowUpMessages: async () => this.drainQueuedMessages(this.followUpQueue, this.followUpQueueMode),
 		};

@@ -6,3 +6,4 @@ export * from "./agent-loop.js";
 export * from "./proxy.js";
 // Types
 export * from "./types.js";
+export type { QueueMode } from "./types.js";

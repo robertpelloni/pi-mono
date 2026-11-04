@@ -5,16 +5,16 @@ import type {
 	JsonlSessionMetadata,
 	JsonlSessionRepoApi,
 	Session,
-} from "../types.ts";
-import { SessionError, toError } from "../types.ts";
-import { JsonlSessionStorage, loadJsonlSessionMetadata } from "./jsonl-storage.ts";
+} from "../types.js";
+import { SessionError, toError } from "../types.js";
+import { JsonlSessionStorage, loadJsonlSessionMetadata } from "./jsonl-storage.js";
 import {
 	createSessionId,
 	createTimestamp,
 	getEntriesToFork,
 	getFileSystemResultOrThrow,
 	toSession,
-} from "./repo-utils.ts";
+} from "./repo-utils.js";
 
 type JsonlSessionRepoFileSystem = Pick<
 	FileSystem,

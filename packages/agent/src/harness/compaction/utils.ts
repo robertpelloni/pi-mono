@@ -1,5 +1,5 @@
-import type { Message } from "@earendil-works/pi-ai";
-import type { AgentMessage } from "../../types.ts";
+import type { Message } from "@mariozechner/pi-ai";
+import type { AgentMessage } from "../../types.js";
 
 /** File paths touched by a session branch or compaction range. */
 export interface FileOperations {
@@ -96,7 +96,7 @@ export function serializeConversation(messages: Message[]): string {
 			const content =
 				typeof msg.content === "string"
 					? msg.content
-					: msg.content
+					: (msg.content as any[])
 							.filter((c): c is { type: "text"; text: string } => c.type === "text")
 							.map((c) => c.text)
 							.join("");
@@ -106,13 +106,13 @@ export function serializeConversation(messages: Message[]): string {
 			const thinkingParts: string[] = [];
 			const toolCalls: string[] = [];
 
-			for (const block of msg.content) {
+			for (const block of (msg.content as any[])) {
 				if (block.type === "text") {
 					textParts.push(block.text);
 				} else if (block.type === "thinking") {
 					thinkingParts.push(block.thinking);
 				} else if (block.type === "toolCall") {
-					const args = block.arguments as Record<string, unknown>;
+					const args = (block.arguments as Record<string, unknown>) || {};
 					const argsStr = Object.entries(args)
 						.map(([k, v]) => `${k}=${safeJsonStringify(v)}`)
 						.join(", ");
@@ -130,7 +130,7 @@ export function serializeConversation(messages: Message[]): string {
 				parts.push(`[Assistant tool calls]: ${toolCalls.join("; ")}`);
 			}
 		} else if (msg.role === "toolResult") {
-			const content = msg.content
+			const content = (msg.content as any[])
 				.filter((c): c is { type: "text"; text: string } => c.type === "text")
 				.map((c) => c.text)
 				.join("");

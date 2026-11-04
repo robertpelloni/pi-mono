@@ -6,8 +6,8 @@ import {
 	ok,
 	type Result,
 	toError,
-} from "../types.ts";
-import { DEFAULT_MAX_BYTES, truncateTail } from "./truncate.ts";
+} from "../types.js";
+import { DEFAULT_MAX_BYTES, truncateTail } from "./truncate.js";
 
 export interface ShellCaptureOptions extends Omit<ExecutionEnvExecOptions, "onStdout" | "onStderr"> {
 	onChunk?: (chunk: string) => void;
