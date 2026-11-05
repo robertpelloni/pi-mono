@@ -561,7 +561,9 @@ export function prepareCompaction(
 	if (prevCompactionIndex >= 0) {
 		const prevCompaction = pathEntries[prevCompactionIndex] as CompactionEntry;
 		previousSummary = prevCompaction.summary;
-		const firstKeptEntryIndex = pathEntries.findIndex((entry) => (entry as any).id === prevCompaction.firstKeptEntryId);
+		const firstKeptEntryIndex = pathEntries.findIndex(
+			(entry) => (entry as any).id === prevCompaction.firstKeptEntryId,
+		);
 		boundaryStart = firstKeptEntryIndex >= 0 ? firstKeptEntryIndex : prevCompactionIndex + 1;
 	}
 	const boundaryEnd = pathEntries.length;

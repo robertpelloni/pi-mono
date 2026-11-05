@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentMessage } from "../../src/types.js";
 import { afterEach } from "vitest";
+import type { AgentMessage } from "../../src/types.js";
 
 export function createUserMessage(text: string): AgentMessage {
 	return {

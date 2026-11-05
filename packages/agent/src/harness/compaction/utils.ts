@@ -106,7 +106,7 @@ export function serializeConversation(messages: Message[]): string {
 			const thinkingParts: string[] = [];
 			const toolCalls: string[] = [];
 
-			for (const block of (msg.content as any[])) {
+			for (const block of msg.content as any[]) {
 				if (block.type === "text") {
 					textParts.push(block.text);
 				} else if (block.type === "thinking") {

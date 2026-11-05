@@ -9,5 +9,7 @@ export function isInstallTelemetryEnabled(
 	settingsManager: SettingsManager,
 	telemetryEnv: string | undefined = process.env.PI_TELEMETRY,
 ): boolean {
-	return telemetryEnv !== undefined ? isTruthyEnvFlag(telemetryEnv) : (settingsManager as any).getEnableInstallTelemetry?.() ?? false;
+	return telemetryEnv !== undefined
+		? isTruthyEnvFlag(telemetryEnv)
+		: ((settingsManager as any).getEnableInstallTelemetry?.() ?? false);
 }
