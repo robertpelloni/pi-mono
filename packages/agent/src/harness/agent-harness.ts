@@ -463,7 +463,7 @@ export class AgentHarness<
 					model: nextTurnState.model,
 					thinkingLevel: nextTurnState.thinkingLevel,
 				};
-			} as any,
+			},
 			getSteeringMessages: async () => this.drainQueuedMessages(this.steerQueue, this.steeringQueueMode),
 			getFollowUpMessages: async () => this.drainQueuedMessages(this.followUpQueue, this.followUpQueueMode),
 		};
