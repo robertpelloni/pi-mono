@@ -1,4 +1,4 @@
-import type { SettingsManager } from "./settings-manager.ts";
+import type { SettingsManager } from "./settings-manager.js";
 
 function isTruthyEnvFlag(value: string | undefined): boolean {
 	if (!value) return false;
@@ -9,5 +9,5 @@ export function isInstallTelemetryEnabled(
 	settingsManager: SettingsManager,
 	telemetryEnv: string | undefined = process.env.PI_TELEMETRY,
 ): boolean {
-	return telemetryEnv !== undefined ? isTruthyEnvFlag(telemetryEnv) : settingsManager.getEnableInstallTelemetry();
+	return telemetryEnv !== undefined ? isTruthyEnvFlag(telemetryEnv) : (settingsManager as any).getEnableInstallTelemetry?.() ?? false;
 }
