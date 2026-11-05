@@ -39,6 +39,25 @@ func TestChatEndpoint_InvalidMethod(t *testing.T) {
 	}
 }
 
+func TestSystemShutdownEndpoint(t *testing.T) {
+	s := NewServer("", agentsession.AgentSessionConfig{})
+	req, _ := http.NewRequest("POST", "/system/shutdown", nil)
+	rr := httptest.NewRecorder()
+
+	s.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status OK, got %v", rr.Code)
+	}
+
+	select {
+	case <-s.ShutdownChan():
+		// Success: shutdownChan closed
+	default:
+		t.Errorf("expected shutdownChan to be closed upon shutdown call")
+	}
+}
+
 func TestListSessionsEndpoint(t *testing.T) {
 	s := NewServer("", agentsession.AgentSessionConfig{})
 	req, _ := http.NewRequest("GET", "/api/sessions", nil)

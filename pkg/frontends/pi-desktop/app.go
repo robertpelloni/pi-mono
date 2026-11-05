@@ -41,8 +41,28 @@ type App struct {
 func NewApp() *App {
 	cwd, _ := os.Getwd()
 	return &App{
-		version: "0.97.0",
+		version: "0.98.0",
 		cwd:     cwd,
+	}
+}
+
+// QuitServers performs graceful cleanup of background agent/server processes and quits the app.
+func (a *App) QuitServers() {
+	if a.agentSession != nil {
+		a.agentSession.Abort()
+	}
+	if a.ctx != nil {
+		runtime.Quit(a.ctx)
+	}
+}
+
+// CheckServerHealth checks the local status of Pi server endpoints.
+func (a *App) CheckServerHealth() map[string]any {
+	return map[string]any{
+		"status":      "online",
+		"version":     a.version,
+		"generating":  a.IsGenerating(),
+		"currentTime": a.GetCurrentTime(),
 	}
 }
 

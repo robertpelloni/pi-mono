@@ -15,6 +15,8 @@ const {
     NewSession,
     ExportSession,
     IsGenerating,
+    QuitServers,
+    CheckServerHealth,
 } = window.go.main.App;
 
 // ── DOM refs ──
@@ -29,6 +31,16 @@ const modelInfoEl = document.getElementById('model-info');
 const sessionIdEl = document.getElementById('session-id');
 const versionEl = document.getElementById('version');
 const footerStats = document.getElementById('footer-stats');
+const tokenTelemetry = document.getElementById('token-telemetry');
+const costTelemetry = document.getElementById('cost-telemetry');
+const contextTelemetry = document.getElementById('context-telemetry');
+const operationsDrawer = document.getElementById('operations-drawer');
+const btnToggleDashboard = document.getElementById('btn-toggle-dashboard');
+const btnNewSession = document.getElementById('btn-new-session');
+const btnCycleModel = document.getElementById('btn-cycle-model');
+const btnClearChat = document.getElementById('btn-clear-chat');
+const btnQuitServer = document.getElementById('btn-quit-server');
+const serverStatusBadge = document.getElementById('server-status');
 
 // ── State ──
 let generating = false;
@@ -81,6 +93,38 @@ async function init() {
     inputEl.focus();
     updateStats();
     setInterval(updateStats, 2000);
+
+    // Operations drawer actions
+    btnToggleDashboard.addEventListener('click', () => {
+        operationsDrawer.classList.toggle('collapsed');
+    });
+
+    btnNewSession.addEventListener('click', () => {
+        NewSession().then(() => {
+            clearChildren(messagesEl);
+            addSystemMessage('New session started.');
+        });
+    });
+
+    btnCycleModel.addEventListener('click', () => {
+        CycleModel().then(m => {
+            if (m) {
+                modelInfoEl.textContent = m;
+                addSystemMessage('Active Model switched: ' + m);
+            }
+        });
+    });
+
+    btnClearChat.addEventListener('click', () => {
+        clearChildren(messagesEl);
+    });
+
+    btnQuitServer.addEventListener('click', () => {
+        if (confirm('Quit Pi Agent and shutdown server processes?')) {
+            addSystemMessage('Shutting down Pi server...', 'error');
+            if (QuitServers) QuitServers();
+        }
+    });
 }
 
 // ── Wails Event Handlers ──
@@ -349,18 +393,19 @@ async function updateStats() {
 
         clearChildren(footerStats);
 
-        if (stats.tokensIn > 0) {
+        if (stats.tokensIn > 0 || stats.tokensOut > 0) {
+            tokenTelemetry.textContent = `Tokens: ↑${formatTokens(stats.tokensIn)} ↓${formatTokens(stats.tokensOut)}`;
             footerStats.appendChild(makeSpan('Up:' + formatTokens(stats.tokensIn), 'stat-token'));
-        }
-        if (stats.tokensOut > 0) {
             footerStats.appendChild(makeSpan(' Down:' + formatTokens(stats.tokensOut), 'stat-token'));
         }
         if (stats.cost > 0) {
+            costTelemetry.textContent = `$${stats.cost.toFixed(3)}`;
             footerStats.appendChild(makeSpan(' $' + stats.cost.toFixed(3), 'stat-cost'));
         }
         if (stats.contextPercent > 0) {
             const pct = stats.contextPercent;
             const cls = pct > 90 ? 'critical' : pct > 70 ? 'high' : '';
+            contextTelemetry.textContent = `Ctx: ${pct.toFixed(1)}%`;
             footerStats.appendChild(
                 makeSpan(' ' + pct.toFixed(1) + '%/' + formatTokens(stats.contextWindow), 'stat-context ' + cls)
             );

@@ -20,7 +20,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-VERSION=$(grep 'const Version' pkg/version.go | sed 's/.*= *"\(.*\)".*/\1/')
+if [ -f "pkg/VERSION.md" ]; then
+  VERSION=$(tr -d '\r\n' < pkg/VERSION.md)
+else
+  VERSION="0.98.0"
+fi
 LDFLAGS="-X main.Version=$VERSION"
 
 PLATFORM=""
