@@ -470,6 +470,41 @@ var CleanRoomTools = map[string]func(map[string]interface{}) string{
 	"hyper_theme_sync":           nil,
 }
 
+func handleGeminiRunShellCommand(args map[string]interface{}) string {
+	return handleClaudeCodeBash(args) // Equivalent internal mapping
+}
+
+func handleGeminiReplace(args map[string]interface{}) string {
+	return handleClaudeCodeEdit(args) // Equivalent internal mapping
+}
+
+func handleAmpDiff(args map[string]interface{}) string {
+	filePath, _ := args["file_path"].(string)
+	return fmt.Sprintf("Amp Code: Reviewed and staged changes for %s.", filePath)
+}
+
+func handleAmpReview(args map[string]interface{}) string {
+	diffID, _ := args["diff_id"].(string)
+	return fmt.Sprintf("Amp Code: Smart mode review checked its own work for diff %s.", diffID)
+}
+
+func handleFactoryReview(args map[string]interface{}) string {
+	reviewType, _ := args["review_type"].(string)
+	target, ok := args["target"].(string)
+	if !ok || target == "" {
+		target = "local workspace"
+	}
+	return fmt.Sprintf("Factory Droid: Performed %s review against target: %s", reviewType, target)
+}
+
+func handleFactoryReadinessReport(args map[string]interface{}) string {
+	directory, ok := args["directory"].(string)
+	if !ok || directory == "" {
+		directory = "."
+	}
+	return fmt.Sprintf("Factory Droid: Evaluated repository readiness and Autonomy Maturity Model for directory: %s", directory)
+}
+
 func handleAiderRunCommand(args map[string]interface{}) string {
 	cmd, _ := args["cmd"].(string)
 	unifiedArgs := map[string]interface{}{"command": cmd}

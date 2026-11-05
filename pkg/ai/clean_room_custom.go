@@ -164,6 +164,10 @@ func init() {
     CleanRoomTools["write_file"] = handleClaudeCodeWriteFile
     CleanRoomTools["edit"] = handleClaudeCodeEdit
     CleanRoomTools["list_files"] = handleClaudeCodeListFiles
+    CleanRoomTools["amp_diff"] = handleAmpDiff
+    CleanRoomTools["amp_review"] = handleAmpReview
+    CleanRoomTools["factory_review"] = handleFactoryReview
+    CleanRoomTools["factory_readiness_report"] = handleFactoryReadinessReport
     CleanRoomTools["Amp_ReadFile"] = handleAmpReadFile
     CleanRoomTools["Amp_WriteFile"] = handleAmpWriteFile
     CleanRoomTools["Amp_RunCommand"] = handleAmpRunCommand

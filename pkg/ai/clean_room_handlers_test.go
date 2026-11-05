@@ -8,6 +8,24 @@ import (
 	"testing"
 )
 
+func TestCleanRoomHandlers_GeminiWrappers(t *testing.T) {
+	// Restored wrappers must dispatch to the Claude Code handlers, not panic or error on routing.
+	shellResp := handleGeminiRunShellCommand(map[string]interface{}{"command": "echo pimono-gemini-wrapper"})
+	if strings.Contains(shellResp, "unknown") || strings.Contains(shellResp, "not implemented") {
+		t.Errorf("expected shell wrapper to dispatch, got: %s", shellResp)
+	}
+	replaceResp := handleGeminiReplace(map[string]interface{}{"file_path": "nonexistent-pimono-test.txt", "old_string": "a", "new_string": "b"})
+	if replaceResp == "" {
+		t.Errorf("expected replace wrapper to return a response, got empty")
+	}
+	if _, ok := CleanRoomTools["run_shell_command"]; !ok {
+		t.Errorf("expected run_shell_command registered in CleanRoomTools")
+	}
+	if _, ok := CleanRoomTools["replace"]; !ok {
+		t.Errorf("expected replace registered in CleanRoomTools")
+	}
+}
+
 func TestCleanRoomHandlers_Todo(t *testing.T) {
 	// 1. Add
 	args := map[string]interface{}{"action": "add", "task": "test task"}
