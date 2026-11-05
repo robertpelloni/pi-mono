@@ -91,12 +91,12 @@ type openAITool struct {
 }
 
 type openAIRequest struct {
-	Model    string          `json:"model"`
-	Messages []openAIMessage `json:"messages"`
-	Stream   bool            `json:"stream"`
-	Tools    []openAITool    `json:"tools,omitempty"`
-	ReasoningEffort string          `json:"reasoning_effort,omitempty"`
-	MaxCompletionTokens *int       `json:"max_completion_tokens,omitempty"`
+	Model               string          `json:"model"`
+	Messages            []openAIMessage `json:"messages"`
+	Stream              bool            `json:"stream"`
+	Tools               []openAITool    `json:"tools,omitempty"`
+	MaxCompletionTokens *int            `json:"max_completion_tokens,omitempty"`
+	ReasoningEffort     *string         `json:"reasoning_effort,omitempty"`
 }
 
 type openAIStreamChunk struct {
@@ -148,15 +148,18 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 
 		var reqMessages []openAIMessage
 
+		// Identify if the model is an o1 or o3-mini reasoning model.
+		// Reasoning models require 'developer' instead of 'system' for system instructions,
+		// and use 'max_completion_tokens' for length limits.
+		isReasoningModel := strings.HasPrefix(model.ID, "o1") || strings.HasPrefix(model.ID, "o3") || strings.Contains(model.ID, "o1-") || strings.Contains(model.ID, "o3-")
+
 		// 1. Map System Prompt
 		if aiCtx.SystemPrompt != nil && *aiCtx.SystemPrompt != "" {
-			// o1/o3-mini models generally reject the 'system' role or strictly enforce developer roles.
-			// To be safe across the board for generic reasoning agents, we check the model ID.
-			if strings.HasPrefix(model.ID, "o1") || strings.HasPrefix(model.ID, "o3-mini") {
-				reqMessages = append(reqMessages, openAIMessage{Role: "developer", Content: *aiCtx.SystemPrompt})
-			} else {
-				reqMessages = append(reqMessages, openAIMessage{Role: "system", Content: *aiCtx.SystemPrompt})
+			systemRole := "system"
+			if isReasoningModel {
+				systemRole = "developer"
 			}
+			reqMessages = append(reqMessages, openAIMessage{Role: systemRole, Content: *aiCtx.SystemPrompt})
 		}
 
 		// 2. Map Messages
@@ -222,6 +225,17 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 			})
 		}
 
+		// 3. Map Options and Reasoning Enhancements
+		var baseOpt StreamOptions
+		var reasoning ThinkingLevel
+
+		if o, ok := options.(StreamOptions); ok {
+			baseOpt = o
+		} else if o, ok := options.(SimpleStreamOptions); ok {
+			baseOpt = o.StreamOptions
+			reasoning = o.Reasoning
+		}
+
 		reqBody := openAIRequest{
 			Model:    model.ID,
 			Messages: reqMessages,
@@ -229,9 +243,24 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 			Tools:    reqTools,
 		}
 
-		// Default to high reasoning effort for complex tasks if o-series is detected.
-		if strings.HasPrefix(model.ID, "o1") || strings.HasPrefix(model.ID, "o3-mini") {
-			reqBody.ReasoningEffort = "high"
+		if isReasoningModel {
+			if reasoning != "" {
+				// Map standard thinking labels to OpenAI reasoning effort levels
+				effort := "medium"
+				switch reasoning {
+				case ThinkingLow:
+					effort = "low"
+				case ThinkingHigh:
+					effort = "high"
+				}
+				reqBody.ReasoningEffort = &effort
+			}
+
+			// o-series models enforce output caps using max_completion_tokens
+			if baseOpt.MaxTokens > 0 {
+				val := baseOpt.MaxTokens
+				reqBody.MaxCompletionTokens = &val
+			}
 		}
 
 		reqBytes, err := json.Marshal(reqBody)
@@ -245,16 +274,10 @@ func StreamOpenAIResponses(ctx context.Context, model ModelInfo, aiCtx Context, 
 		}
 
 		// Implement Cancel Context
-		var opt StreamOptions
-		if o, ok := options.(StreamOptions); ok {
-			opt = o
-		} else if o, ok := options.(SimpleStreamOptions); ok {
-			opt = o.StreamOptions
-		}
-		if opt.AbortSignal != nil {
+		if baseOpt.AbortSignal != nil {
 			go func() {
 				select {
-				case <-opt.AbortSignal:
+				case <-baseOpt.AbortSignal:
 					cancel()
 				case <-reqCtx.Done():
 				}

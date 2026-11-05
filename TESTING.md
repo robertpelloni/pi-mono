@@ -1,51 +1,42 @@
-# Testing Strategy
+# Testing & Parity Validation Guide
 
-Pi Agent uses a multi-layered testing strategy to ensure stability and correctness across its Go-based architecture.
+This document outlines the standard procedures for validating the unified execution harness, with a specific focus on ensuring exact parity with integrated external tools (Claude Code, Gemini CLI, Codex, etc.).
 
-## Unit Testing
-Unit tests focus on individual components and packages.
-- **`pkg/ai`**: Tests for model registry, tool harness, and parity handlers (Tabby, Warp, Wave).
-- **`pkg/repomap`**: Tests for symbol extraction, file ranking, and repo map generation.
-- **`pkg/opencode`**: Tests for patch parsing and multi-edit operations.
-- **`pkg/server`**: Tests for HTTP handlers and request/response marshaling.
+## 1. Local Staging Validation
 
-Run all unit tests:
+Before submitting changes to core handlers or tool schemas, you must validate them against a live local instance.
+
+1.  **Spin up the staging instance:**
+    ```bash
+    PI_AGENT_DIR=.pi-staging ./pi --port 8081
+    ```
+    *Note: This isolates the agent's memory and workspace from your primary environment.*
+
+2.  **Execute the Parity Suite:**
+    ```bash
+    ./scripts/parity-check.sh --endpoint http://localhost:8081
+    ```
+
+## 2. Core Security & Edge Cases
+
+When contributing to `pkg/ai/clean_room_handlers.go` or `pkg/ai/security.go`, you must explicitly verify the following constraints:
+
+### A. Directory Boundary Enforcement (`safePath`)
+All direct file manipulation tools (e.g., `read_file`, `write_to_file`, `replace_lines`, `Amp_ReadFile`) **must** pass their target paths through `validatePath()`.
+- **Validation:** Attempt to read or write to `../../etc/passwd` via the tool interface. The harness must gracefully return a `security violation` string error, not a Go panic or fatal crash.
+
+### B. URL Validation & Injection Prevention
+Browser tools (e.g., `browser_action`, `web_search`) accept raw URLs.
+- **Validation:** The underlying handler must use `os/exec` with explicit parameter arguments (e.g., `exec.Command("lynx", "-dump", url)`).
+- **NEVER** pass URLs directly into a shell string (e.g., `bash -c "lynx " + url`), as this opens the harness to severe shell injection attacks via `;` or `&&` terminators.
+
+### C. Multi-File Edits
+Complex handlers like `multiedit` or `apply_patch` must be tested across multiple directory depths to ensure relative path resolution remains intact during atomic file writes.
+
+## 3. Go Test Suite
+
+Always execute the native test suite to ensure schema routing and fallback mechanisms (like the Community Plugin Hub) remain intact:
 ```bash
-go test ./pkg/...
+go test ./pkg/ai/... -v
+go test ./pkg/plugins/... -v
 ```
-
-## Integration Testing
-Integration tests verify the interaction between multiple components, particularly the server and the tool harness.
-- **`pkg/server/integration_test.go`**: Verifies that the server correctly routes requests to the tool harness.
-
-## End-to-End (E2E) Testing
-E2E tests verify the entire system flow, from HTTP request to tool execution.
-- **`pkg/server/e2e_test.go`**: Simulates real agent flows for Tabby, Warp, and Wave.
-
-Run E2E tests:
-```bash
-go test -v ./pkg/server/... -run TestServer_E2E
-```
-
-## Performance Benchmarking
-Benchmarks are used to track the latency and throughput of critical path components.
-- **`pkg/ai/harness_perf_test.go`**: Benchmarks for tool execution overhead and concurrency.
-- **`pkg/repomap/repomap_test.go`**: Benchmarks for RepoMap generation on large repositories.
-
-Run benchmarks:
-```bash
-go test -bench . ./pkg/...
-```
-
-## Continuous Integration (CI)
-Our GitHub Actions pipeline (`.github/workflows/ci.yml`) automatically runs the following on every push and pull request:
-1. **Build Verification**: Ensures the project compiles on Darwin, Linux, and Windows.
-2. **Unit & E2E Tests**: Executes the full Go test suite.
-3. **Legacy Checks**: Runs build and type-check on existing TypeScript packages.
-
-## Prerequisites for Testing
-Some tests require system-level tools:
-- `ripgrep` (`rg`)
-- `lynx`
-- `xdotool`
-- `scrot` (for screenshot tests)

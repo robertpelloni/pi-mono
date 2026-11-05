@@ -52,6 +52,9 @@ var symbolPatterns = []struct {
 	{regexp.MustCompile(`(?m)^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)\b`), "class"},
 	{regexp.MustCompile(`(?m)^\s*interface\s+([A-Za-z_][A-Za-z0-9_]*)\b`), "interface"},
 	{regexp.MustCompile(`(?m)^\s*(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(`), "func"},
+	{regexp.MustCompile(`(?m)^\s*(?:export\s+)?const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>`), "func"}, // arrow func
+	{regexp.MustCompile(`(?m)^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(`), "func"}, // python def
+	{regexp.MustCompile(`(?m)^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\([^)]*\))?:`), "class"}, // python class
 	{regexp.MustCompile(`(?m)^\s*(?:export\s+)?const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:async\s*)?\(`), "const"},
 	{regexp.MustCompile(`(?m)^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(`), "func"},
 }

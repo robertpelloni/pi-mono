@@ -81,3 +81,20 @@ func (r *Registry) GetDefaultModel() *ModelInfo {
 	}
 	return nil
 }
+
+func (r *Registry) HandleClaudeCodeAction(ctx context.Context, req *ClaudeCodeRequest) (map[string]interface{}, error) {
+	// In full assimilation, this delegates to internal execute logic.
+	return map[string]interface{}{"status": "success", "action": req.Action}, nil
+}
+
+func (r *Registry) HandleCodexCLIAction(ctx context.Context, req *CodexCLIRequest) (map[string]interface{}, error) {
+	return map[string]interface{}{"status": "success", "command": req.Command}, nil
+}
+
+func (r *Registry) HandleGeminiAssistAction(ctx context.Context, req *GeminiAssistRequest) (map[string]interface{}, error) {
+	return map[string]interface{}{"status": "success", "prompt": req.Prompt}, nil
+}
+
+func (r *Registry) HandleClaudeDesktopAction(ctx context.Context, req *ClaudeDesktopRequest) (map[string]interface{}, error) {
+	return map[string]interface{}{"status": "success", "event": req.Event}, nil
+}

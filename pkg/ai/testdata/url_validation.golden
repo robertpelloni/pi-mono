@@ -1,0 +1,9 @@
+URL: "" -> ERROR: URL cannot be empty
+URL: "example.com" -> ERROR: security violation: URL must begin with http:// or https://
+URL: "//example.com/path" -> ERROR: security violation: URL must begin with http:// or https://
+URL: "file:///etc/passwd" -> ERROR: security violation: URL must begin with http:// or https://
+URL: "ftp://example.com/file" -> ERROR: security violation: URL must begin with http:// or https://
+URL: "http://example.com" -> OK: http://example.com
+URL: "https://example.com/path?q=123" -> OK: https://example.com/path?q=123
+URL: "javascript:alert(1)" -> ERROR: security violation: URL must begin with http:// or https://
+URL: "data:text/html,<h1>test</h1>" -> ERROR: security violation: URL must begin with http:// or https://
