@@ -1,4 +1,4 @@
-# Deployment & Environment Setup (v0.97.0)
+# Deployment & Environment Setup (v1.0.0)
 
 This guide covers the deployment of the **Ultimate LLM Harness**, a high-performance Go-based AI agent backend.
 
@@ -12,6 +12,12 @@ This guide covers the deployment of the **Ultimate LLM Harness**, a high-perform
 To build the native Go binary for your current platform:
 ```bash
 go build -o pi ./cmd/pi
+```
+
+### Desktop Application
+To build the unified desktop GUI application (Wails-based):
+```bash
+cd pkg/frontends/pi-desktop && wails build
 ```
 
 ### Automated Setup
@@ -53,14 +59,16 @@ Set the following variables in your `.env` or shell:
 - `GOOGLE_API_KEY`: For Google Gemini models.
 - `PI_AGENT_DIR`: Override default config directory (default: `~/.pi`).
 
-## Unified Tool Harness
-Pi includes a **Unified Tool Harness** that provides API parity with other major AI coding assistants. This allows you to use Pi as a backend for third-party IDE extensions and CLI tools.
+## Unified Tool Harness & Dashboard Endpoints
+Pi includes a **Unified Tool Harness** that provides API parity with other major AI coding assistants. This allows you to use Pi as a backend for third-party IDE extensions, web UIs, and CLI tools.
 
 ### Enabling Parity Endpoints
-The Go server automatically exposes several parity endpoints:
-- **Tabby Compatibility**: `/v1/completions`
+The Go server automatically exposes several parity and control endpoints:
+- **Tabby Compatibility**: `/v1/completions`, `/v1/next-edit-suggestion`
 - **Warp Compatibility**: `/api/warp/action`
 - **Wave Compatibility**: `/api/wave/action`
+- **Hyper Compatibility**: `/api/hyper/theme`
+- **System Lifecycle**: `/system/status`, `/system/shutdown`
 
 To start the parity server:
 ```bash

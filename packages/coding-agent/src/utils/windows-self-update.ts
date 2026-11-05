@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
 import { basename, dirname, join, relative, resolve, toNamespacedPath } from "node:path";
-import { getCwdRelativePath } from "./paths.ts";
+import { getCwdRelativePath } from "./paths.js";
 
 const QUARANTINE_DIR_NAME = ".pi-native-quarantine";
 

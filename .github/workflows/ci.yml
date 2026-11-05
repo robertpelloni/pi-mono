@@ -40,6 +40,8 @@ jobs:
 
   ts-legacy-check:
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,7 +53,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build
         run: npm run build

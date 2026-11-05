@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "main" ]
 
+concurrency:
+  group: go-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,4 +30,4 @@ jobs:
       run: go build -v ./cmd/pi/... ./pkg/...
 
     - name: Test
-      run: go test -v $(go list ./... | grep -v 'submodules')
+      run: go test -v -p 2 -timeout 5m $(go list ./... | grep -v 'submodules')

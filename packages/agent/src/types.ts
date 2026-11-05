@@ -34,6 +34,9 @@ export type StreamFn = (
  */
 export type ToolExecutionMode = "sequential" | "parallel";
 
+/** Queue mode for message steering and follow-ups */
+export type QueueMode = "all" | "one-at-a-time";
+
 /** A single tool call content block emitted by an assistant message. */
 export type AgentToolCall = Extract<AssistantMessage["content"][number], { type: "toolCall" }>;
 
@@ -211,6 +214,9 @@ export interface AgentLoopConfig extends SimpleStreamOptions {
 	 * The hook receives the agent abort signal and is responsible for honoring it.
 	 */
 	afterToolCall?: (context: AfterToolCallContext, signal?: AbortSignal) => Promise<AfterToolCallResult | undefined>;
+
+	/** Optional prepareNextTurn hook for harness architectures */
+	prepareNextTurn?: () => Promise<{ context: AgentContext; model: Model<any>; thinkingLevel: ThinkingLevel }>;
 }
 
 /**

@@ -1,14 +1,14 @@
-import type { AssistantMessage, ImageContent, Model, TextContent, Usage } from "@earendil-works/pi-ai";
-import { completeSimple } from "@earendil-works/pi-ai";
-import type { AgentMessage, ThinkingLevel } from "../../types.ts";
+import type { AssistantMessage, ImageContent, Model, TextContent, Usage } from "@mariozechner/pi-ai";
+import { completeSimple } from "@mariozechner/pi-ai";
+import type { AgentMessage, ThinkingLevel } from "../../types.js";
 import {
 	convertToLlm,
 	createBranchSummaryMessage,
 	createCompactionSummaryMessage,
 	createCustomMessage,
-} from "../messages.ts";
-import { buildSessionContext } from "../session/session.ts";
-import { type CompactionEntry, CompactionError, err, ok, type Result, type SessionTreeEntry } from "../types.ts";
+} from "../messages.js";
+import { buildSessionContext } from "../session/session.js";
+import { type CompactionEntry, CompactionError, err, ok, type Result, type SessionTreeEntry } from "../types.js";
 import {
 	computeFileLists,
 	createFileOps,
@@ -16,7 +16,7 @@ import {
 	type FileOperations,
 	formatFileOperations,
 	serializeConversation,
-} from "./utils.ts";
+} from "./utils.js";
 
 /** File-operation details stored on generated compaction entries. */
 export interface CompactionDetails {
@@ -44,10 +44,10 @@ function extractFileOperations(
 		if (!prevCompaction.fromHook && prevCompaction.details) {
 			const details = prevCompaction.details as CompactionDetails;
 			if (Array.isArray(details.readFiles)) {
-				for (const f of details.readFiles) fileOps.read.add(f);
+				for (const f of details.readFiles) fileOps.read.add(f as any);
 			}
 			if (Array.isArray(details.modifiedFiles)) {
-				for (const f of details.modifiedFiles) fileOps.edited.add(f);
+				for (const f of details.modifiedFiles) fileOps.edited.add(f as any);
 			}
 		}
 	}
@@ -220,7 +220,8 @@ function estimateTextAndImageContentChars(content: string | Array<{ type: string
 export function estimateTokens(message: AgentMessage): number {
 	let chars = 0;
 
-	switch (message.role) {
+	const msg = message as any;
+	switch (msg.role) {
 		case "user": {
 			chars = estimateTextAndImageContentChars(
 				(message as { content: string | Array<{ type: string; text?: string }> }).content,
@@ -242,16 +243,16 @@ export function estimateTokens(message: AgentMessage): number {
 		}
 		case "custom":
 		case "toolResult": {
-			chars = estimateTextAndImageContentChars(message.content);
+			chars = estimateTextAndImageContentChars(msg.content);
 			return Math.ceil(chars / 4);
 		}
 		case "bashExecution": {
-			chars = message.command.length + message.output.length;
+			chars = (msg.command?.length || 0) + (msg.output?.length || 0);
 			return Math.ceil(chars / 4);
 		}
 		case "branchSummary":
 		case "compactionSummary": {
-			chars = message.summary.length;
+			chars = msg.summary?.length || 0;
 			return Math.ceil(chars / 4);
 		}
 	}
@@ -560,7 +561,7 @@ export function prepareCompaction(
 	if (prevCompactionIndex >= 0) {
 		const prevCompaction = pathEntries[prevCompactionIndex] as CompactionEntry;
 		previousSummary = prevCompaction.summary;
-		const firstKeptEntryIndex = pathEntries.findIndex((entry) => entry.id === prevCompaction.firstKeptEntryId);
+		const firstKeptEntryIndex = pathEntries.findIndex((entry) => (entry as any).id === prevCompaction.firstKeptEntryId);
 		boundaryStart = firstKeptEntryIndex >= 0 ? firstKeptEntryIndex : prevCompactionIndex + 1;
 	}
 	const boundaryEnd = pathEntries.length;
@@ -568,7 +569,7 @@ export function prepareCompaction(
 	const tokensBefore = estimateContextTokens(buildSessionContext(pathEntries).messages).tokens;
 
 	const cutPoint = findCutPoint(pathEntries, boundaryStart, boundaryEnd, settings.keepRecentTokens);
-	const firstKeptEntry = pathEntries[cutPoint.firstKeptEntryIndex];
+	const firstKeptEntry = pathEntries[cutPoint.firstKeptEntryIndex] as any;
 	if (!firstKeptEntry?.id) {
 		return err(new CompactionError("invalid_session", "First kept entry has no UUID - session may need migration"));
 	}
@@ -621,7 +622,7 @@ Summarize the prefix to provide context for the retained suffix:
 
 Be concise. Focus on what's needed to understand the kept suffix.`;
 
-export { serializeConversation } from "./utils.ts";
+export { serializeConversation } from "./utils.js";
 
 /** Generate compaction summary data from prepared session history. */
 export async function compact(

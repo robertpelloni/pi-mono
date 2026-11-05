@@ -9,6 +9,7 @@ This document contains major long-term structural plans for the project.
 - Submodules have been fully assimilated and removed to maintain a streamlined, single-source-of-truth codebase.
 - Repository synchronized with upstream (`earendil-works/pi`). Upstream is TypeScript-only; our Go port maintains independent architecture.
 - Phase B UI enhancements completed: editor component, markdown rendering, overlay stack, spinner, autocomplete with fuzzy matching.
+- Phase C UI Consolidation & Desktop System Tray integration completed: unified single-page dashboard architecture with live server lifecycle management.
 
 ## Long-term Goals
 
@@ -32,4 +33,5 @@ This document contains major long-term structural plans for the project.
 - [x] Robust CI/CD & Unit Testing: Integrated Go 1.24+ CI pipeline and expanded test coverage.
 - [x] Phase 20: Extended Assimilation - Claude Desktop, Claude Code, Codex Desktop, Codex CLI. Next up: Gemini-CLI and Hermes Desktop.
 - [x] Phase B: UI Enhancements - Editor component, markdown rendering (per-message), overlay stack (with help overlay), spinner during generation, autocomplete providers with fuzzy matching.
-- [ ] Phase C: Advanced features - Session management, workspace integration, per-message markdown rendering refinement.
+- [x] Phase C: Single-Page Dashboard Consolidation & System Tray Integration - Consolidated all fragmented dashboard features into one unified single-page workspace with intuitive tooltips, real-time telemetry, and graceful server/tray controls (`/system/shutdown`).
+- [ ] Phase D: Community Plugin Hub & Dynamic Extension RPC.

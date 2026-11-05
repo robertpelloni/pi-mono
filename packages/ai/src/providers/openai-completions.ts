@@ -841,6 +841,7 @@ function detectCompat(model: Model<"openai-completions">): Required<OpenAIComple
 		requiresToolResultName: false,
 		requiresAssistantAfterToolResult: false,
 		requiresThinkingAsText: false,
+		requiresReasoningContentOnAssistantMessages: false,
 		thinkingFormat: isZai
 			? "zai"
 			: provider === "openrouter" || baseUrl.includes("openrouter.ai")
@@ -850,6 +851,9 @@ function detectCompat(model: Model<"openai-completions">): Required<OpenAIComple
 		vercelGatewayRouting: {},
 		zaiToolStream: false,
 		supportsStrictMode: true,
+		cacheControlFormat: undefined as any,
+		sendSessionAffinityHeaders: false,
+		supportsLongCacheRetention: true,
 	};
 }
 
@@ -872,10 +876,15 @@ function getCompat(model: Model<"openai-completions">): Required<OpenAICompletio
 		requiresAssistantAfterToolResult:
 			model.compat.requiresAssistantAfterToolResult ?? detected.requiresAssistantAfterToolResult,
 		requiresThinkingAsText: model.compat.requiresThinkingAsText ?? detected.requiresThinkingAsText,
+		requiresReasoningContentOnAssistantMessages:
+			model.compat.requiresReasoningContentOnAssistantMessages ?? detected.requiresReasoningContentOnAssistantMessages,
 		thinkingFormat: model.compat.thinkingFormat ?? detected.thinkingFormat,
 		openRouterRouting: model.compat.openRouterRouting ?? {},
 		vercelGatewayRouting: model.compat.vercelGatewayRouting ?? detected.vercelGatewayRouting,
 		zaiToolStream: model.compat.zaiToolStream ?? detected.zaiToolStream,
 		supportsStrictMode: model.compat.supportsStrictMode ?? detected.supportsStrictMode,
+		cacheControlFormat: model.compat.cacheControlFormat ?? detected.cacheControlFormat,
+		sendSessionAffinityHeaders: model.compat.sendSessionAffinityHeaders ?? detected.sendSessionAffinityHeaders,
+		supportsLongCacheRetention: model.compat.supportsLongCacheRetention ?? detected.supportsLongCacheRetention,
 	};
 }

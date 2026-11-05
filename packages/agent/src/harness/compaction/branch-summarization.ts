@@ -1,15 +1,15 @@
-import type { Model } from "@earendil-works/pi-ai";
-import { completeSimple } from "@earendil-works/pi-ai";
-import type { AgentMessage } from "../../types.ts";
+import type { Model } from "@mariozechner/pi-ai";
+import { completeSimple } from "@mariozechner/pi-ai";
+import type { AgentMessage } from "../../types.js";
 import {
 	convertToLlm,
 	createBranchSummaryMessage,
 	createCompactionSummaryMessage,
 	createCustomMessage,
-} from "../messages.ts";
-import type { BranchSummaryResult, Session, SessionTreeEntry } from "../types.ts";
-import { BranchSummaryError, err, ok, type Result, SessionError } from "../types.ts";
-import { estimateTokens, SUMMARIZATION_SYSTEM_PROMPT } from "./compaction.ts";
+} from "../messages.js";
+import type { BranchSummaryResult, Session, SessionTreeEntry } from "../types.js";
+import { BranchSummaryError, err, ok, type Result, SessionError } from "../types.js";
+import { estimateTokens, SUMMARIZATION_SYSTEM_PROMPT } from "./compaction.js";
 import {
 	computeFileLists,
 	createFileOps,
@@ -17,7 +17,7 @@ import {
 	type FileOperations,
 	formatFileOperations,
 	serializeConversation,
-} from "./utils.ts";
+} from "./utils.js";
 
 /** File-operation details stored on generated branch summary entries. */
 export interface BranchSummaryDetails {
@@ -27,7 +27,7 @@ export interface BranchSummaryDetails {
 	modifiedFiles: string[];
 }
 
-export type { FileOperations } from "./utils.ts";
+export type { FileOperations } from "./utils.js";
 
 /** Prepared branch content for summarization. */
 export interface BranchPreparation {
@@ -130,11 +130,11 @@ export function prepareBranchEntries(entries: SessionTreeEntry[], tokenBudget: n
 		if (entry.type === "branch_summary" && !entry.fromHook && entry.details) {
 			const details = entry.details as BranchSummaryDetails;
 			if (Array.isArray(details.readFiles)) {
-				for (const f of details.readFiles) fileOps.read.add(f);
+				for (const f of details.readFiles) fileOps.read.add(f as any);
 			}
 			if (Array.isArray(details.modifiedFiles)) {
 				for (const f of details.modifiedFiles) {
-					fileOps.edited.add(f);
+					fileOps.edited.add(f as any);
 				}
 			}
 		}

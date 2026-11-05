@@ -1,6 +1,6 @@
-import type { Api, Model } from "@earendil-works/pi-ai";
-import type { SettingsManager } from "./settings-manager.ts";
-import { isInstallTelemetryEnabled } from "./telemetry.ts";
+import type { Api, Model } from "@mariozechner/pi-ai";
+import type { SettingsManager } from "./settings-manager.js";
+import { isInstallTelemetryEnabled } from "./telemetry.js";
 
 const OPENROUTER_HOST = "openrouter.ai";
 const NVIDIA_NIM_HOST = "integrate.api.nvidia.com";
