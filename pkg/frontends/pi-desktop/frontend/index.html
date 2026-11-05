@@ -8,17 +8,50 @@
   </head>
   <body>
     <div id="app">
-      <!-- Header -->
+      <!-- Header / Single-Page Telemetry Bar -->
       <header id="header">
         <div class="header-left">
-          <span class="logo">pi</span>
-          <span class="version" id="version"></span>
+          <span class="logo" title="Pi Autonomous Coding Agent">pi</span>
+          <span class="version" id="version" title="System Version"></span>
+          <span class="badge badge-status" id="server-status" title="Server Connection Status">Online</span>
+        </div>
+        <div class="header-center">
+          <div class="quick-telemetry" id="quick-telemetry">
+            <span class="telemetry-pill" id="token-telemetry" title="Real-time Token Consumption (Up / Down)">Tokens: --</span>
+            <span class="telemetry-pill" id="cost-telemetry" title="Total Session Cost (USD)">$0.00</span>
+            <span class="telemetry-pill" id="context-telemetry" title="Context Window Utilization">Ctx: --</span>
+          </div>
         </div>
         <div class="header-right">
-          <span class="model-info" id="model-info">--</span>
-          <span class="session-id" id="session-id"></span>
+          <span class="model-info" id="model-info" title="Current Active LLM Provider & Model (Ctrl+P to cycle)">--</span>
+          <span class="session-id" id="session-id" title="Active Session Identifier"></span>
+          <button id="btn-toggle-dashboard" class="action-btn" title="Toggle Clean Room Tools & System Controls">⚡ Controls</button>
         </div>
       </header>
+
+      <!-- Consolidated Single-Page Operations Drawer -->
+      <section id="operations-drawer" class="operations-drawer">
+        <div class="drawer-section">
+          <h3>Clean-Room Tools & Operations</h3>
+          <div class="tool-chips">
+            <span class="chip" title="Aider Parity: Multi-file repository search & contextual edits">Aider Architect</span>
+            <span class="chip" title="Cline Parity: Headless browser automation via lynx">Cline Browser</span>
+            <span class="chip" title="Hermes & OpenCode: Multi-edit fuzzy diff patching">OpenCode MultiEdit</span>
+            <span class="chip" title="Warp Parity: Fast block subshell actions">Warp Actions</span>
+            <span class="chip" title="Tabby Parity: Next-edit completions engine">Tabby Suggestions</span>
+            <span class="chip" title="Wave Parity: Contextual shell workspace orchestration">Wave Actions</span>
+          </div>
+        </div>
+        <div class="drawer-section actions-section">
+          <h3>Server Lifecycle & Session</h3>
+          <div class="action-buttons">
+            <button id="btn-new-session" class="drawer-btn" title="Start a fresh agent session (Ctrl+N)">+ New Session</button>
+            <button id="btn-cycle-model" class="drawer-btn" title="Cycle through configured providers & models (Ctrl+P)">Cycle Model</button>
+            <button id="btn-clear-chat" class="drawer-btn" title="Clear current chat view (Ctrl+L)">Clear View</button>
+            <button id="btn-quit-server" class="drawer-btn danger" title="Gracefully shutdown background server processes">Quit Pi</button>
+          </div>
+        </div>
+      </section>
 
       <!-- Chat Area -->
       <main id="chat">
@@ -32,19 +65,19 @@
       <!-- Footer -->
       <footer id="footer">
         <div class="footer-stats" id="footer-stats"></div>
-        <div class="footer-cwd" id="footer-cwd"></div>
+        <div class="footer-cwd" id="footer-cwd" title="Current Working Directory"></div>
       </footer>
 
-      <!-- Input -->
+      <!-- Input Area -->
       <div id="input-area">
         <textarea
           id="user-input"
-          placeholder="Type a message... (Enter to send, Shift+Enter for newline)"
+          placeholder="Ask Pi to build features, fix bugs, or analyze code... (Enter to send, Shift+Enter for newline)"
           rows="2"
         ></textarea>
         <div class="input-actions">
-          <button id="btn-send" title="Send (Ctrl+S)">▶</button>
-          <button id="btn-abort" class="hidden" title="Abort (Esc)">■</button>
+          <button id="btn-send" title="Send Directive (Ctrl+S)">▶</button>
+          <button id="btn-abort" class="hidden" title="Abort Execution (Esc)">■</button>
         </div>
       </div>
     </div>

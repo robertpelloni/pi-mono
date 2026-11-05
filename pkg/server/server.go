@@ -17,12 +17,14 @@ import (
 
 // Server represents the HTTP web server for the Pi Web UI.
 type Server struct {
-	mu        sync.RWMutex
-	mux       *http.ServeMux
-	staticDir string
-	sessions  map[string]*agentsession.AgentSession
-	config    agentsession.AgentSessionConfig // Template config for new sessions
-	registry  *ai.Registry                    // Persistent registry for parity endpoints
+	mu           sync.RWMutex
+	mux          *http.ServeMux
+	staticDir    string
+	sessions     map[string]*agentsession.AgentSession
+	config       agentsession.AgentSessionConfig // Template config for new sessions
+	registry     *ai.Registry                    // Persistent registry for parity endpoints
+	shutdownChan chan struct{}
+	shutdownOnce sync.Once
 }
 
 // NewServer initializes a new Web UI Server with multi-session support.
@@ -33,14 +35,20 @@ func NewServer(staticDir string, config agentsession.AgentSessionConfig) *Server
 
 	mux := http.NewServeMux()
 	s := &Server{
-		mux:       mux,
-		staticDir: staticDir,
-		sessions:  make(map[string]*agentsession.AgentSession),
-		config:    config,
-		registry:  ai.NewRegistry(),
+		mux:          mux,
+		staticDir:    staticDir,
+		sessions:     make(map[string]*agentsession.AgentSession),
+		config:       config,
+		registry:     ai.NewRegistry(),
+		shutdownChan: make(chan struct{}),
 	}
 	s.routes()
 	return s
+}
+
+// ShutdownChan returns a read-only channel that is closed when a shutdown is triggered.
+func (s *Server) ShutdownChan() <-chan struct{} {
+	return s.shutdownChan
 }
 
 // ServeHTTP implements the http.Handler interface.
@@ -65,8 +73,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/wave/action", s.handleWaveAction())
 	s.mux.HandleFunc("/api/hyper/theme", s.handleHyperTheme())
 
-	// System Monitoring Endpoints
+	// System Monitoring & Lifecycle Endpoints
 	s.mux.HandleFunc("/system/status", s.handleSystemStatus())
+	s.mux.HandleFunc("/system/shutdown", s.handleSystemShutdown())
 
 	// Serve static files
 	fileServer := http.FileServer(http.Dir(s.staticDir))
@@ -313,5 +322,24 @@ func (s *Server) handleSystemStatus() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(status)
+	}
+}
+
+func (s *Server) handleSystemShutdown() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		s.shutdownOnce.Do(func() {
+			close(s.shutdownChan)
+		})
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "shutting_down",
+			"message": "Pi server shutdown initiated gracefully.",
+		})
 	}
 }
