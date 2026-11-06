@@ -93,12 +93,16 @@ func handleClaudeCodeEdit(args map[string]interface{}) string {
             return "Error: missing 'file_path' parameter"
         }
     }
+    safeFilePath, err := validatePath(filePath)
+    if err != nil {
+        return "Error: " + err.Error()
+    }
     oldStr, ok1 := args["old_string"].(string)
     newStr, ok2 := args["new_string"].(string)
     if !ok1 || !ok2 {
         return "Error: missing 'old_string' or 'new_string' parameter"
     }
-    data, err := ioutil.ReadFile(filePath)
+    data, err := ioutil.ReadFile(safeFilePath)
     if err != nil {
         return "Error reading file: " + err.Error()
     }
@@ -106,7 +110,7 @@ func handleClaudeCodeEdit(args map[string]interface{}) string {
         return "Error: could not find the specified text to replace"
     }
     updated := strings.Replace(string(data), oldStr, newStr, 1)
-    if err := ioutil.WriteFile(filePath, []byte(updated), 0644); err != nil {
+    if err := ioutil.WriteFile(safeFilePath, []byte(updated), 0644); err != nil {
         return "Error writing file: " + err.Error()
     }
     return "Edit applied successfully"
@@ -118,7 +122,11 @@ func handleClaudeCodeListFiles(args map[string]interface{}) string {
     if p, ok := args["path"].(string); ok && p != "" {
         dirPath = p
     }
-    entries, err := ioutil.ReadDir(dirPath)
+    safeDirPath, err := validatePath(dirPath)
+    if err != nil {
+        return "Error: " + err.Error()
+    }
+    entries, err := ioutil.ReadDir(safeDirPath)
     if err != nil {
         return "Error: " + err.Error()
     }
