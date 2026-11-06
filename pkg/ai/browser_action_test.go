@@ -111,8 +111,8 @@ func TestHandleClineBrowserAction(t *testing.T) {
 
 			// Special case for lynx since it might actually succeed on machines where it is installed.
 			if tt.name == "launch with URL delegates to lynx" {
-				if !strings.Contains(result, "Example Domain") && !strings.Contains(result, "Error") {
-					t.Errorf("expected result to either succeed with Example Domain or fail with Error, got %q", result)
+				if !strings.Contains(result, "Example Domain") && !strings.Contains(result, "documentation examples") && !strings.Contains(result, "Error") {
+					t.Errorf("expected result to either succeed with Example Domain/documentation examples or fail with Error, got %q", result)
 				}
 				return
 			}
