@@ -388,6 +388,26 @@ function setStatus(text) {
 // ── Stats ──
 async function updateStats() {
     try {
+        if (CheckServerHealth) {
+            const health = await CheckServerHealth();
+            if (health && serverStatusBadge) {
+                if (health.generating) {
+                    serverStatusBadge.textContent = 'Generating';
+                    serverStatusBadge.className = 'badge badge-status badge-generating';
+                } else {
+                    serverStatusBadge.textContent = 'Online';
+                    serverStatusBadge.className = 'badge badge-status';
+                }
+            }
+        }
+    } catch {
+        if (serverStatusBadge) {
+            serverStatusBadge.textContent = 'Offline';
+            serverStatusBadge.className = 'badge badge-status badge-offline';
+        }
+    }
+
+    try {
         const stats = await GetStats();
         if (!stats) return;
 
