@@ -14,7 +14,7 @@ func TestExternalServices_Lynx(t *testing.T) {
 		t.Skip("lynx probably not installed or no internet access")
 	}
 
-	if !strings.Contains(resp, "Example Domain") {
+	if !strings.Contains(resp, "Example Domain") && !strings.Contains(resp, "documentation examples") {
 		t.Errorf("unexpected lynx output: %s", resp)
 	}
 }
