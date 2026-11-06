@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,6 +52,13 @@ func (a *App) QuitServers() {
 	if a.agentSession != nil {
 		a.agentSession.Abort()
 	}
+
+	// Attempt graceful shutdown of local HTTP server if accessible
+	go func() {
+		client := &http.Client{Timeout: 500 * time.Millisecond}
+		_, _ = client.Post("http://127.0.0.1:8080/system/shutdown", "application/json", nil)
+	}()
+
 	if a.ctx != nil {
 		runtime.Quit(a.ctx)
 	}
