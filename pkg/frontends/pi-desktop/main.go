@@ -17,9 +17,18 @@ func main() {
 	app := NewApp()
 
 	appMenu := menu.NewMenu()
+
 	fileMenu := appMenu.AddSubmenu("File")
 	fileMenu.AddText("Quit Pi Agent", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
 		app.QuitServers()
+	})
+
+	sessionMenu := appMenu.AddSubmenu("Session")
+	sessionMenu.AddText("New Session", keys.CmdOrCtrl("n"), func(_ *menu.CallbackData) {
+		app.NewSession()
+	})
+	sessionMenu.AddText("Cycle Model", keys.CmdOrCtrl("p"), func(_ *menu.CallbackData) {
+		app.CycleModel()
 	})
 
 	err := wails.Run(&options.App{
