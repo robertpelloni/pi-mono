@@ -494,6 +494,17 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         clearChildren(messagesEl);
     }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        operationsDrawer.classList.toggle('collapsed');
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'q') {
+        e.preventDefault();
+        if (confirm('Quit Pi Agent and shutdown server processes?')) {
+            addSystemMessage('Shutting down Pi server...', 'error');
+            if (QuitServers) QuitServers();
+        }
+    }
 });
 
 // ── Start ──

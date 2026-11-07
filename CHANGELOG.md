@@ -25,8 +25,9 @@
 
 ### Added
 
-- **Phase C Single-Page Dashboard Consolidation**: Consolidated fragmented desktop features into a unified single-page layout in `pkg/frontends/pi-desktop/frontend/` with real-time token/cost/context telemetry pills, interactive clean-room tool chips, and collapsible operations drawer.
-- **Server Lifecycle & Graceful Shutdown**: Implemented `/system/shutdown` and `ShutdownChan()` in `pkg/server/server.go`, paired with `File -> Quit Pi Agent` application menu in Wails desktop app and UI shutdown triggers.
+- **Phase C Single-Page Dashboard Consolidation**: Consolidated fragmented desktop features into a unified single-page layout in `pkg/frontends/pi-desktop/frontend/` with real-time token/cost/context telemetry pills, interactive clean-room tool chips, and collapsible operations drawer with smooth cubic-bezier transitions.
+- **Server Lifecycle & Desktop Menu Integration**: Implemented `/system/shutdown` and `ShutdownChan()` in `pkg/server/server.go`. Expanded Wails desktop menu with `File -> Quit Pi Agent` (`Ctrl+Q`), `Session -> New Session` (`Ctrl+N`), and `Session -> Cycle Model` (`Ctrl+P`), along with `Ctrl+D` operations drawer toggle and graceful server shutdown calls from `QuitServers()`.
+- **Clean Room Tool Path Security**: Enforced workspace root confinement via `validatePath` on Claude Code custom handlers (`handleClaudeCodeEdit`, `handleClaudeCodeListFiles`) with unit test validation in `pkg/ai/security_test.go`.
 - **Monorepo & CI Stabilization**: Fixed TypeScript ESM `.js` import specifiers across packages, migrated test suites from deprecated `@earendil-works/` namespace to `@mariozechner/`, and optimized GitHub Actions CI runner parameters.
 - **Phase B UI Enhancements**: Implemented editor component, markdown rendering (per-message), overlay stack (with help overlay via `?` key), spinner during generation, autocomplete providers with fuzzy matching.
 - **Repository Synchronization**: Added upstream remote (`earendil-works/pi`), fetched all remotes/tags, cleaned up 6 fully merged feature branches.

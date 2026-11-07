@@ -130,10 +130,19 @@ body {
     align-items: center;
     gap: 16px;
     flex-shrink: 0;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 200px;
+    opacity: 1;
+    overflow: hidden;
 }
 
 .operations-drawer.collapsed {
-    display: none;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    border-bottom-color: transparent;
+    pointer-events: none;
 }
 
 .drawer-section h3 {
@@ -157,6 +166,14 @@ body {
     border-radius: 4px;
     font-size: 11px;
     border: 1px solid var(--border);
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.chip:hover {
+    border-color: var(--accent-dim);
+    color: var(--text-primary);
+    background: rgba(0, 212, 170, 0.08);
 }
 
 .drawer-btn {
@@ -167,11 +184,13 @@ body {
     border-radius: 4px;
     cursor: pointer;
     font-size: 11px;
+    transition: all 0.15s ease;
 }
 
 .drawer-btn:hover {
     border-color: var(--accent);
     color: var(--accent);
+    transform: translateY(-1px);
 }
 
 .drawer-btn.danger {
