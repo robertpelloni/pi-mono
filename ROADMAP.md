@@ -34,4 +34,4 @@ This document contains major long-term structural plans for the project.
 - [x] Phase 20: Extended Assimilation - Claude Desktop, Claude Code, Codex Desktop, Codex CLI. Next up: Gemini-CLI and Hermes Desktop.
 - [x] Phase B: UI Enhancements - Editor component, markdown rendering (per-message), overlay stack (with help overlay), spinner during generation, autocomplete providers with fuzzy matching.
 - [x] Phase C: Single-Page Dashboard Consolidation & System Tray Integration - Consolidated all fragmented dashboard features into one unified single-page workspace with intuitive tooltips, real-time telemetry, and graceful server/tray controls (`/system/shutdown`).
-- [ ] Phase D: Community Plugin Hub & Dynamic Extension RPC.
+- [x] Phase D: Community Plugin Hub & Dynamic Extension Lifecycle - Implemented thread-safe extension lifecycle engine (Enable, Disable, IsEnabled, List) and comprehensive plugin authoring architecture.
