@@ -79,3 +79,42 @@ func TestExtension_Fields(t *testing.T) {
 		t.Error("Field mismatch")
 	}
 }
+
+func TestExtensionLifecycleHelpers(t *testing.T) {
+	testName := "pi-better-ctx"
+
+	// Initially disabled
+	if IsEnabled(testName) {
+		t.Errorf("expected %s to be disabled initially", testName)
+	}
+
+	// Enable
+	if err := Enable(testName); err != nil {
+		t.Fatalf("unexpected error enabling %s: %v", testName, err)
+	}
+	if !IsEnabled(testName) {
+		t.Errorf("expected %s to be enabled after Enable()", testName)
+	}
+
+	// Disable
+	if err := Disable(testName); err != nil {
+		t.Fatalf("unexpected error disabling %s: %v", testName, err)
+	}
+	if IsEnabled(testName) {
+		t.Errorf("expected %s to be disabled after Disable()", testName)
+	}
+
+	// Non-existent error handling
+	if err := Enable("non-existent-plugin"); err == nil {
+		t.Errorf("expected error enabling non-existent extension")
+	}
+	if err := Disable("non-existent-plugin"); err == nil {
+		t.Errorf("expected error disabling non-existent extension")
+	}
+
+	// List
+	list := List()
+	if len(list) != len(Registry) {
+		t.Errorf("expected List() length %d, got %d", len(Registry), len(list))
+	}
+}
