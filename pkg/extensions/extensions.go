@@ -118,6 +118,37 @@ var (
 }
 )
 
+// Validate checks an extension for structural and semantic validity.
+func Validate(ext *Extension) error {
+	if ext == nil {
+		return fmt.Errorf("extension cannot be nil")
+	}
+	if ext.Name == "" {
+		return fmt.Errorf("extension name cannot be empty")
+	}
+	if ext.Description == "" {
+		return fmt.Errorf("extension %q must have a non-empty description", ext.Name)
+	}
+	return nil
+}
+
+// Register adds a new community extension to the global registry dynamically.
+func Register(ext *Extension) error {
+	if err := Validate(ext); err != nil {
+		return fmt.Errorf("invalid extension: %w", err)
+	}
+
+	registryMu.Lock()
+	defer registryMu.Unlock()
+
+	if _, exists := Registry[ext.Name]; exists {
+		return fmt.Errorf("extension %q is already registered", ext.Name)
+	}
+
+	Registry[ext.Name] = ext
+	return nil
+}
+
 // Enable activates an extension by name and invokes its EnableFunc.
 func Enable(name string) error {
 	registryMu.Lock()

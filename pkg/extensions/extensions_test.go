@@ -118,3 +118,46 @@ func TestExtensionLifecycleHelpers(t *testing.T) {
 		t.Errorf("expected List() length %d, got %d", len(Registry), len(list))
 	}
 }
+
+func TestRegisterAndValidate(t *testing.T) {
+	// Nil extension
+	if err := Validate(nil); err == nil {
+		t.Errorf("expected error validating nil extension")
+	}
+
+	// Missing name
+	if err := Validate(&Extension{Description: "desc"}); err == nil {
+		t.Errorf("expected error validating extension with empty name")
+	}
+
+	// Missing description
+	if err := Validate(&Extension{Name: "ext"}); err == nil {
+		t.Errorf("expected error validating extension with empty description")
+	}
+
+	// Valid extension registration
+	newExt := &Extension{
+		Name:        "community-plugin-test",
+		Description: "A test community extension",
+		Enabled:     false,
+	}
+
+	if err := Register(newExt); err != nil {
+		t.Fatalf("unexpected error registering extension: %v", err)
+	}
+
+	// Duplicate registration error
+	if err := Register(newExt); err == nil {
+		t.Errorf("expected error registering duplicate extension")
+	}
+
+	// Ensure registered in Registry and searchable
+	if !IsEnabled(newExt.Name) && newExt.Enabled {
+		t.Errorf("expected newly registered extension to match default state")
+	}
+
+	// Clean up for subsequent tests
+	registryMu.Lock()
+	delete(Registry, newExt.Name)
+	registryMu.Unlock()
+}
