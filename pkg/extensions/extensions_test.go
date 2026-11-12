@@ -79,3 +79,85 @@ func TestExtension_Fields(t *testing.T) {
 		t.Error("Field mismatch")
 	}
 }
+
+func TestExtensionLifecycleHelpers(t *testing.T) {
+	testName := "pi-better-ctx"
+
+	// Initially disabled
+	if IsEnabled(testName) {
+		t.Errorf("expected %s to be disabled initially", testName)
+	}
+
+	// Enable
+	if err := Enable(testName); err != nil {
+		t.Fatalf("unexpected error enabling %s: %v", testName, err)
+	}
+	if !IsEnabled(testName) {
+		t.Errorf("expected %s to be enabled after Enable()", testName)
+	}
+
+	// Disable
+	if err := Disable(testName); err != nil {
+		t.Fatalf("unexpected error disabling %s: %v", testName, err)
+	}
+	if IsEnabled(testName) {
+		t.Errorf("expected %s to be disabled after Disable()", testName)
+	}
+
+	// Non-existent error handling
+	if err := Enable("non-existent-plugin"); err == nil {
+		t.Errorf("expected error enabling non-existent extension")
+	}
+	if err := Disable("non-existent-plugin"); err == nil {
+		t.Errorf("expected error disabling non-existent extension")
+	}
+
+	// List
+	list := List()
+	if len(list) != len(Registry) {
+		t.Errorf("expected List() length %d, got %d", len(Registry), len(list))
+	}
+}
+
+func TestRegisterAndValidate(t *testing.T) {
+	// Nil extension
+	if err := Validate(nil); err == nil {
+		t.Errorf("expected error validating nil extension")
+	}
+
+	// Missing name
+	if err := Validate(&Extension{Description: "desc"}); err == nil {
+		t.Errorf("expected error validating extension with empty name")
+	}
+
+	// Missing description
+	if err := Validate(&Extension{Name: "ext"}); err == nil {
+		t.Errorf("expected error validating extension with empty description")
+	}
+
+	// Valid extension registration
+	newExt := &Extension{
+		Name:        "community-plugin-test",
+		Description: "A test community extension",
+		Enabled:     false,
+	}
+
+	if err := Register(newExt); err != nil {
+		t.Fatalf("unexpected error registering extension: %v", err)
+	}
+
+	// Duplicate registration error
+	if err := Register(newExt); err == nil {
+		t.Errorf("expected error registering duplicate extension")
+	}
+
+	// Ensure registered in Registry and searchable
+	if !IsEnabled(newExt.Name) && newExt.Enabled {
+		t.Errorf("expected newly registered extension to match default state")
+	}
+
+	// Clean up for subsequent tests
+	registryMu.Lock()
+	delete(Registry, newExt.Name)
+	registryMu.Unlock()
+}

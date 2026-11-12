@@ -34,11 +34,7 @@ This document contains major long-term structural plans for the project.
   - Implemented `max_completion_tokens` allocation and dynamic `reasoning_effort` mapping based on user-defined thinking constraints.
 - [x] Phase 19: Ultimate LLM Harness - Core routing engine and Tabby/Warp assimilation.
 - [x] Robust CI/CD & Unit Testing: Integrated Go 1.24+ CI pipeline and expanded test coverage.
-- [x] Phase 20: Extended Assimilation - Claude Desktop, Claude Code, Codex Desktop, Codex CLI, Gemini-CLI, and Hermes Desktop.
-- [ ] Phase 21: Community Plugin Hub
-  - Build out the Go-based extension system (`pkg/plugins`) to support community-contributed capabilities.
-  - Establish dynamic tool registration and `Validate()` pre-flight lifecycle hooks.
-  - Implement external dependency resolvers (e.g., verifying `gofmt` or `npm` are installed before registering a plugin).
-  - Add native IPC (gRPC or unix sockets) to allow plugins written in other languages to interface with the Go harness.
-- [ ] Phase 22: Schema Flattening Engine
-  - Refactor `MapCleanRoomParams` to recursively flatten nested structures (like Tabby `segments` or Warp `params`) to eliminate hardcoded switch statements in the execution harness.
+- [x] Phase 20: Extended Assimilation - Claude Desktop, Claude Code, Codex Desktop, Codex CLI. Next up: Gemini-CLI and Hermes Desktop.
+- [x] Phase B: UI Enhancements - Editor component, markdown rendering (per-message), overlay stack (with help overlay), spinner during generation, autocomplete providers with fuzzy matching.
+- [x] Phase C: Single-Page Dashboard Consolidation & System Tray Integration - Consolidated all fragmented dashboard features into one unified single-page workspace with intuitive tooltips, real-time telemetry, and graceful server/tray controls (`/system/shutdown`).
+- [x] Phase D: Community Plugin Hub & Dynamic Extension Lifecycle - Implemented thread-safe extension lifecycle engine (Enable, Disable, IsEnabled, List) and comprehensive plugin authoring architecture.
